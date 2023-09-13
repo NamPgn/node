@@ -30,7 +30,6 @@ export const deleteCartController = async (req, res) => {
   try {
     const product = req.params.id; //id thằng cart
     const userId = req.body.userId; //user id th user
-
     const user = await Auth.findById(userId);
     user.cart = user.cart.filter((item) => item.product.toString() !== product);
     await user.save();
@@ -39,10 +38,14 @@ export const deleteCartController = async (req, res) => {
       $pull: { cart: { product: product } },
     }, { new: true }).exec();
     return res.status(200).json({
+      success: true,
       data: d,
       message: 'Delete thành công!'
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({
+      error: error.message,
+      success: false,
+    });
   }
 }
