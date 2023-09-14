@@ -39,10 +39,14 @@ export const deleteCartController = async (req, res) => {
       $pull: { cart: { product: product } },
     }, { new: true }).exec();
     return res.status(200).json({
+      success: true,
       data: d,
       message: 'Delete thành công!'
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ 
+      error: error.message ,
+      success: false,
+    });
   }
 }

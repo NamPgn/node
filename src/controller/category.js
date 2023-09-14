@@ -219,9 +219,13 @@ export const deleteCategoryController = async (req, res) => {
     await WeekCategory.findByIdAndUpdate(data.week, {
       $pull: { category: data._id },
     });
-    return res.json(data);
+    return res.json({
+      data:data,
+      success: true,
+    });
   } catch (error) {
     return res.status(400).json({
+      success: false,
       message: error.message,
     });
   }
