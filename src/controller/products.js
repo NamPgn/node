@@ -15,12 +15,12 @@ import WeekCategory from "../module/week.category";
 import { DEFAULT_LIMIT } from "../constans/constan";
 import redisClient from "../redis";
 const bucketName = process.env.BUCKET_NAME;
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require("cloudinary").v2;
 // Thiết lập Cloudinary
 cloudinary.config({
-  cloud_name: 'daz3lejjo',
-  api_key: '688737596312288',
-  api_secret: '8jT_u3ngBLdt9a0cnaghNp8f7Wg'
+  cloud_name: "daz3lejjo",
+  api_key: "688737596312288",
+  api_secret: "8jT_u3ngBLdt9a0cnaghNp8f7Wg",
 });
 export const getAllProducts = async (req, res) => {
   try {
@@ -31,8 +31,10 @@ export const getAllProducts = async (req, res) => {
     let data;
     if (redisGetdata) {
       // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis để hiển thị theo từng trang
-      await redisClient.set('products', JSON.stringify(All), "EX", 3600); //cappj nhật trong redis server || client
-      const i = page ? redisGetdata.slice(skip, skip + DEFAULT_LIMIT) : redisGetdata;
+      await redisClient.set("products", JSON.stringify(All), "EX", 3600); //cappj nhật trong redis server || client
+      const i = page
+        ? redisGetdata.slice(skip, skip + DEFAULT_LIMIT)
+        : redisGetdata;
       data = i;
     } else {
       // Nếu không có dữ liệu trong Redis, lấy toàn bộ dữ liệu từ database và lưu vào Redis
@@ -67,7 +69,7 @@ export const getOne = async (req, res) => {
     }
     return res.status(200).json(data);
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return res.status(400).json({
       message: "Không ìm thấy phim",
     });
@@ -94,7 +96,7 @@ export const addProduct = async (req, res) => {
       video2,
     } = req.body;
     // const folderName = "image";
-    const file = req.file
+    const file = req.file;
     if (file) {
       // const video = req.files["file"][0];
       // const filename = req.files["image"][0];
@@ -103,53 +105,57 @@ export const addProduct = async (req, res) => {
       //   res.status(201).json({ message: "không có hình ảnh" });
       // }
 
-      cloudinary.uploader.upload(file.path, {
-        folder: 'products',
-        public_id: req.file.originalname,
-        overwrite: true,
-      }, async (error, result) => {
-        if (error) {
-          return res.status(500).json(error);
-        }
-        const dataAdd = {
-          name: name,
-          category: category || undefined,
-          categorymain: categorymain || undefined,
-          seri: seri || undefined,
-          options: options,
-          descriptions: descriptions,
-          link: video2,
-          image: result.url,
-          uploadDate: new Date(),
-          view: view,
-          copyright: copyright,
-          LinkCopyright: LinkCopyright,
-          typeId: typeId || undefined,
-          year: year,
-          country: country,
-          dailyMotionServer: dailyMotionServer,
-          trailer: trailer
-        };
-        const data = await addPost(dataAdd);
-        if (data.category) {
-          await Category.findByIdAndUpdate(data.category, {
-            $addToSet: { products: data._id },
-          });
-        }
+      cloudinary.uploader.upload(
+        file.path,
+        {
+          folder: "products",
+          public_id: req.file.originalname,
+          overwrite: true,
+        },
+        async (error, result) => {
+          if (error) {
+            return res.status(500).json(error);
+          }
+          const dataAdd = {
+            name: name,
+            category: category || undefined,
+            categorymain: categorymain || undefined,
+            seri: seri || undefined,
+            options: options,
+            descriptions: descriptions,
+            link: video2,
+            image: result.url,
+            uploadDate: new Date(),
+            view: view,
+            copyright: copyright,
+            LinkCopyright: LinkCopyright,
+            typeId: typeId || undefined,
+            year: year,
+            country: country,
+            dailyMotionServer: dailyMotionServer,
+            trailer: trailer,
+          };
+          const data = await addPost(dataAdd);
+          if (data.category) {
+            await Category.findByIdAndUpdate(data.category, {
+              $addToSet: { products: data._id },
+            });
+          }
 
-        if (data.categorymain) {
-          await Categorymain.findByIdAndUpdate(data.categorymain, {
-            $addToSet: { products: data._id },
-          });
-        }
+          if (data.categorymain) {
+            await Categorymain.findByIdAndUpdate(data.categorymain, {
+              $addToSet: { products: data._id },
+            });
+          }
 
-        if (data.typeId) {
-          await Types.findByIdAndUpdate(data.typeId, {
-            $addToSet: { products: data._id },
-          });
-        }
-        return res.status(200).json(data);
-      })
+          if (data.typeId) {
+            await Types.findByIdAndUpdate(data.typeId, {
+              $addToSet: { products: data._id },
+            });
+          }
+          return res.status(200).json(data);
+        },
+      );
       // if (!video) {
       //   res.status(201).send({ message: "No video uploaded." });
       // }
@@ -288,10 +294,14 @@ export const delete_ = async (req, res, next) => {
       });
     }
 
-    cloudinary.uploader.destroy(deletedProduct.image)
+    cloudinary.uploader.destroy(deletedProduct.image);
     const data = await deleteProduct(id);
 
-    return res.json({ message: "Product deleted successfully.", success: true, data: data });
+    return res.json({
+      message: "Product deleted successfully.",
+      success: true,
+      data: data,
+    });
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -303,7 +313,7 @@ export const editProduct = async (req, res, next) => {
   try {
     const id = req.params.id;
     const folderName = "products";
-    const file = req.file
+    const file = req.file;
     const {
       name,
       category,
@@ -327,38 +337,42 @@ export const editProduct = async (req, res, next) => {
       return res.status(404).json({ message: "Product not found." });
     }
     if (file) {
-      cloudinary.uploader.upload(file.path, {
-        folder: folderName,
-        public_id: req.file.originalname,
-        overwrite: true,
-      }, async (error, result) => {
-        if (error) {
-          return res.status(500).json(error);
-        }
-        findById.name = name;
-        findById.seri = seri;
-        findById.descriptions = descriptions;
-        findById.image = result.url;
-        findById.link = link;
-        findById.seri = seri;
-        findById.options = options;
-        findById.copyright = copyright;
-        findById.LinkCopyright = LinkCopyright;
-        findById.trailer = trailer;
-        findById.country = country;
-        findById.year = year;
-        findById.dailyMotionServer = dailyMotionServer;
-        findById.categorymain = categorymain;
-        findById.category = category;
-        findById.typeId = typeId;
-        findById.trailer = trailer;
-        const data = await findById.save();
-        return res.status(200).json({
-          success: true,
-          message: "Dữ liệu sản phẩm đã được cập nhật.",
-          data: data,
-        });
-      })
+      cloudinary.uploader.upload(
+        file.path,
+        {
+          folder: folderName,
+          public_id: req.file.originalname,
+          overwrite: true,
+        },
+        async (error, result) => {
+          if (error) {
+            return res.status(500).json(error);
+          }
+          findById.name = name;
+          findById.seri = seri;
+          findById.descriptions = descriptions;
+          findById.image = result.url;
+          findById.link = link;
+          findById.seri = seri;
+          findById.options = options;
+          findById.copyright = copyright;
+          findById.LinkCopyright = LinkCopyright;
+          findById.trailer = trailer;
+          findById.country = country;
+          findById.year = year;
+          findById.dailyMotionServer = dailyMotionServer;
+          findById.categorymain = categorymain;
+          findById.category = category;
+          findById.typeId = typeId;
+          findById.trailer = trailer;
+          const data = await findById.save();
+          return res.status(200).json({
+            success: true,
+            message: "Dữ liệu sản phẩm đã được cập nhật.",
+            data: data,
+          });
+        },
+      );
     } else {
       if (findById.category) {
         await Category.findByIdAndUpdate(findById.category, {
@@ -542,7 +556,7 @@ export const getAllProductsByCategory = async (req, res) => {
     //     }
     //   }
     // ]);
-    const data = await Products.find({ category: categoryId })
+    const data = await Products.find({ category: categoryId });
     data.sort((a, b) => parseInt(b.seri) - parseInt(a.seri));
     res.status(200).json(data);
     //Trong đó:
@@ -564,7 +578,7 @@ export const findCommentByIdProduct = async (req, res) => {
     const _id = { _id: req.params.id };
     const data = await Products.findById(_id).populate(
       "comments.user",
-      "username image"
+      "username image",
     );
     res.json(data);
   } catch (error) {
