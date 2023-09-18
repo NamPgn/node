@@ -313,7 +313,7 @@ export const editProduct = async (req, res, next) => {
   try {
     const id = req.params.id;
     const folderName = "products";
-    const file = req.file;
+    const file = req.file
     const {
       name,
       category,
@@ -329,6 +329,7 @@ export const editProduct = async (req, res, next) => {
       trailer,
       dailyMotionServer,
       link,
+      view
     } = req.body;
     // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
@@ -337,42 +338,39 @@ export const editProduct = async (req, res, next) => {
       return res.status(404).json({ message: "Product not found." });
     }
     if (file) {
-      cloudinary.uploader.upload(
-        file.path,
-        {
-          folder: folderName,
-          public_id: req.file.originalname,
-          overwrite: true,
-        },
-        async (error, result) => {
-          if (error) {
-            return res.status(500).json(error);
-          }
-          findById.name = name;
-          findById.seri = seri;
-          findById.descriptions = descriptions;
-          findById.image = result.url;
-          findById.link = link;
-          findById.seri = seri;
-          findById.options = options;
-          findById.copyright = copyright;
-          findById.LinkCopyright = LinkCopyright;
-          findById.trailer = trailer;
-          findById.country = country;
-          findById.year = year;
-          findById.dailyMotionServer = dailyMotionServer;
-          findById.categorymain = categorymain;
-          findById.category = category;
-          findById.typeId = typeId;
-          findById.trailer = trailer;
-          const data = await findById.save();
-          return res.status(200).json({
-            success: true,
-            message: "Dữ liệu sản phẩm đã được cập nhật.",
-            data: data,
-          });
-        },
-      );
+      cloudinary.uploader.upload(file.path, {
+        folder: folderName,
+        public_id: req.file.originalname,
+        overwrite: true,
+      }, async (error, result) => {
+        if (error) {
+          return res.status(500).json(error);
+        }
+        findById.name = name;
+        findById.seri = seri;
+        findById.view = view;
+        findById.descriptions = descriptions;
+        findById.image = result.url;
+        findById.link = link;
+        findById.seri = seri;
+        findById.options = options;
+        findById.copyright = copyright;
+        findById.LinkCopyright = LinkCopyright;
+        findById.trailer = trailer;
+        findById.country = country;
+        findById.year = year;
+        findById.dailyMotionServer = dailyMotionServer;
+        findById.categorymain = categorymain;
+        findById.category = category;
+        findById.typeId = typeId;
+        findById.trailer = trailer;
+        const data = await findById.save();
+        return res.status(200).json({
+          success: true,
+          message: "Dữ liệu sản phẩm đã được cập nhật.",
+          data: data,
+        });
+      })
     } else {
       if (findById.category) {
         await Category.findByIdAndUpdate(findById.category, {
@@ -406,7 +404,7 @@ export const editProduct = async (req, res, next) => {
       findById.name = name;
       findById.seri = seri;
       findById.descriptions = descriptions;
-      findById.seri = seri;
+      findById.view = view;
       findById.options = options;
       findById.copyright = copyright;
       findById.LinkCopyright = LinkCopyright;
@@ -418,6 +416,7 @@ export const editProduct = async (req, res, next) => {
       findById.category = category;
       findById.typeId = typeId;
       findById.trailer = trailer;
+      findById.link = link;
       const data = await findById.save();
       return res.status(200).json({
         success: true,
