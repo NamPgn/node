@@ -15,7 +15,6 @@ import routerCategorymain from "./routes/categorymain.js";
 import routerImage from './routes/image.user'
 import serviceAccount from "../public/path/mystorage-265d8-firebase-adminsdk-4jj90-9c56ceaf71.json";
 import routerWeek from "./routes/week.category";
-const CryptoJS = require('crypto-js');
 const port = process.env.PORT || 3000;
 
 const routers = [
@@ -33,8 +32,20 @@ const routers = [
 ];
 
 const app = express();
+const limiter = require('express-limiter')(app);
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+// Thiết lập giới hạn yêu cầu cho tất cả các route
+limiter({
+  path: '/',
+  method: 'post',
+  lookup: ['connection.remoteAddress'],
+  total: 50, // Số lượng yêu cầu tối đa trong một khoảng thời gian
+  expire: 1000 * 60 * 60, // 1 giờ
+  message: 'Quá nhiều yêu cầu, vui lòng thử lại sau một giờ.'
+});
+
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://tromphim.netlify.app');
   next();

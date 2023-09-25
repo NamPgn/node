@@ -319,7 +319,9 @@ export const editProduct = async (req, res, next) => {
       trailer,
       dailyMotionServer,
       link,
+      view
     } = req.body;
+    console.log(req.body)
     // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
     // Kiểm tra sản phẩm có tồn tại trong CSDL hay không
@@ -337,6 +339,7 @@ export const editProduct = async (req, res, next) => {
         }
         findById.name = name;
         findById.seri = seri;
+        findById.view = view;
         findById.descriptions = descriptions;
         findById.image = result.url;
         findById.link = link;
@@ -392,7 +395,7 @@ export const editProduct = async (req, res, next) => {
       findById.name = name;
       findById.seri = seri;
       findById.descriptions = descriptions;
-      findById.seri = seri;
+      findById.view = view;
       findById.options = options;
       findById.copyright = copyright;
       findById.LinkCopyright = LinkCopyright;
@@ -404,6 +407,7 @@ export const editProduct = async (req, res, next) => {
       findById.category = category;
       findById.typeId = typeId;
       findById.trailer = trailer;
+      findById.link = link;
       const data = await findById.save();
       return res.status(200).json({
         success: true,
@@ -509,13 +513,13 @@ export const deleteMultipleProduct = async (req, res) => {
       },
     });
     return res.status(200).json({
-      success:true,
+      success: true,
       data: data,
       id: id,
     });
   } catch (error) {
     return res.status(400).json({
-      success:false,
+      success: false,
       message: error.message,
     });
   }
