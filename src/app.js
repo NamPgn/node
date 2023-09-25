@@ -12,10 +12,9 @@ import admin from "firebase-admin";
 import routerCart from "./routes/cart.js";
 import routerTypes from "./routes/types.js";
 import routerCategorymain from "./routes/categorymain.js";
-import routerImage from './routes/image.user'
+import routerImage from "./routes/image.user";
 import serviceAccount from "../public/path/mystorage-265d8-firebase-adminsdk-4jj90-9c56ceaf71.json";
 import routerWeek from "./routes/week.category";
-const CryptoJS = require('crypto-js');
 const port = process.env.PORT || 3000;
 
 const routers = [
@@ -29,18 +28,29 @@ const routers = [
   routerTypes,
   routerCategorymain,
   routerWeek,
-  routerImage
+  routerImage,
 ];
 
 const app = express();
+const limiter = require("express-limiter")(app);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://tromphim.netlify.app');
+  res.setHeader("Access-Control-Allow-Origin", "https://tromphim.netlify.app");
   next();
 });
 
 app.use(cors());
+limiter({
+  path: "/",
+  method: "post",
+  lookup: ["connection.remoteAddress"],
+  total: 50, // Số lượng yêu cầu tối đa trong một khoảng thời gian
+  expire: 1000 * 60 * 60, // 1 giờ
+  message: "Quá nhiều yêu cầu, vui lòng thử lại sau một giờ.",
+});
+
 routers.map((router) => app.use("/api", router));
 
 app.get("/", (req, res) => {
@@ -63,8 +73,7 @@ app.listen(port, async () => {
   console.log(`Server is running on: http://localhost:${port}`);
 });
 
-
-const key = 'my-secret-key';
+const key = "my-secret-key";
 // const encryptedData = CryptoJS.AES.encrypt(JSON.stringify(data), key).toString();
 console.log(key);
 // const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);

@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 
 export const getAllCommentsControllers = async (req, res) => {
   try {
-    const data = await Comments.find().populate('user', 'username role image' ).populate('product', 'name seri');
+    const data = await Comments.find().populate('user', 'username role image' ).populate('product', 'name seri category');
     res.json(data);
   } catch (error) {
     return res.status(400).json({
@@ -53,10 +53,10 @@ export const addCommentController = async (req, res) => {
   try {
     const dataAdd = req.body;
     const _id = req.params.id;
-    await Products.findByIdAndUpdate(_id, {
-      $push: { comments: { commentContent: dataAdd.commentContent, user: dataAdd.user } },
-    })
     const data = await new Comments(dataAdd).save();
+    await Products.findByIdAndUpdate(_id, {
+      $push: { comments: data },
+    }, { new: true });
     res.json(data);
   } catch (error) {
     return res.status(400).json({
@@ -68,13 +68,24 @@ export const addCommentController = async (req, res) => {
 
 export const deleteComment = async (req, res) => {
   try {
-    const _id = req.params.id;
-    const data = await Comments.findOneAndDelete({ '_id': _id });
-    res.status(200).json(data);
+    const { productId, commentId } = req.body;
+
+    const deletedComment = await Comments.findOneAndDelete({ '_id': commentId });
+    if (!deletedComment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    const updatedProduct = await Products.findByIdAndUpdate(productId, {
+      $pull: { comments: { _id: commentId } }
+    }, { new: true });
+    if (updatedProduct) {
+      return res.status(200).json({ success: true });
+    } else {
+      return res.status(404).json({ error: 'Product not found' });
+    }
   } catch (error) {
-    return res.status(400).json({
-      message: error.message
-    })
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
   }
 }
 
