@@ -22,6 +22,7 @@ export const getAll = async (req, res) => {
     const skip = (page - 1) * default_limit; //số lượng bỏ qua
     let category;
     if (resdisData) {
+      await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
       const i = page ? resdisData.slice(skip, skip + default_limit) : resdisData;
       category = i;
     } else {

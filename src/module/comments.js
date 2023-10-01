@@ -12,7 +12,9 @@ const CommentSchema = new Schema({
     type: ObjectId,
     ref: "Products"
   },
-
+  date: {
+    type: Date,
+  },
 }, { timestamps: true });
 
 export default mongoose.model('Comment', CommentSchema);

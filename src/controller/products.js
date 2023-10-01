@@ -148,7 +148,11 @@ export const addProduct = async (req, res) => {
             $addToSet: { products: data._id },
           });
         }
-        return res.status(200).json(data);
+        res.status(200).json({
+          success: true,
+          message: "Added product successfully",
+          data: data,
+        });
       })
       // if (!video) {
       //   res.status(201).send({ message: "No video uploaded." });
