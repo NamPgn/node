@@ -153,7 +153,11 @@ export const addProduct = async (req, res) => {
               $addToSet: { products: data._id },
             });
           }
-          return res.status(200).json(data);
+          return res.status(200).json({
+            success: true,
+            message: "Added product successfully",
+            data: data,
+          });
         },
       );
       // if (!video) {
