@@ -273,3 +273,17 @@ export const push = async (req, res) => {
     });
   }
 };
+export const filterCategoryTrending = async (req, res) => {
+  try {
+    const data = await Category.find().sort({ 'up': -1 }).limit(10);
+    return res.json({
+      data: data,
+      success: true,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
