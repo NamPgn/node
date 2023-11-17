@@ -71,7 +71,7 @@ router.put(
   checkToken,
   requiredSignin,
   isAuth,
-  isAdmin,
+  isSuperAdmin,
   uploadServer.single("image"),
   editProduct
 );
@@ -89,8 +89,8 @@ router.post(
   checkToken,
   requiredSignin,
   isAuth,
-  isAdmin,
-  deleteMultipleProduct
+  isSuperAdmin,
+  deleteMultipleProduct,
 );
 router.post(
   "/product/pushlist/:id/:userId",

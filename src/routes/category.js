@@ -15,6 +15,7 @@ import {
   checkToken,
   isAdmin,
   isAuth,
+  isSuperAdmin,
   requiredSignin,
 } from "../middlewares/checkAuth";
 import { uploadCategory } from "../services/upload";
@@ -49,6 +50,7 @@ router.delete(
   requiredSignin,
   isAuth,
   isAdmin,
+  isSuperAdmin,
   deleteCategoryController,
 );
 router.post(
