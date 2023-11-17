@@ -8,7 +8,7 @@ export const get = async (id) => {
   return await Products.findOne({ '_id': id });
 }
 
-export const addPost = async (data) => {
+export const addProduct_ = async (data) => {
   return new Products(data).save();
 }
 

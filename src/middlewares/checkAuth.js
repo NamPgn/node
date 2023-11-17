@@ -1,53 +1,55 @@
-import { expressjwt } from 'express-jwt';
-import jwt from 'jsonwebtoken';
+import { expressjwt } from "express-jwt";
+import jwt from "jsonwebtoken";
 export const requiredSignin = expressjwt({
   algorithms: ["HS256"],
   secret: "nampg",
-  requestProperty: "auth"
+  requestProperty: "auth",
 });
-
 
 export const isAuth = (req, res, next) => {
   const status = req.profile._id == req.auth._id;
   if (!status) {
     return res.status(401).json({
-      message: "Ban khong co quyen truy cap"
-    })
+      message: "Ban khong co quyen truy cap",
+    });
   }
   next();
-}
+};
 
 export const isAdmin = (req, res, next) => {
   if (req.auth.role == 0) {
     return res.status(401).json({
-      message: "Ban khong phai la admin...cuts"
-    })
+      message: "Ban khong phai la admin...",
+    });
   }
   next();
-}
+};
 
 export const isSuperAdmin = (req, res, next) => {
   if (req.auth.role == 1) {
     return res.status(401).json({
-      message: "Ban khong phai la Admin Pro...cuts"
-    })
+      message: "Ban khong phai la Admin Pro...",
+    });
   }
   next();
-}
+};
 
 export const checkToken = (req, res, next) => {
-  const token = req.headers.authorization.split(' ')[1];
-  if (!req.headers.authorization) { //check nếu k có token gửi lên
+  const token = req.headers.authorization.split(" ")[1];
+  if (!req.headers.authorization) {
+    //check nếu k có token gửi lên
     return res.status(401).json({
-      message: "Không được phép"
+      message: "Không được phép",
     });
   }
   jwt.verify(token, process.env.MK, async (error, payload) => {
     if (error) {
-      if (error.name == 'JsonWebTokenError') {
-        return res.status(401).json({ message: 'Token không hợp lệ', code: 401 });
+      if (error.name == "JsonWebTokenError") {
+        return res
+          .status(401)
+          .json({ message: "Token không hợp lệ", code: 401 });
       }
-      if (error.name == 'TokenExpiredError') {
+      if (error.name == "TokenExpiredError") {
         return res.status(401).json({
           message: "Token hết hạn",
         });
@@ -58,6 +60,5 @@ export const checkToken = (req, res, next) => {
     // if (User.role !== 1) return res.status(401).json({ message: "Bạn k có quyền!" });
     // req.user = User;
     next();
-  })
-
-}
+  });
+};

@@ -23,7 +23,10 @@ export const getAll = async (req, res) => {
     let category;
     if (resdisData) {
       await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
-      const i = page ? resdisData.slice(skip, skip + default_limit) : resdisData;
+      await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
+      const i = page
+        ? resdisData.slice(skip, skip + default_limit)
+        : resdisData;
       category = i;
     } else {
       await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
@@ -68,7 +71,18 @@ export const readProductByCategory = async (req, res) => {
 const folderName = "category";
 export const addCt = async (req, res) => {
   try {
-    const { name, linkImg, sumSeri, des, type, week, up } = req.body;
+    const {
+      name,
+      linkImg,
+      sumSeri,
+      des,
+      type,
+      week,
+      up,
+      year,
+      time,
+      isActive,
+    } = req.body;
     const file = req.file;
     const metadatavideo = {
       contentType: file.mimetype,
@@ -91,7 +105,10 @@ export const addCt = async (req, res) => {
         sumSeri: sumSeri,
         type: type,
         week: week,
-        up: up
+        up: up,
+        year: year,
+        time: time,
+        isActive: isActive,
       };
       const cate = await addCategory(newDt);
       await WeekCategory.findByIdAndUpdate(cate.week, {
@@ -115,7 +132,8 @@ export const addCt = async (req, res) => {
 
 export const updateCate = async (req, res) => {
   try {
-    const { name, sumSeri, des, type, week, up } = req.body;
+    const { name, sumSeri, des, type, week, up, time, year, isActive } =
+      req.body;
     const { id } = req.params;
     const newfile = req.file;
     const findById = await Category.findById(id);
@@ -136,24 +154,35 @@ export const updateCate = async (req, res) => {
     findById.sumSeri = sumSeri;
     findById.up = up;
     findById.type = type;
+    findById.time = time;
+    findById.year = year;
+    findById.isActive = isActive;
     if (newfile) {
       const metadataImage = {
         contentType: newfile.mimetype,
       };
-      const fileNameImage = `${folderName}/${Date.now()}-${newfile.originalname}`;
+      const fileNameImage = `${folderName}/${Date.now()}-${
+        newfile.originalname
+      }`;
       const fileImage = admin.storage().bucket(bucketName).file(fileNameImage);
 
       const streamImage = fileImage.createWriteStream({
         metadata: metadataImage,
         resumable: false,
       });
-      const oldImageFileName = findById.linkImg.split(`/`).pop().split('?alt=media')[0]; //lấy sau thằng image vì nó qua folder name là image
-      const decodedImage = decodeURIComponent(oldImageFileName).split('/')[1]; //
-      const oldImageFile = admin.storage().bucket(bucketName).file(`${folderName}/${decodedImage}`); //còn thằng này không có folder mà là lấy chay nên phải lấy ra thằng cuối cùng .
+      const oldImageFileName = findById.linkImg
+        .split(`/`)
+        .pop()
+        .split("?alt=media")[0]; //lấy sau thằng image vì nó qua folder name là image
+      const decodedImage = decodeURIComponent(oldImageFileName).split("/")[1]; //
+      const oldImageFile = admin
+        .storage()
+        .bucket(bucketName)
+        .file(`${folderName}/${decodedImage}`); //còn thằng này không có folder mà là lấy chay nên phải lấy ra thằng cuối cùng .
       if (decodedImage) {
         await oldImageFile.delete();
       }
-      streamImage.on("error", err => {
+      streamImage.on("error", (err) => {
         console.error(err);
         res.status(500).send({ message: "Failed to upload video." });
       });
@@ -161,13 +190,13 @@ export const updateCate = async (req, res) => {
       // Ghi dữ liệu video vào stream
       streamImage.end(newfile.buffer);
       // Xử lý sự kiện khi stream ghi dữ liệu bị lỗi
-      streamImage.on("error", err => {
+      streamImage.on("error", (err) => {
         console.error(err);
         res.status(500).send({ message: "Failed to upload video." });
       });
       //encode url
       const encodedFileName = encodeURIComponent(fileNameImage);
-      streamImage.on('finish', async () => {
+      streamImage.on("finish", async () => {
         const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedFileName}?alt=media`;
         findById.name = name;
         findById.linkImg = imageUrl;
@@ -176,7 +205,9 @@ export const updateCate = async (req, res) => {
         findById.sumSeri = sumSeri;
         findById.up = up;
         findById.type = type;
-
+        findById.time = time;
+        findById.year = year;
+        findById.isActive = isActive;
         // Cập nhật thông tin category tương ứng trong bảng week
 
         // await WeekCategory.findOneAndUpdate(
@@ -191,7 +222,7 @@ export const updateCate = async (req, res) => {
           message: "Dữ liệu sản phẩm đã được cập nhật.",
           data: data,
         });
-      })
+      });
     } else {
       findById.name = name;
       findById.des = des;
@@ -199,6 +230,9 @@ export const updateCate = async (req, res) => {
       findById.sumSeri = sumSeri;
       findById.up = up;
       findById.type = type;
+      findById.time = time;
+      findById.year = year;
+      findById.isActive = isActive;
       await findById.save();
       return res.status(200).json({
         success: true,
@@ -220,9 +254,13 @@ export const deleteCategoryController = async (req, res) => {
     await WeekCategory.findByIdAndUpdate(data.week, {
       $pull: { category: data._id },
     });
-    return res.json(data);
+    return res.json({
+      data: data,
+      success: true,
+    });
   } catch (error) {
     return res.status(400).json({
+      success: false,
       message: error.message,
     });
   }
@@ -264,6 +302,20 @@ export const push = async (req, res) => {
     });
     res.json(newData);
   } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+export const filterCategoryTrending = async (req, res) => {
+  try {
+    const data = await Category.find().sort({ up: -1 }).limit(10);
+    return res.json({
+      data: data,
+      success: true,
+    });
+  } catch (error) {
+    console.log(error);
     return res.status(400).json({
       message: error.message,
     });

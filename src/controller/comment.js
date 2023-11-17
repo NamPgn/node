@@ -3,7 +3,7 @@ import Products from "../module/products";
 
 export const getAllCommentsControllers = async (req, res) => {
   try {
-    const data = await Comments.find().populate('user', 'username role image').populate('product', 'name seri category');
+    const data = await Comments.find().populate('user', 'username role image').populate('product', 'name seri category category');
     res.json(data);
   } catch (error) {
     return res.status(400).json({

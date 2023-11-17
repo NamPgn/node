@@ -2,19 +2,20 @@ import express from "express";
 import "dotenv/config";
 import cors from "cors";
 import mongoose from "mongoose";
-import routerAuth from "./routes/auth";
-import routerProducts from "./routes/products.js";
-import routerCategory from "./routes/category.js";
-import routerPostList from "./routes/post.js";
-import routerTrailer from "./routes/trailer.home";
-import routerComments from "./routes/comment.js";
+import routerAuth from "./src/routes/auth.js";
+import routerProducts from "./src/routes/products.js";
+import routerCategory from "./src/routes/category.js";
+import routerPostList from "./src/routes/post.js";
+import routerTrailer from "./src/routes/trailer.home.js";
+import routerComments from "./src/routes/comment.js";
 import admin from "firebase-admin";
-import routerCart from "./routes/cart.js";
-import routerTypes from "./routes/types.js";
-import routerCategorymain from "./routes/categorymain.js";
-import routerImage from './routes/image.user'
-import serviceAccount from "../public/path/mystorage-265d8-firebase-adminsdk-4jj90-9c56ceaf71.json";
-import routerWeek from "./routes/week.category";
+import routerCart from "./src/routes/cart.js";
+import routerTypes from "./src/routes/types.js";
+import routerCategorymain from "./src/routes/categorymain.js";
+import routerImage from "./src/routes/image.user.js";
+import serviceAccount from "./public/path/mystorage-265d8-firebase-adminsdk-4jj90-9c56ceaf71.json";
+import routerWeek from "./src/routes/week.category.js";
+import routerApprove from "./src/routes/approve.js";
 const port = process.env.PORT || 3000;
 
 const routers = [
@@ -28,34 +29,34 @@ const routers = [
   routerTypes,
   routerCategorymain,
   routerWeek,
-  routerImage
+  routerImage,
+  routerApprove,
 ];
 
 const app = express();
-const limiter = require('express-limiter')(app);
-
+const limiter = require("express-limiter")(app);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-// Thiết lập giới hạn yêu cầu cho tất cả các route
-limiter({
-  path: '/',
-  method: 'post',
-  lookup: ['connection.remoteAddress'],
-  total: 50, // Số lượng yêu cầu tối đa trong một khoảng thời gian
-  expire: 1000 * 60 * 60, // 1 giờ
-  message: 'Quá nhiều yêu cầu, vui lòng thử lại sau một giờ.'
-});
 
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://tromphim.netlify.app');
+  res.setHeader("Access-Control-Allow-Origin", "https://tromphim.netlify.app");
   next();
 });
 
 app.use(cors());
+limiter({
+  path: "/",
+  method: "post",
+  lookup: ["connection.remoteAddress"],
+  total: 50, // Số lượng yêu cầu tối đa trong một khoảng thời gian
+  expire: 1000 * 60 * 60, // 1 giờ
+  message: "Quá nhiều yêu cầu, vui lòng thử lại sau một giờ.",
+});
+
 routers.map((router) => app.use("/api", router));
 
 app.get("/", (req, res) => {
-  res.send("Đmm");
+  res.send("Hiiiiiiiiiiiiiii");
 });
 
 try {
@@ -71,13 +72,10 @@ admin.initializeApp({
 });
 
 app.listen(port, async () => {
-  console.log(`Server is running on: http://localhost:${port}`);
+  console.log(`[server]: Server is running at http://localhost:${port}`);
 });
 
-
-const key = 'my-secret-key';
 // const encryptedData = CryptoJS.AES.encrypt(JSON.stringify(data), key).toString();
-console.log(key);
 // const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
 // const decryptedData = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
