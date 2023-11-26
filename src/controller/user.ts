@@ -49,15 +49,7 @@ export const getone = async (req, res, next) => {
 }
 
 
-export const commented = async (req, res) => {
-    try {
-        const data = req.body;
-        const textComment = await addPost(data);
-        res.json(textComment);
-    } catch (error) {
-        return res.status(400).json({ error: error.message });
-    }
-}
+
 
 
 export const findCartByUser = async (req, res) => {

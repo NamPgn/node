@@ -1,13 +1,8 @@
+import cloudinary from "../config/cloudinary";
 import Auth from "../module/auth";
 import imageBackground from "../module/image.background";
 import imageUser from "../module/image.user";
-const cloudinary = require('cloudinary').v2;
-// Thiết lập Cloudinary
-cloudinary.config({
-  cloud_name: 'daz3lejjo',
-  api_key: '688737596312288',
-  api_secret: '8jT_u3ngBLdt9a0cnaghNp8f7Wg'
-});
+
 
 
 export const uploadUserImageToCloudDinary = (req, res) => {

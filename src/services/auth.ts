@@ -10,7 +10,7 @@ export const getDataUser = async (data) => {
     return await User.findOne(data);
 }
 //get all
-export const getAll = async (req, res) => {
+export const getAll = async () => {
     return await User.find();
 }
 

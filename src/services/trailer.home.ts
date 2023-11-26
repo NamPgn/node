@@ -8,4 +8,4 @@ export const editTrailerHomePageUrlSevices = async (id, data) => {
   return await trailerHomePageModel.findByIdAndUpdate(id, data);
 }
 
-export const getTrailerUrlSevices = async (id) => await trailerHomePageModel.findOne();
+export const getTrailerUrlSevices = async () => await trailerHomePageModel.findOne();

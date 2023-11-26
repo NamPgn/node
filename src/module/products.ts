@@ -1,6 +1,5 @@
 import mongoose, { Schema } from "mongoose";
 const { ObjectId } = mongoose.Types;
-import mongoosePaginate from "mongoose-paginate-v2";
 const productSchema = new Schema(
   {
     name: {
@@ -79,13 +78,12 @@ const productSchema = new Schema(
     trailer: {
       type: String,
     },
-    isApproved:{
+    isApproved: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   { timestamps: true, validateBeforeSave: false }
 );
 productSchema.indexes();
-productSchema.plugin(mongoosePaginate);
 export default mongoose.model("Products", productSchema);

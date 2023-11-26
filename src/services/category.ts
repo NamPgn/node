@@ -1,7 +1,7 @@
 import Category from "../module/category"
 
-export const getAllCategory = async (limit, offset) => {
-  return await Category.find().sort({ 'up': -1 }).limit(limit).skip(offset).exec();
+export const getAllCategory = async () => {
+  return await Category.find().sort({ 'up': -1 }).exec();
 }
 
 export const getCategory = async (id) => {

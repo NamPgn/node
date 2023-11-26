@@ -38,7 +38,7 @@ export const uploadXlxs = async (req, res, next) => {
     let path = req.file.path;
     var workBok = XLSX.readFile(path);
     var sheet_name_list = workBok.SheetNames; //lấy ra cái tên
-    let jsonData = XLSX.utils.sheet_to_json( //về dạng json
+    let jsonData:any = XLSX.utils.sheet_to_json( //về dạng json
       workBok.Sheets[sheet_name_list[0]] //lấy cái bảng đầu tiên
     );
     if (jsonData.lenght == 0) { //kiểm tra neus không có gì thì cút
@@ -65,7 +65,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
     let path = req.file.path;
     var workBok = XLSX.readFile(path);
     var sheet_name_list = workBok.SheetNames; //lấy ra cái tên
-    let jsonData = XLSX.utils.sheet_to_json( //về dạng json
+    let jsonData:any = XLSX.utils.sheet_to_json( //về dạng json
       workBok.Sheets[sheet_name_list[0]] //lấy cái bảng đầu tiên
     );
     if (jsonData.lenght == 0) { //kiểm tra neus không có gì thì cút

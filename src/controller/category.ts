@@ -2,14 +2,12 @@ import {
   addCategory,
   getAllCategory,
   getCategory,
-  updateCategory,
   deleteCategory,
 } from "../services/category";
 import Products from "../module/products";
 import Category from "../module/category";
 import WeekCategory from "../module/week.category";
 import weekCategory from "../module/week.category";
-import admin from "firebase-admin";
 import redisClient from "../redis";
 const bucketName = process.env.BUCKET_NAME;
 export const getAll = async (req, res) => {
@@ -84,45 +82,24 @@ export const addCt = async (req, res) => {
       isActive,
     } = req.body;
     const file = req.file;
-    const metadatavideo = {
-      contentType: file.mimetype,
+
+    const newDt = {
+      name: name,
+      linkImg: linkImg,
+      des: des,
+      sumSeri: sumSeri,
+      type: type,
+      week: week,
+      up: up,
+      year: year,
+      time: time,
+      isActive: isActive,
     };
-
-    const fileName = `${folderName}/${Date.now()}-${file.originalname}`;
-    const files = admin.storage().bucket(bucketName).file(fileName);
-    const streamvideo = files.createWriteStream({
-      metadatavideo,
-      resumable: false,
+    const cate = await addCategory(newDt);
+    await WeekCategory.findByIdAndUpdate(cate.week, {
+      $addToSet: { category: cate._id },
     });
-
-    const encodedFileName = encodeURIComponent(fileName);
-    streamvideo.on("finish", async () => {
-      const url = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedFileName}?alt=media`;
-      const newDt = {
-        name: name,
-        linkImg: url,
-        des: des,
-        sumSeri: sumSeri,
-        type: type,
-        week: week,
-        up: up,
-        year: year,
-        time: time,
-        isActive: isActive,
-      };
-      const cate = await addCategory(newDt);
-      await WeekCategory.findByIdAndUpdate(cate.week, {
-        $addToSet: { category: cate._id },
-      });
-      return res.json(cate);
-    });
-    // Ghi dữ liệu video vào stream
-    streamvideo.end(file.buffer);
-    // Xử lý sự kiện khi stream ghi dữ liệu bị lỗi
-    streamvideo.on("error", (err) => {
-      console.error(err);
-      res.status(500).send({ message: "Failed to upload video." });
-    });
+    return res.status(200).json(cate);
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -138,13 +115,6 @@ export const updateCate = async (req, res) => {
     const newfile = req.file;
     const findById = await Category.findById(id);
 
-    // Xóa tệp hình ảnh cũ từ Firebase Storage
-    // const oldImageFileName = findById.linkImg.split(`/`).pop().split('?alt=media')[0]; //lấy sau thằng image vì nó qua folder name là image
-    // const decodedImage = decodeURIComponent(oldImageFileName).split('/')[1]; //
-    // const oldImageFile = admin.storage().bucket(bucketName).file(`${folderName}/${decodedImage}`); //còn thằng này không có folder mà là lấy chay nên phải lấy ra thằng cuối cùng .
-    // if (decodedImage) {
-    //   await oldImageFile.delete();
-    // }
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
@@ -158,70 +128,22 @@ export const updateCate = async (req, res) => {
     findById.year = year;
     findById.isActive = isActive;
     if (newfile) {
-      const metadataImage = {
-        contentType: newfile.mimetype,
-      };
-      const fileNameImage = `${folderName}/${Date.now()}-${
-        newfile.originalname
-      }`;
-      const fileImage = admin.storage().bucket(bucketName).file(fileNameImage);
+      findById.name = name;
+      // findById.linkImg = imageUrl;
+      findById.des = des;
+      findById.week = week;
+      findById.sumSeri = sumSeri;
+      findById.up = up;
+      findById.type = type;
+      findById.time = time;
+      findById.year = year;
+      findById.isActive = isActive;
+      const data = await findById.save();
 
-      const streamImage = fileImage.createWriteStream({
-        metadata: metadataImage,
-        resumable: false,
-      });
-      const oldImageFileName = findById.linkImg
-        .split(`/`)
-        .pop()
-        .split("?alt=media")[0]; //lấy sau thằng image vì nó qua folder name là image
-      const decodedImage = decodeURIComponent(oldImageFileName).split("/")[1]; //
-      const oldImageFile = admin
-        .storage()
-        .bucket(bucketName)
-        .file(`${folderName}/${decodedImage}`); //còn thằng này không có folder mà là lấy chay nên phải lấy ra thằng cuối cùng .
-      if (decodedImage) {
-        await oldImageFile.delete();
-      }
-      streamImage.on("error", (err) => {
-        console.error(err);
-        res.status(500).send({ message: "Failed to upload video." });
-      });
-
-      // Ghi dữ liệu video vào stream
-      streamImage.end(newfile.buffer);
-      // Xử lý sự kiện khi stream ghi dữ liệu bị lỗi
-      streamImage.on("error", (err) => {
-        console.error(err);
-        res.status(500).send({ message: "Failed to upload video." });
-      });
-      //encode url
-      const encodedFileName = encodeURIComponent(fileNameImage);
-      streamImage.on("finish", async () => {
-        const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedFileName}?alt=media`;
-        findById.name = name;
-        findById.linkImg = imageUrl;
-        findById.des = des;
-        findById.week = week;
-        findById.sumSeri = sumSeri;
-        findById.up = up;
-        findById.type = type;
-        findById.time = time;
-        findById.year = year;
-        findById.isActive = isActive;
-        // Cập nhật thông tin category tương ứng trong bảng week
-
-        // await WeekCategory.findOneAndUpdate(
-        //   { _id: findById.week },
-        //   { $set: { "category.$[elem]": dataEdit } },
-        //   { arrayFilters: [{ "elem._id": dataEdit._id }] }
-        // );
-        const data = await findById.save();
-
-        return res.status(200).json({
-          success: true,
-          message: "Dữ liệu sản phẩm đã được cập nhật.",
-          data: data,
-        });
+      return res.status(200).json({
+        success: true,
+        message: "Dữ liệu sản phẩm đã được cập nhật.",
+        data: data,
       });
     } else {
       findById.name = name;

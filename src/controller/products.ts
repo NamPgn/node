@@ -1,6 +1,5 @@
 import { getAll, addProduct_, deleteProduct } from "../services/products";
 import Products from "../module/products";
-import admin from "firebase-admin";
 import Category from "../module/category";
 import Categorymain from "../module/categorymain";
 import Types from "../module/types";
@@ -8,15 +7,9 @@ import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
 import { DEFAULT_LIMIT } from "../constans/constan";
 import redisClient from "../redis";
-import Approve from "../module/approve";
-const bucketName = process.env.BUCKET_NAME;
-const cloudinary = require("cloudinary").v2;
-// Thiết lập Cloudinary
-cloudinary.config({
-  cloud_name: "daz3lejjo",
-  api_key: "688737596312288",
-  api_secret: "8jT_u3ngBLdt9a0cnaghNp8f7Wg",
-});
+import cloudinary from "../config/cloudinary";
+// import Approve from "../module/approve";
+
 export const getAllProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 0;
@@ -93,7 +86,7 @@ export const addProduct = async (req, res) => {
     // const folderName = "image";
     const file = req.file;
     const user = req.profile;
-    let customId = mongoose.Types.ObjectId();
+    let customId = new mongoose.Types.ObjectId();
     // Kiểm tra quyền hạn của người dùng
     if (user) {
       if (user.role !== 1 && user.role !== 2) {
@@ -139,7 +132,7 @@ export const addProduct = async (req, res) => {
               trailer: trailer,
             };
             // const data = await Approve.create({ products: dataAdd });
-            const data = await Products.create(dataAdd);
+            const data: any = await Products.create(dataAdd);
             if (data.category) {
               await Category.findByIdAndUpdate(data.category, {
                 $addToSet: { products: data.products },
@@ -667,7 +660,7 @@ export const deleteMultipleProduct = async (req, res) => {
 export const getAllProductsByCategory = async (req, res) => {
   try {
     const id = req.params.id;
-    const categoryId = mongoose.Types.ObjectId(id);
+    const categoryId = new mongoose.Types.ObjectId(id);
     // const data = await Products.aggregate([
     //   {
     //     $lookup: {
@@ -775,7 +768,6 @@ export const sendingApprove = async (req, res) => {
     });
   }
 };
-
 
 export const cancelSendingApprove = async (req, res) => {
   try {

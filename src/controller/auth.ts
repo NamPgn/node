@@ -90,7 +90,6 @@ export const singin = async (req, res) => {
         return res.status(200).json({
             code: 200,
             success: true,
-            message: 'Thành công',
             token: tokenAuth,
             message: "Đăng nhập thành công!",
             user: user

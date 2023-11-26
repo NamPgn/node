@@ -1,7 +1,9 @@
+import category from "./module/category";
+
 const updateDocuments = async () => {
   try {
     // Cập nhật tất cả các tài liệu trong bộ sưu tập
-    const result = await Category.updateMany(
+    const result = await category.updateMany(
       {},
       {
         $set: {

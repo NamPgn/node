@@ -1,7 +1,7 @@
 import Products from "../module/products"
 
-export const getAll = async (limit, skip) => {
-  return await Products.find().limit(limit).skip(skip).exec();
+export const getAll = async () => {
+  return await Products.find().exec();
 }
 
 export const get = async (id) => {
