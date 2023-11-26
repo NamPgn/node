@@ -3,8 +3,6 @@ import Auth from "../module/auth";
 import imageBackground from "../module/image.background";
 import imageUser from "../module/image.user";
 
-
-
 export const uploadUserImageToCloudDinary = (req, res) => {
   try {
     const id = req.params.userId;
