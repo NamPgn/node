@@ -6,8 +6,9 @@ import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
 import { DEFAULT_LIMIT } from "../constans/constan";
-import redisClient from "../redis";
+import { cacheData, getDataFromCache } from "../redis";
 import cloudinary from "../config/cloudinary";
+import { Request, Response } from "express";
 // import Approve from "../module/approve";
 
 export const getAllProducts = async (req, res) => {
@@ -15,21 +16,22 @@ export const getAllProducts = async (req, res) => {
     const page = parseInt(req.query.page) || 0;
     const skip = (page - 1) * DEFAULT_LIMIT; // số lượng bỏ qua
     let All = await getAll();
-    const redisGetdata = JSON.parse(await redisClient.get("products"));
-    let data;
+    const redisGetdata:any = await getDataFromCache('products');
+    let data :any;
     if (redisGetdata) {
       // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis để hiển thị theo từng trang
-      await redisClient.set("products", JSON.stringify(All), "EX", 3600); //cappj nhật trong redis server || client
+      // await redisClient.set("products", JSON.stringify(All), "EX", 3600); //cappj nhật trong redis server || client
       const i = page
         ? redisGetdata.slice(skip, skip + DEFAULT_LIMIT)
         : redisGetdata;
       data = i;
     } else {
       // Nếu không có dữ liệu trong Redis, lấy toàn bộ dữ liệu từ database và lưu vào Redis
-      await redisClient.set(`products`, JSON.stringify(All), "EX", 3600);
+      await cacheData('products',All,"EX",3600)
+      // await redisClient.set(`products`, JSON.stringify(All), "EX", 3600);
       data = All;
     }
-    res.status(200).json({
+    return res.status(200).json({
       data: data,
       length: redisGetdata ? redisGetdata.length : All.length,
     });
@@ -40,19 +42,19 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-export const getOne = async (req, res) => {
+export const getOne = async (req:Request, res:Response) => {
   try {
-    const _id = req.params.id.toString();
-    const dataID = await Products.findById(_id)
+    const id = req.params.id.toString();
+    const dataID = await Products.findById(id)
       .populate("comments.user", "username image")
       .populate("category");
     // Lấy dữ liệu từ Redis
-    const redisGetdata = JSON.parse(await redisClient.get(`${_id}`));
-    let data;
+    const redisGetdata = await getDataFromCache(id);
+    let data:any;
     if (redisGetdata) {
       data = dataID;
     } else {
-      await redisClient.set(_id, JSON.stringify(dataID), "EX", 3600);
+      await cacheData(id,dataID,"EX",3600,"NX")
       data = dataID;
     }
     return res.status(200).json(data);
@@ -85,13 +87,7 @@ export const addProduct = async (req, res) => {
     } = req.body;
     // const folderName = "image";
     const file = req.file;
-    const user = req.profile;
-    let customId = new mongoose.Types.ObjectId();
     // Kiểm tra quyền hạn của người dùng
-    if (user) {
-      if (user.role !== 1 && user.role !== 2) {
-        return res.status(403).json({ message: "Bạn không có quyền tạo phim" });
-      }
       if (file) {
         // const video = req.files["file"][0];
         // const filename = req.files["image"][0];
@@ -207,146 +203,48 @@ export const addProduct = async (req, res) => {
 
         // Ghi dữ liệu video vào stream
         // streamvideo.end(video.buffer);
+      } else {
+      const dataAdd = {
+        name: name,
+        category: category || undefined,
+        seri: seri || undefined,
+        options: options,
+        descriptions: descriptions,
+        link: video2,
+        uploadDate: new Date(),
+        view: view,
+        copyright: copyright,
+        LinkCopyright: LinkCopyright,
+        year: year,
+        country: country,
+        dailyMotionServer: dailyMotionServer,
+        video2: video2,
+        trailer: trailer
+      };
+      const data:any = await addProduct_(dataAdd);
+      if (data.category) {
+        await Category.findByIdAndUpdate(data.category, {
+          $addToSet: { products: data.products },
+        });
       }
-    } else {
-      if (file) {
-        // const video = req.files["file"][0];
-        // const filename = req.files["image"][0];
-        //ảnh
-        // if (!filename) {
-        //   res.status(201).json({ message: "không có hình ảnh" });
-        // }
 
-        cloudinary.uploader.upload(
-          file.path,
-          {
-            folder: "products",
-            public_id: req.file.originalname,
-            overwrite: true,
-          },
-          async (error, result) => {
-            if (error) {
-              return res.status(500).json(error);
-            }
-            const dataAdd = {
-              name: name,
-              category: category || undefined,
-              categorymain: categorymain || undefined,
-              seri: seri || undefined,
-              options: options,
-              descriptions: descriptions,
-              link: video2,
-              image: result.url,
-              uploadDate: new Date(),
-              view: view,
-              copyright: copyright,
-              LinkCopyright: LinkCopyright,
-              typeId: typeId || undefined,
-              year: year,
-              country: country,
-              dailyMotionServer: dailyMotionServer,
-              trailer: trailer,
-            };
-            const data = await addProduct_(dataAdd);
-            if (data.category) {
-              await Category.findByIdAndUpdate(data.category, {
-                $addToSet: { products: data._id },
-              });
-            }
-
-            if (data.categorymain) {
-              await Categorymain.findByIdAndUpdate(data.categorymain, {
-                $addToSet: { products: data._id },
-              });
-            }
-
-            if (data.typeId) {
-              await Types.findByIdAndUpdate(data.typeId, {
-                $addToSet: { products: data._id },
-              });
-            }
-            return res.status(200).json({
-              success: true,
-              message: "Added product successfully",
-              data: data,
-            });
-          }
-        );
-        // if (!video) {
-        //   res.status(201).send({ message: "No video uploaded." });
-        // }
-        // const metadataImage = {
-        //   contentType: filename.mimetype,
-        // };
-        // const fileNameimage = `${folderName}/${Date.now()}-${filename.originalname}`;
-        // // Tạo đường dẫn đến file trên Firebase Storage
-        // const file = admin.storage().bucket(bucketName).file(fileNameimage);
-        // // Tạo stream để ghi dữ liệu video vào Firebase Storage
-        // const stream = file.createWriteStream({
-        //   metadataImage,
-        //   resumable: false,
-        // });
-
-        //video
-        // const metadatavideo = {
-        //   contentType: video.mimetype,
-        // };
-        // Tạo tên file mới cho video
-        // const fileNamevideo = `${Date.now()}-${video.originalname ? video.originalname : ""}`;
-        // Tạo đường dẫn đến file trên Firebase Storage
-        // const filevideo = admin.storage().bucket(bucketName).file(fileNamevideo);
-        // Tạo stream để ghi dữ liệu video vào Firebase Storage
-        // const streamvideo = filevideo.createWriteStream({
-        //   metadatavideo,
-        //   resumable: false,
-        // });
-        // const encodedFileName = encodeURIComponent(fileNameimage);
-        // streamvideo &&
-        // stream.on("finish", async () => {
-        //   // const urlvideo = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${fileNamevideo}?alt=media`;
-        //   // const urlimage = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedFileName}?alt=media`;
-
-        // });
-        // stream.on("error", (err) => {
-        //   console.error(err);
-        //   res.status(500).send({ message: "Failed to upload video." });
-        // });
-
-        // Ghi dữ liệu video vào stream
-        // stream.end(filename.buffer);
-        // Xử lý sự kiện khi stream ghi dữ liệu bị lỗi
-        // streamvideo.on("error", (err) => {
-        //   console.error(err);
-        //   res.status(500).send({ message: "Failed to upload video." });
-        // });
-
-        // Ghi dữ liệu video vào stream
-        // streamvideo.end(video.buffer);
+      if (data.categorymain) {
+        await Categorymain.findByIdAndUpdate(data.categorymain, {
+          $addToSet: { products: data.products },
+        });
       }
+
+      if (data.typeId) {
+        await Types.findByIdAndUpdate(data.typeId, {
+          $addToSet: { products: data.products },
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        message: "Added product successfully",
+        data: data,
+      });
     }
-    // else {
-    //   const dataAdd = {
-    //     name: name,
-    //     category: category || undefined,
-    //     seri: seri || undefined,
-    //     options: options,
-    //     descriptions: descriptions,
-    //     link: video2,
-    //     image: imageLink,
-    //     uploadDate: new Date(),
-    //     view: view,
-    //     copyright: copyright,
-    //     LinkCopyright: LinkCopyright,
-    //     year: year,
-    //     country: country,
-    //     dailyMotionServer: dailyMotionServer,
-    //     video2: video2,
-    //     imageLink: imageLink,
-    //     trailer: trailer
-    //   };
-    //   const data = await addProduct_(dataAdd);
-    //   return res.status(200).json(data);
-    // }
     // Xử lý sự kiện khi stream ghi dữ liệu thành công
   } catch (error) {
     res.status(500).json({
@@ -357,7 +255,7 @@ export const addProduct = async (req, res) => {
   }
 };
 
-export const delete_ = async (req, res, next) => {
+export const delProduct = async (req, res, next) => {
   try {
     const id = req.params.id;
     const deletedProduct = await Products.findById(id);

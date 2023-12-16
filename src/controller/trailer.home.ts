@@ -1,6 +1,5 @@
 import trailerHomePageModel from "../module/trailer.home";
 import {
-  getTrailerHomePageUrlSevices,
   getTrailerUrlSevices,
 } from "../services/trailer.home";
 import admin from "firebase-admin";

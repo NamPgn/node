@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import routerAuth from "./src/routes/auth";
 import routerProducts from "./src/routes/products";
 import routerCategory from "./src/routes/category";
-import routerPostList from "./src/routes/post";
 import routerTrailer from "./src/routes/trailer.home";
 import routerComments from "./src/routes/comment";
 import admin from "firebase-admin";
@@ -13,7 +12,6 @@ import routerCart from "./src/routes/cart";
 import routerTypes from "./src/routes/types";
 import routerCategorymain from "./src/routes/categorymain";
 import routerImage from "./src/routes/image.user";
-
 import routerWeek from "./src/routes/week.category";
 import routerApprove from "./src/routes/approve";
 const port = process.env.PORT || 3000;
@@ -36,7 +34,6 @@ const routers = [
   routerAuth,
   routerProducts,
   routerCategory,
-  routerPostList,
   routerTrailer,
   routerComments,
   routerCart,

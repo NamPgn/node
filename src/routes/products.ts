@@ -3,7 +3,7 @@ import { searchCategory } from "../controller/category";
 import {
   addProduct,
   deleteMultipleProduct,
-  delete_,
+  delProduct,
   editProduct,
   getAllProducts,
   getOne,
@@ -15,11 +15,9 @@ import {
   cancelSendingApprove,
 } from "../controller/products";
 import {
-  uploadDinary,
   uploadServer,
   uploadStorageProduct,
   uploadXlxsProducts,
-  uploadvideoandimage,
 } from "../services/upload";
 import {
   checkToken,
@@ -55,7 +53,7 @@ router.delete(
   isAuth,
   isAdmin,
   isSuperAdmin,
-  delete_
+  delProduct
 );
 router.post(
   "/product/:userId",

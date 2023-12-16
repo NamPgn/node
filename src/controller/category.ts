@@ -8,29 +8,33 @@ import Products from "../module/products";
 import Category from "../module/category";
 import WeekCategory from "../module/week.category";
 import weekCategory from "../module/week.category";
-import redisClient from "../redis";
-const bucketName = process.env.BUCKET_NAME;
-export const getAll = async (req, res) => {
+import { cacheData, getDataFromCache } from "../redis";
+import cloudinary from "../config/cloudinary";
+import { Request, Response } from "express";
+interface MulterRequest extends Request {
+  file: any;
+}
+export const getAll = async (req: any, res: Response) => {
   try {
     const default_limit = 20;
     const data = await getAllCategory();
     const page = parseInt(req.query.page) || 0;
     await Category.createIndexes();
-    const resdisData = JSON.parse(await redisClient.get("categorys"));
+    const resdisData = await getDataFromCache('categorys');;
     const skip = (page - 1) * default_limit; //số lượng bỏ qua
-    let category;
+    let category:any;
     if (resdisData) {
-      await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
-      await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
+      // await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
       const i = page
         ? resdisData.slice(skip, skip + default_limit)
         : resdisData;
       category = i;
     } else {
-      await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
+      cacheData('categorys',data, "EX", 3600);
+      // await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
       category = data;
     }
-    res.status(200).json({
+    return res.status(200).json({
       data: category,
       length: data.length,
     });
@@ -42,7 +46,7 @@ export const getAll = async (req, res) => {
   }
 };
 
-export const getOne = async (req, res) => {
+export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const data = await getCategory(id);
@@ -54,10 +58,9 @@ export const getOne = async (req, res) => {
   }
 };
 
-export const readProductByCategory = async (req, res) => {
+export const readProductByCategory = async (req: Request, res: Response) => {
   try {
     const data = await Products.find().populate("category", "name");
-
     return res.json(data);
   } catch (error) {
     return res.status(400).json({
@@ -66,40 +69,47 @@ export const readProductByCategory = async (req, res) => {
   }
 };
 
-const folderName = "category";
-export const addCt = async (req, res) => {
+export const addCt = async (req: MulterRequest, res: Response) => {
+  const folderName = "category";
   try {
-    const {
-      name,
-      linkImg,
-      sumSeri,
-      des,
-      type,
-      week,
-      up,
-      year,
-      time,
-      isActive,
-    } = req.body;
+    const { name, sumSeri, des, type, week, up, year, time, isActive } = req.body;
     const file = req.file;
-
-    const newDt = {
-      name: name,
-      linkImg: linkImg,
-      des: des,
-      sumSeri: sumSeri,
-      type: type,
-      week: week,
-      up: up,
-      year: year,
-      time: time,
-      isActive: isActive,
-    };
-    const cate = await addCategory(newDt);
-    await WeekCategory.findByIdAndUpdate(cate.week, {
-      $addToSet: { category: cate._id },
-    });
-    return res.status(200).json(cate);
+    if (file) {
+      cloudinary.uploader.upload(
+        file.path,
+        {
+          folder: folderName,
+          public_id: req.file.originalname,
+          overwrite: true,
+        },
+        async (error, result: any) => {
+          if (error) {
+            return res.status(500).json(error);
+          }
+          const newDt = {
+            name: name,
+            linkImg: result.url,
+            des: des,
+            sumSeri: sumSeri,
+            type: type,
+            week: week,
+            up: up,
+            year: year,
+            time: time,
+            isActive: isActive,
+          };
+          const cate = await addCategory(newDt);
+          await WeekCategory.findByIdAndUpdate(cate.week, {
+            $addToSet: { category: cate._id },
+          });
+          return res.status(200).json({
+            success: true,
+            message: "Added product successfully",
+            data: cate,
+          });
+        }
+      );
+    }
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -107,44 +117,50 @@ export const addCt = async (req, res) => {
   }
 };
 
-export const updateCate = async (req, res) => {
+export const updateCate = async (req: MulterRequest, res: Response) => {
   try {
+    const folderName = "category";
     const { name, sumSeri, des, type, week, up, time, year, isActive } =
       req.body;
     const { id } = req.params;
-    const newfile = req.file;
+    const file = req.file;
     const findById = await Category.findById(id);
 
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
-    findById.name = name;
-    findById.des = des;
-    findById.week = week;
-    findById.sumSeri = sumSeri;
-    findById.up = up;
-    findById.type = type;
-    findById.time = time;
-    findById.year = year;
-    findById.isActive = isActive;
-    if (newfile) {
-      findById.name = name;
-      // findById.linkImg = imageUrl;
-      findById.des = des;
-      findById.week = week;
-      findById.sumSeri = sumSeri;
-      findById.up = up;
-      findById.type = type;
-      findById.time = time;
-      findById.year = year;
-      findById.isActive = isActive;
-      const data = await findById.save();
-
-      return res.status(200).json({
-        success: true,
-        message: "Dữ liệu sản phẩm đã được cập nhật.",
-        data: data,
-      });
+    if (file) {
+      cloudinary.uploader.upload(
+        file.path,
+        {
+          folder: folderName,
+          public_id: req.file.originalname,
+          overwrite: true,
+        },
+        async (error, result: any) => {
+          if (error) {
+            return res.status(500).json(error);
+          }
+          findById.name = name;
+          findById.des = des;
+          findById.week = week;
+          findById.sumSeri = sumSeri;
+          findById.up = up;
+          findById.type = type;
+          findById.time = time;
+          findById.linkImg = result.url
+          findById.year = year;
+          findById.isActive = isActive;
+          findById.save();
+          await WeekCategory.findByIdAndUpdate(findById.week, {
+            $pull: { category: findById._id },
+          });
+          return res.status(200).json({
+            success: true,
+            message: "Edited product successfully",
+          });
+        }
+      );
     } else {
       findById.name = name;
       findById.des = des;
@@ -155,6 +171,9 @@ export const updateCate = async (req, res) => {
       findById.time = time;
       findById.year = year;
       findById.isActive = isActive;
+      await WeekCategory.findByIdAndUpdate(findById.week, {
+        $pull: { category: findById._id },
+      });
       await findById.save();
       return res.status(200).json({
         success: true,
@@ -169,13 +188,14 @@ export const updateCate = async (req, res) => {
   }
 };
 
-export const deleteCategoryController = async (req, res) => {
+export const deleteCategoryController = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const data = await deleteCategory(id);
     await WeekCategory.findByIdAndUpdate(data.week, {
       $pull: { category: data._id },
     });
+    cloudinary.uploader.destroy(data.linkImg);
     return res.json({
       data: data,
       success: true,
@@ -187,7 +207,7 @@ export const deleteCategoryController = async (req, res) => {
     });
   }
 };
-export const getAllCategoryNotReq = async (req, res) => {
+export const getAllCategoryNotReq = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const data = await Category.find({ _id: { $ne: id } });
@@ -199,14 +219,14 @@ export const getAllCategoryNotReq = async (req, res) => {
   }
 };
 
-export const searchCategory = async (req, res) => {
+export const searchCategory = async (req: Request, res: Response) => {
   try {
-    var searchValue = req.query.value;
+    var searchValue: any = req.query.value;
     var regex = new RegExp(searchValue, "i");
     const data = await Category.find({
       $or: [{ name: regex }],
     });
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -229,6 +249,7 @@ export const push = async (req, res) => {
     });
   }
 };
+
 export const filterCategoryTrending = async (req, res) => {
   try {
     const data = await Category.find().sort({ up: -1 }).limit(10);
