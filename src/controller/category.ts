@@ -20,17 +20,18 @@ export const getAll = async (req: any, res: Response) => {
     const data = await getAllCategory();
     const page = parseInt(req.query.page) || 0;
     await Category.createIndexes();
-    const resdisData = await getDataFromCache('categorys');;
+    const resdisData = await getDataFromCache("categorys");
     const skip = (page - 1) * default_limit; //số lượng bỏ qua
-    let category:any;
+    let category: any;
     if (resdisData) {
       // await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
+      cacheData("categorys", data, "EX", 3600);
       const i = page
         ? resdisData.slice(skip, skip + default_limit)
         : resdisData;
       category = i;
     } else {
-      cacheData('categorys',data, "EX", 3600);
+      cacheData("categorys", data, "EX", 3600);
       // await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
       category = data;
     }
@@ -72,7 +73,8 @@ export const readProductByCategory = async (req: Request, res: Response) => {
 export const addCt = async (req: MulterRequest, res: Response) => {
   const folderName = "category";
   try {
-    const { name, sumSeri, des, type, week, up, year, time, isActive } = req.body;
+    const { name, sumSeri, des, type, week, up, year, time, isActive } =
+      req.body;
     const file = req.file;
     if (file) {
       cloudinary.uploader.upload(
@@ -148,7 +150,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.up = up;
           findById.type = type;
           findById.time = time;
-          findById.linkImg = result.url
+          findById.linkImg = result.url;
           findById.year = year;
           findById.isActive = isActive;
           findById.save();
@@ -182,6 +184,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       });
     }
   } catch (error) {
+    console.log(error);
     return res.status(400).json({
       message: error.message,
     });

@@ -18,13 +18,22 @@ import {
   isSuperAdmin,
   requiredSignin,
 } from "../middlewares/checkAuth";
-import { uploadCategory } from "../services/upload";
+import { uploadServer } from "../services/upload";
 const router = express.Router();
 
 router.get("/category/products", readProductByCategory);
 router.get("/categorys", getAll);
 router.get("/category/filters", filterCategoryTrending);
 router.get("/category/:id", getOne);
+router.post(
+  "/category/:id/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  uploadServer.single("file"),
+  updateCate
+);
 router.get("/category/getAllCategoryNotRequest/:id", getAllCategoryNotReq);
 router.post(
   "/category/:userId",
@@ -32,17 +41,8 @@ router.post(
   requiredSignin,
   isAuth,
   isAdmin,
-  uploadCategory.single("file"),
-  addCt,
-);
-router.put(
-  "/category/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  uploadCategory.single("file"),
-  updateCate,
+  uploadServer.single("file"),
+  addCt
 );
 router.delete(
   "/category/:id/:userId",
@@ -51,7 +51,7 @@ router.delete(
   isAuth,
   isAdmin,
   isSuperAdmin,
-  deleteCategoryController,
+  deleteCategoryController
 );
 router.post(
   "/category/week/:id/:userId",
@@ -59,7 +59,7 @@ router.post(
   requiredSignin,
   isAuth,
   isAdmin,
-  push,
+  push
 );
 router.param("userId", getAuth);
 export default router;
