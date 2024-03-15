@@ -6,7 +6,7 @@ import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
 import { DEFAULT_LIMIT } from "../constans/constan";
-import { cacheData, getDataFromCache } from "../redis";
+import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import products from "../module/products";
@@ -17,35 +17,35 @@ export const getAllProducts = async (req, res) => {
     const page = parseInt(req.query.page) || 0;
     const skip = (page - 1) * DEFAULT_LIMIT; // số lượng bỏ qua
     let All = await getAll();
-    const redisGetdata: any = await getDataFromCache('products');
+    const key = "products";
+    const redisGetdata: any = await getDataFromCache("products");
     let data: any;
     if (redisGetdata) {
       // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis để hiển thị theo từng trang
       // await redisClient.set("products", JSON.stringify(All), "EX", 3600); //cappj nhật trong redis server || client
-      products.watch().on('change', async (change) => {
-        console.log('Change detected in MongoDB:', change);
-        if(change.operationType=='insert'){
-          const newData=change.fullDocument;
+      products.watch().on("change", async (change) => {
+        if (change.operationType == "insert") {
+          const newData = change.fullDocument;
           const value = JSON.stringify(newData);
-          await cacheData('products', value, "EX", 3600)
+          redisDel(key);
+          await cacheData(key, value, "EX", 3600), "XX";
         }
 
-        if(change.operationType=='delete'){
-
+        if (change.operationType == "delete") {
+          await cacheData(key, All, "EX", 3600, "XX");
         }
 
-        if(change.operationType=='update'){
-
+        if (change.operationType == "update") {
+          await cacheData(key, All, "EX", 3600, "XX");
         }
-
-      })
+      });
       const i = page
         ? redisGetdata.slice(skip, skip + DEFAULT_LIMIT)
         : redisGetdata;
       data = i;
     } else {
       // Nếu không có dữ liệu trong Redis, lấy toàn bộ dữ liệu từ database và lưu vào Redis
-      await cacheData('products', All, "EX", 3600)
+      await cacheData("products", All, "EX", 3600);
       // await redisClient.set(`products`, JSON.stringify(All), "EX", 3600);
       data = All;
     }
@@ -72,7 +72,7 @@ export const getOne = async (req: Request, res: Response) => {
     if (redisGetdata) {
       data = dataID;
     } else {
-      await cacheData(id, dataID, "EX", 3600, "NX")
+      await cacheData(id, dataID, "EX", 3600, "NX");
       data = dataID;
     }
     return res.status(200).json(data);
@@ -237,7 +237,7 @@ export const addProduct = async (req, res) => {
         country: country,
         dailyMotionServer: dailyMotionServer,
         video2: video2,
-        trailer: trailer
+        trailer: trailer,
       };
       const data: any = await addProduct_(dataAdd);
       if (data.category) {

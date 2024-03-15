@@ -8,7 +8,7 @@ import Products from "../module/products";
 import Category from "../module/category";
 import WeekCategory from "../module/week.category";
 import weekCategory from "../module/week.category";
-import { cacheData, getDataFromCache } from "../redis";
+import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 interface MulterRequest extends Request {
@@ -20,12 +20,28 @@ export const getAll = async (req: any, res: Response) => {
     const data = await getAllCategory();
     const page = parseInt(req.query.page) || 0;
     await Category.createIndexes();
-    const resdisData = await getDataFromCache("categorys");
+    const key = "categorys";
+    const resdisData = await getDataFromCache(key);
     const skip = (page - 1) * default_limit; //số lượng bỏ qua
     let category: any;
     if (resdisData) {
-      // await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
-      cacheData("categorys", data, "EX", 3600);
+      Category.watch().on("change", async (change) => {
+        if (change.operationType == "insert") {
+          redisDel(key);
+          cacheData(key, data, "EX", 3600, "XX");
+        }
+
+        if (change.operationType == "delete") {
+          redisDel(key);
+          cacheData(key, data, "EX", 3600, "XX");
+        }
+
+        if (change.operationType == "update") {
+          redisDel(key);
+          cacheData(key, data, "EX", 3600, "XX");
+        }
+      });
+
       const i = page
         ? resdisData.slice(skip, skip + default_limit)
         : resdisData;

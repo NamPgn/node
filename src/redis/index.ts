@@ -25,6 +25,10 @@ export const cacheData = async (key, data, ...rest) => {
   await redisClient.set(key, JSON.stringify(data), ...rest);
 }
 
+export const redisDel = async (key) => {
+  await redisClient.del(key);
+}
+
 export async function getDataFromServer(url) {
   const response = await fetch(url);
   const data = await response.json();

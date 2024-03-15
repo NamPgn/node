@@ -37,15 +37,7 @@ router.get("/category/products/:id", getAllProductsByCategory);
 router.get("/products/search", searchCategory);
 router.get("/product/comments/:id", findCommentByIdProduct);
 router.post("/product/vimeo", uploadServer.single("fileDinary"), uploadVimeo);
-router.post(
-  "/product/abyss/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  uploadServer.single("fileupload"),
-  uploadServer2
-);
+
 router.delete(
   "/product/:id/:userId",
   checkToken,
@@ -88,7 +80,7 @@ router.post(
   requiredSignin,
   isAuth,
   isSuperAdmin,
-  deleteMultipleProduct,
+  deleteMultipleProduct
 );
 router.post(
   "/product/pushlist/:id/:userId",
@@ -124,6 +116,15 @@ router.post(
   isAdmin,
   isSuperAdmin,
   cancelSendingApprove
+);
+router.post(
+  "/product/abyss/:id/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  uploadServer.single("fileupload"),
+  uploadServer2
 );
 router.param("userId", getAuth);
 export default router;
