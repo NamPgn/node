@@ -1,6 +1,7 @@
 import Types from "../module/types";
 import Products from "../module/products";
 import category from "../module/category";
+import categorymain from "../module/categorymain";
 
 export const GetAllTypeCategorys = async (req, res) => {
   try {
@@ -99,11 +100,22 @@ export const pushCategory = async (req, res) => {
   try {
     const typeId = req.params.id;
     const body = req.body;
-    const data = await category.findById(body.categoryId);
-    const newData = await Types.findByIdAndUpdate(typeId, {
-      $addToSet: { category: data },
-    });
-    res.json({
+    const data = await category.findById(body.categoryId); //id của thằng category
+    const findById = await Types.findById(typeId);
+    let newData: any;
+    if (findById) {
+      console.log(0);
+      newData = await Types.findByIdAndUpdate(typeId, {
+        $addToSet: { category: data },
+      });
+    } else {
+      console.log(1);
+      newData = await categorymain.findByIdAndUpdate(typeId, {
+        $addToSet: { categorys: data },
+      });
+    }
+
+    return res.json({
       success: true,
       data: newData,
     });

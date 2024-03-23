@@ -1,31 +1,40 @@
 import mongoose from "mongoose";
 
-const categorymainSchema = new mongoose.Schema({
-  name: {
-    type: String
+const categorymainSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+    },
+    linkImg: {
+      type: String,
+    },
+    des: {
+      type: String,
+    },
+    sumSeri: {
+      type: String,
+    },
+    products: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "Products",
+      },
+    ],
+    type: {
+      type: String,
+    },
+    typeId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Types",
+    },
+    categorys: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "Category",
+      },
+    ],
   },
-  linkImg: {
-    type: String
-  },
-  des: {
-    type: String
-  },
-  sumSeri: {
-    type: String
-  },
-  products: [
-    {
-      type: mongoose.Types.ObjectId, ref: 'Products'
-    }
-  ],
-  type: {
-    type: String
-  },
-  typeId: {
-    type: mongoose.Types.ObjectId,
-    ref: "Types"
-  }
-}, { timestamps: true });
-
+  { timestamps: true }
+);
 
 export default mongoose.model("Categorymain", categorymainSchema);
