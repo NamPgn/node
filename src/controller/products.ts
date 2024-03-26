@@ -9,7 +9,6 @@ import { DEFAULT_LIMIT } from "../constans/constan";
 import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
-import products from "../module/products";
 // import Approve from "../module/approve";
 
 export const getAllProducts = async (req, res) => {
@@ -23,19 +22,21 @@ export const getAllProducts = async (req, res) => {
     if (redisGetdata) {
       // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis để hiển thị theo từng trang
       // await redisClient.set("products", JSON.stringify(All), "EX", 3600); //cappj nhật trong redis server || client
-      products.watch().on("change", async (change) => {
+      Products.watch().on("change", async (change) => {
         if (change.operationType == "insert") {
           const newData = change.fullDocument;
           const value = JSON.stringify(newData);
           redisDel(key);
-          await cacheData(key, value, "EX", 3600), "XX";
+          await cacheData(key, value, "EX", 3600, "XX");
         }
 
         if (change.operationType == "delete") {
+          redisDel(key);
           await cacheData(key, All, "EX", 3600, "XX");
         }
 
         if (change.operationType == "update") {
+          redisDel(key);
           await cacheData(key, All, "EX", 3600, "XX");
         }
       });
