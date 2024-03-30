@@ -6,7 +6,8 @@ const productSchema = new Schema(
       type: String,
     },
     view: {
-      type: String,
+      type: Number,
+      default:0,
     },
     image: {
       type: String,
@@ -15,11 +16,11 @@ const productSchema = new Schema(
       type: String,
     },
     category: {
-      type: ObjectId || undefined,
+      type: ObjectId,
       ref: "Category",
     },
     seri: {
-      type: String || undefined,
+      type: String,
     },
     select: {
       type: Boolean,

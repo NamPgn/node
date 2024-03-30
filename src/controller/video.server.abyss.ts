@@ -2,10 +2,9 @@ import Products from '../module/products';
 import videoServerAbyss from '../module/video.server.abyss';
 const fs = require('fs');
 
-export const uploadServer2 = (req, res) => {
+export const uploadAbyss = (req, res) => {
   try {
     const videoFilePath = req.file.path;
-
     //abyss
     const request = require('request');
     const formData = {
@@ -17,10 +16,9 @@ export const uploadServer2 = (req, res) => {
         }
       }
     };
-
     request.post({ url: 'http://up.hydrax.net/293440e1c239317fd41793ae59d38192', formData: formData }, async function (err, httpResponse, body) {
       if (err) {
-        res.status(500).send('Internal server error');
+       return res.status(500).send('Internal server error');
       } else {
         const abyssUrl = 'https://short.ink/' + JSON.parse(body).slug;
         await new videoServerAbyss({
@@ -33,10 +31,8 @@ export const uploadServer2 = (req, res) => {
       }
     })
   } catch (error) {
-    if (error) {
-      res.status(500).json('Internal server error');
-    } else {
-      res.json('Video uploaded successfully');
-    }
+    return res.status(400).json({
+      message: error.message,
+    });
   }
 }

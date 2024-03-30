@@ -1,5 +1,4 @@
 import express from "express";
-import { searchCategory } from "../controller/category";
 import {
   addProduct,
   deleteMultipleProduct,
@@ -13,6 +12,8 @@ import {
   pushToWeek,
   sendingApprove,
   cancelSendingApprove,
+  filterCategoryByProducts,
+  searchProducts,
 } from "../controller/products";
 import {
   uploadServer,
@@ -27,14 +28,15 @@ import {
   requiredSignin,
 } from "../middlewares/checkAuth";
 import { getAuth } from "../controller/auth";
-import { uploadServer2 } from "../controller/video.server.abyss";
+import { uploadAbyss } from "../controller/video.server.abyss";
 import { uploadVimeo } from "../controller/video.server.dinary";
 
 const router = express.Router();
 router.get("/products", getAllProducts);
+router.get("/product/filter", filterCategoryByProducts);
+router.get("/product/v", searchProducts);
 router.get("/product/:id", getOne);
 router.get("/category/products/:id", getAllProductsByCategory);
-router.get("/products/search", searchCategory);
 router.get("/product/comments/:id", findCommentByIdProduct);
 router.post("/product/vimeo", uploadServer.single("fileDinary"), uploadVimeo);
 
@@ -75,7 +77,7 @@ router.post(
   uploadXlxsProducts
 );
 router.post(
-  "/product/deleteMultiple:/userId",
+  "/products/deleteMultiple/:userId",
   checkToken,
   requiredSignin,
   isAuth,
@@ -124,7 +126,7 @@ router.post(
   isAuth,
   isAdmin,
   uploadServer.single("fileupload"),
-  uploadServer2
+  uploadAbyss
 );
 router.param("userId", getAuth);
 export default router;

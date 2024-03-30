@@ -36,12 +36,15 @@ const categorySchema = new mongoose.Schema(
     time: {
       type: String,
     },
+    country: {
+      type: String,
+    },
     isActive: {
       type: Number,
       default: 0,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 categorySchema.indexes();
 export default mongoose.model("Category", categorySchema);

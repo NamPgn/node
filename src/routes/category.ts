@@ -9,6 +9,7 @@ import {
   getOne,
   push,
   readProductByCategory,
+  searchCategory,
   updateCate,
 } from "../controller/category";
 import {
@@ -23,6 +24,7 @@ const router = express.Router();
 
 router.get("/category/products", readProductByCategory);
 router.get("/categorys", getAll);
+router.get("/categorys/search", searchCategory);
 router.get("/category/filters", filterCategoryTrending);
 router.get("/category/:id", getOne);
 router.post(

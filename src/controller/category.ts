@@ -226,10 +226,13 @@ export const deleteCategoryController = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getAllCategoryNotReq = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const data = await Category.find({ _id: { $ne: id } }).sort({ 'up': -1 }).exec();;
+    const data = await Category.find({ _id: { $ne: id } })
+      .sort({ up: -1 })
+      .exec();
     return res.json(data);
   } catch (error) {
     return res.status(400).json({
@@ -241,11 +244,14 @@ export const getAllCategoryNotReq = async (req: Request, res: Response) => {
 export const searchCategory = async (req: Request, res: Response) => {
   try {
     var searchValue: any = req.query.value;
+    if (searchValue == "") {
+      return res.status(200).json([]);
+    }
     var regex = new RegExp(searchValue, "i");
     const data = await Category.find({
       $or: [{ name: regex }],
     });
-    return res.json(data);
+    return res.status(200).json(data);
   } catch (error) {
     return res.status(400).json({
       message: error.message,

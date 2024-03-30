@@ -61,29 +61,7 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-export const getOne = async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id.toString();
-    const dataID = await Products.findById(id)
-      .populate("comments.user", "username image")
-      .populate("category");
-    // Lấy dữ liệu từ Redis
-    const redisGetdata = await getDataFromCache(id);
-    let data: any;
-    if (redisGetdata) {
-      data = dataID;
-    } else {
-      await cacheData(id, dataID, "EX", 3600, "NX");
-      data = dataID;
-    }
-    return res.status(200).json(data);
-  } catch (error) {
-    console.log(error);
-    return res.status(400).json({
-      message: "Không ìm thấy phim",
-    });
-  }
-};
+
 
 export const addProduct = async (req, res) => {
   try {
@@ -678,10 +656,8 @@ export const sendingApprove = async (req, res) => {
       data: data,
     });
   } catch (error) {
-    return res.json({
-      message: "Done",
-      success: true,
-      error: error.message,
+    return res.status(400).json({
+      message: error.message,
     });
   }
 };
@@ -707,10 +683,71 @@ export const cancelSendingApprove = async (req, res) => {
       data: data,
     });
   } catch (error) {
-    return res.json({
-      message: "Done",
-      success: true,
-      error: error.message,
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const filterCategoryByProducts = async (req: Request, res: Response) => {
+  try {
+    const { c } = req.query;
+    const redisGetdata: any = await getDataFromCache("products");
+    if (c == "") {
+      return res.status(200).json(redisGetdata);
+    }
+    const data = await Products.find({ category: c });
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+
+
+export const getOne = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id.toString();
+    const dataID = await Products.findById(id)
+      .populate("comments.user", "username image")
+      .populate("category");
+    // Lấy dữ liệu từ Redis
+    dataID.view += 1;
+    await dataID.save();
+    const redisGetdata = await getDataFromCache(id);
+    let data: any;
+    if (redisGetdata) {
+      data = dataID;
+    } else {
+      await cacheData(id, dataID, "EX", 3600, "NX");
+      data = dataID;
+    }
+    return res.status(200).json(dataID);
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+
+export const searchProducts = async (req: Request, res: Response) => {
+  try {
+    const { name }:any = req.query;
+    var regex = new RegExp(name, "i");
+    const redisGetdata: any = await getDataFromCache("products");
+    if (name == "") {
+      return res.status(200).json(redisGetdata);
+    }
+    const data = await Products.find({
+      $or: [{ name: regex }],
+    });
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
     });
   }
 };
