@@ -2,8 +2,6 @@ import multer from "multer";
 import User from "../module/auth";
 import Product from "../module/products";
 import {
-  storage,
-  storageProductImage,
   storageXlxs,
   storageXlxsProduct,
 } from "../storage/storage";
@@ -36,28 +34,7 @@ export const uploadXlxs = async (req, res, next) => {
 export const uploadStorageUser = multer({ storage: storageXlxs });
 
 //upload excel product
-export const uploadXlxsProducts = async (req, res, next) => {
-  try {
-    let path = req.file.path;
-    var workBok = XLSX.readFile(path);
-    var sheet_name_list = workBok.SheetNames; //lấy ra cái tên
-    let jsonData: any = XLSX.utils.sheet_to_json(
-      //về dạng json
-      workBok.Sheets[sheet_name_list[0]], //lấy cái bảng đầu tiên
-    );
-    if (jsonData.lenght == 0) {
-      //kiểm tra neus không có gì thì cút
-      res.json({
-        message: "Not data",
-      });
-    }
-    let saveData = await Product.create(jsonData);
-    res.json({
-      suscess: true,
-      message: "data" + saveData,
-    });
-  } catch (error) {}
-};
+
 export const uploadStorageProduct = multer({ storage: storageXlxsProduct });
 
 //video - upload

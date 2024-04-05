@@ -91,7 +91,7 @@ export const singin = async (req, res) => {
       user: user,
     });
   } catch (error) {
-    res.status(400).json({
+    return res.status(400).json({
       code: 400,
       success: false,
       message: "Đăng nhập không thành công!",
@@ -110,6 +110,10 @@ export const getAuth = async (req, res, next, id) => {
     req.profile.password = undefined;
     next();
   } catch (error) {
-    console.log(error);
+    return res.status(400).json({
+      code: 400,
+      success: false,
+      message: "Đăng nhập không thành công!",
+    });
   }
 };

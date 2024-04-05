@@ -9,6 +9,7 @@ import { DEFAULT_LIMIT } from "../constans/constan";
 import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
+import XLSX from "xlsx";
 // import Approve from "../module/approve";
 
 export const getAllProducts = async (req, res) => {
@@ -41,7 +42,7 @@ export const getAllProducts = async (req, res) => {
         }
       });
       const i = page
-        ? redisGetdata.slice(skip, skip + DEFAULT_LIMIT)
+        ? redisGetdata?.slice(skip, skip + DEFAULT_LIMIT)
         : redisGetdata;
       data = i;
     } else {
@@ -55,13 +56,12 @@ export const getAllProducts = async (req, res) => {
       length: redisGetdata ? redisGetdata.length : All.length,
     });
   } catch (error) {
+    console.log(error)
     return res.status(400).json({
       message: error.message,
     });
   }
 };
-
-
 
 export const addProduct = async (req, res) => {
   try {
@@ -127,9 +127,17 @@ export const addProduct = async (req, res) => {
           // const data = await Approve.create({ products: dataAdd });
           const data: any = await Products.create(dataAdd);
           if (data.category) {
-            await Category.findByIdAndUpdate(data.category, {
-              $addToSet: { products: data.products },
-            });
+            await Category.findOneAndUpdate(
+              { _id: data.category },
+              { latestProductUploadDate: new Date() },
+              { new: true }
+            );
+            await Category.findOneAndUpdate(
+              { _id: data.category }, // Điều kiện tìm kiếm
+              {
+                $addToSet: { products: data.products }, // Sử dụng $addToSet để thêm data.products vào mảng products
+              }
+            );
           }
 
           if (data.categorymain) {
@@ -220,6 +228,11 @@ export const addProduct = async (req, res) => {
       };
       const data: any = await addProduct_(dataAdd);
       if (data.category) {
+        await Category.findOneAndUpdate(
+          { _id: data.category },
+          { latestProductUploadDate: data.uploadDate },
+          { new: true }
+        );
         await Category.findByIdAndUpdate(data.category, {
           $addToSet: { products: data.products },
         });
@@ -573,7 +586,7 @@ export const getAllProductsByCategory = async (req, res) => {
     // ]);
     const data = await Products.find({ category: categoryId });
     data.sort((a, b) => parseInt(b.seri) - parseInt(a.seri));
-    res.status(200).json(data);
+    return res.status(200).json(data);
     //Trong đó:
     // $lookup là phương thức kết hợp (join) dữ liệu từ hai bảng Products và categories.
     // from là tên bảng categories.
@@ -582,6 +595,7 @@ export const getAllProductsByCategory = async (req, res) => {
     // as là tên mới cho trường category sau khi thực hiện join.
     // $match là phương thức lọc dữ liệu, chỉ lấy các sản phẩm có trường category._id bằng với categoryId.
   } catch (error) {
+    console.log(error);
     return res.status(400).json({
       message: error.message,
     });
@@ -705,8 +719,6 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
   }
 };
 
-
-
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
@@ -732,10 +744,9 @@ export const getOne = async (req: Request, res: Response) => {
   }
 };
 
-
 export const searchProducts = async (req: Request, res: Response) => {
   try {
-    const { name }:any = req.query;
+    const { name }: any = req.query;
     var regex = new RegExp(name, "i");
     const redisGetdata: any = await getDataFromCache("products");
     if (name == "") {
@@ -745,6 +756,50 @@ export const searchProducts = async (req: Request, res: Response) => {
       $or: [{ name: regex }],
     });
     return res.status(200).json(data);
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const uploadXlxsProducts = async (req, res, next) => {
+  try {
+    const { selectedSheets } = req.body;
+    console.log(typeof Number(selectedSheets));
+    let path = req.file.path;
+    var workBok = XLSX.readFile(path);
+    var sheet_name_list = workBok.SheetNames; //lấy ra cái tên
+    let jsonData: any = XLSX.utils.sheet_to_json(
+      //về dạng json
+      workBok.Sheets[sheet_name_list[Number(selectedSheets)]] //lấy cái bảng đầu tiên
+    );
+    if (jsonData.length == 0) {
+      //kiểm tra neus không có gì thì cút
+      return res.json({
+        message: "Not data",
+      });
+    }
+    jsonData.map((item) => {
+      if (typeof item.category === "string") {
+        return [
+          ...jsonData,
+          (item.category = mongoose.Types.ObjectId.createFromHexString(
+            item.category
+          )),
+        ];
+      }
+    });
+    const data = await Products.insertMany(jsonData);
+    return res.json({
+      data: data,
+      success: true,
+    });
+    // let saveData = await Product.create(jsonData);
+    //return res.json({
+    //   suscess: true,
+    //   message: "data" + saveData,
+    // });
   } catch (error) {
     return res.status(400).json({
       message: error.message,

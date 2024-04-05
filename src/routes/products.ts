@@ -14,11 +14,10 @@ import {
   cancelSendingApprove,
   filterCategoryByProducts,
   searchProducts,
+  uploadXlxsProducts,
 } from "../controller/products";
 import {
   uploadServer,
-  uploadStorageProduct,
-  uploadXlxsProducts,
 } from "../services/upload";
 import {
   checkToken,
@@ -68,12 +67,12 @@ router.put(
   editProduct
 );
 router.post(
-  "/product/creating:/userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  uploadStorageProduct.single("xlsxProduct"),
+  "/products/creating",
+  // checkToken,
+  // requiredSignin,
+  // isAuth,
+  // isAdmin,
+  uploadServer.single("excelProduct"),
   uploadXlxsProducts
 );
 router.post(

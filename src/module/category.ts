@@ -5,6 +5,9 @@ const categorySchema = new mongoose.Schema(
     name: {
       type: String,
     },
+    anotherName: {
+      type: String,
+    },
     linkImg: {
       type: String,
     },
@@ -42,6 +45,9 @@ const categorySchema = new mongoose.Schema(
     isActive: {
       type: Number,
       default: 0,
+    },
+    latestProductUploadDate: {
+      type: Date,
     },
   },
   { timestamps: true }

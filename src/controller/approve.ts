@@ -77,7 +77,6 @@ export const sending = async (req, res) => {
       await Approve.findByIdAndDelete(id);
       // approve.user = _id;
       const { products } = approve;
-      console.log(products);
       if (products) {
         await Products.create(products);
       }
@@ -87,7 +86,6 @@ export const sending = async (req, res) => {
       message: "Done",
     });
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ message: "Đã xảy ra lỗi" });
   }
 };

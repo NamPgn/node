@@ -56,7 +56,6 @@ export const getAll = async (req: any, res: Response) => {
       length: data.length,
     });
   } catch (error) {
-    console.log(error);
     return res.status(400).json({
       message: error.message,
     });
@@ -89,8 +88,18 @@ export const readProductByCategory = async (req: Request, res: Response) => {
 export const addCt = async (req: MulterRequest, res: Response) => {
   const folderName = "category";
   try {
-    const { name, sumSeri, des, type, week, up, year, time, isActive } =
-      req.body;
+    const {
+      name,
+      sumSeri,
+      des,
+      type,
+      week,
+      up,
+      year,
+      time,
+      isActive,
+      anotherName,
+    } = req.body;
     const file = req.file;
     if (file) {
       cloudinary.uploader.upload(
@@ -105,6 +114,7 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             return res.status(500).json(error);
           }
           const newDt = {
+            anotherName: anotherName,
             name: name,
             linkImg: result.url,
             des: des,
@@ -138,8 +148,18 @@ export const addCt = async (req: MulterRequest, res: Response) => {
 export const updateCate = async (req: MulterRequest, res: Response) => {
   try {
     const folderName = "category";
-    const { name, sumSeri, des, type, week, up, time, year, isActive } =
-      req.body;
+    const {
+      name,
+      sumSeri,
+      des,
+      type,
+      week,
+      up,
+      time,
+      year,
+      isActive,
+      anotherName,
+    } = req.body;
     const { id } = req.params;
     const file = req.file;
     const findById = await Category.findById(id);
@@ -169,7 +189,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.linkImg = result.url;
           findById.year = year;
           findById.isActive = isActive;
-          findById.save();
+          (findById.anotherName = anotherName), findById.save();
           await WeekCategory.findByIdAndUpdate(findById.week, {
             $pull: { category: findById._id },
           });
@@ -189,9 +209,10 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.time = time;
       findById.year = year;
       findById.isActive = isActive;
-      await WeekCategory.findByIdAndUpdate(findById.week, {
-        $pull: { category: findById._id },
-      });
+      (findById.anotherName = anotherName),
+        await WeekCategory.findByIdAndUpdate(findById.week, {
+          $pull: { category: findById._id },
+        });
       await findById.save();
       return res.status(200).json({
         success: true,
@@ -200,7 +221,6 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       });
     }
   } catch (error) {
-    console.log(error);
     return res.status(400).json({
       message: error.message,
     });
@@ -283,7 +303,22 @@ export const filterCategoryTrending = async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.log(error);
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const getCategoryLatesupdate = async (req, res) => {
+  try {
+    const data = await Category.find()
+      .sort({ latestProductUploadDate: -1 })
+      .limit(6);
+    return res.json({
+      data: data,
+      success: true,
+    });
+  } catch (error) {
     return res.status(400).json({
       message: error.message,
     });

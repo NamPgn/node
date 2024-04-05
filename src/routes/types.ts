@@ -7,8 +7,8 @@ const router = express.Router();
 router.get('/type/movie', getPhim)
 router.get('/types', GetAllTypeCategorys);
 router.get('/type/:id', GetOneTypeCategory);
-router.post('/type:/:userId', requiredSignin, isAuth, isAdmin, CreateType);
-router.post('/type/:id/:userId', requiredSignin, isAuth, isAdmin, DeleteType);
+router.post('/type/:userId', requiredSignin, isAuth, isAdmin, CreateType);
+router.delete('/type/:id/:userId', requiredSignin, isAuth, isAdmin, DeleteType);
 router.put('/type/:id:/:userId', requiredSignin, isAuth, isAdmin, UpdatedType);
 router.post('/push/type/category/:id/:userId',requiredSignin, isAuth, isAdmin, pushCategory)
 router.param('userId', getAuth);

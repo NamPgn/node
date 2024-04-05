@@ -14,7 +14,6 @@ const updateDocuments = async () => {
       }
     );
 
-    console.log(`${result} documents updated successfully.`);
   } catch (error) {
     console.error("Error updating documents:", error);
   }

@@ -49,7 +49,11 @@ export const CreateType = async (req, res) => {
   try {
     const body = req.body;
     const data = await new Types(body).save();
-    return res.status(200).json(data);
+    return res.json({
+      message: "Success",
+      success: true,
+      data: data,
+    });
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -61,20 +65,19 @@ export const DeleteType = async (req, res) => {
   try {
     const id = req.params.id;
     const body = req.body;
-    const s = await Types.findByIdAndUpdate(body.TypeId, {
-      //tìm thằng categorymain
-      $pull: { categorymain: { cates: { $in: [id] } } },
-    });
-    const d = await Products.findByIdAndDelete(id);
-    const e = await Types.findByIdAndUpdate(body.TypeId, {
-      //tìm thằng categorymain
-      $pull: { products: { $in: [id] } },
-    });
+    const data = await Types.findByIdAndDelete(id);
+    // const s = await Types.findByIdAndUpdate(body.TypeId, {
+    //   //tìm thằng categorymain
+    //   $pull: { categorymain: { cates: { $in: [id] } } },
+    // });
+    // const d = await Products.findByIdAndDelete(id);
+    // const e = await Types.findByIdAndUpdate(body.TypeId, {
+    //   //tìm thằng categorymain
+    //   $pull: { products: { $in: [id] } },
+    // });
     return res.json({
       success: true,
-      dataProduct: d,
-      dataCateMain: s,
-      productType: e,
+      data: data,
     });
   } catch (error) {
     return res.status(400).json({
@@ -104,12 +107,10 @@ export const pushCategory = async (req, res) => {
     const findById = await Types.findById(typeId);
     let newData: any;
     if (findById) {
-      console.log(0);
       newData = await Types.findByIdAndUpdate(typeId, {
         $addToSet: { category: data },
       });
     } else {
-      console.log(1);
       newData = await categorymain.findByIdAndUpdate(typeId, {
         $addToSet: { categorys: data },
       });
