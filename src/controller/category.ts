@@ -191,7 +191,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.isActive = isActive;
           (findById.anotherName = anotherName), findById.save();
           await WeekCategory.findByIdAndUpdate(findById.week, {
-            $pull: { category: findById._id },
+            $set: { category: findById._id },
           });
           return res.status(200).json({
             success: true,
@@ -313,7 +313,8 @@ export const getCategoryLatesupdate = async (req, res) => {
   try {
     const data = await Category.find()
       .sort({ latestProductUploadDate: -1 })
-      .limit(6);
+      .limit(6)
+      .populate("products");
     return res.json({
       data: data,
       success: true,
