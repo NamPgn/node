@@ -11,6 +11,9 @@ export const signup = async (req, res) => {
 
     // console.log("req.file", filename)
 
+
+
+    
     const getuser = await getDataUser({ username: username }); //tìm lấy ra cái thằng email
     if (getuser) {
       //kiểm tra nếu mà nó đã tồn tại thì trả về cái lỗi
