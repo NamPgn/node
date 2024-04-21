@@ -16,7 +16,7 @@ interface MulterRequest extends Request {
 }
 export const getAll = async (req: any, res: Response) => {
   try {
-    const default_limit = 20;
+    const default_limit = 24;
     const data = await getAllCategory();
     const page = parseInt(req.query.page) || 0;
     await Category.createIndexes();
@@ -250,7 +250,7 @@ export const deleteCategoryController = async (req: Request, res: Response) => {
 export const getAllCategoryNotReq = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const data = await Category.find({ _id: { $ne: id } })
+    const data = await Category.find({ _id: { $ne: id } }).populate("products","seri")
       .sort({ up: -1 })
       .exec();
     return res.json(data);

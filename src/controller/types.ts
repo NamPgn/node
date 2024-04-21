@@ -33,7 +33,13 @@ export const GetOneTypeCategory = async (req, res) => {
           limit: pageSize,
         },
       })
-      .populate("category");
+      .populate({
+        path: "category",
+        populate: {
+          path: "products",
+          model:"Products"
+        },
+      });
     return res.status(200).json({
       data: data,
       length: (await Types.findById(id).populate("products")).products.length,

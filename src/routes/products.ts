@@ -15,10 +15,9 @@ import {
   filterCategoryByProducts,
   searchProducts,
   uploadXlxsProducts,
+  clearCacheProducts,
 } from "../controller/products";
-import {
-  uploadServer,
-} from "../services/upload";
+import { uploadServer } from "../services/upload";
 import {
   checkToken,
   isAdmin,
@@ -38,7 +37,14 @@ router.get("/product/:id", getOne);
 router.get("/category/products/:id", getAllProductsByCategory);
 router.get("/product/comments/:id", findCommentByIdProduct);
 router.post("/product/vimeo", uploadServer.single("fileDinary"), uploadVimeo);
-
+router.post(
+  "/products/clear/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  clearCacheProducts
+);
 router.delete(
   "/product/:id/:userId",
   checkToken,

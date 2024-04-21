@@ -56,7 +56,7 @@ export const getAllProducts = async (req, res) => {
       length: redisGetdata ? redisGetdata.length : All.length,
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return res.status(400).json({
       message: error.message,
     });
@@ -402,6 +402,11 @@ export const editProduct = async (req, res, next) => {
       );
     } else {
       if (findById.category) {
+        await Category.findOneAndUpdate(
+          { _id: findById.category },
+          { latestProductUploadDate: findById.uploadDate },
+          { new: true }
+        );
         await Category.findByIdAndUpdate(findById.category, {
           $pull: { products: findById._id },
         });
@@ -800,6 +805,21 @@ export const uploadXlxsProducts = async (req, res, next) => {
     //   suscess: true,
     //   message: "data" + saveData,
     // });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const clearCacheProducts = async (req, res) => {
+  try {
+    const key = "products";
+    redisDel(key);
+    return res.json({
+      suscess: true,
+      message: "Clear Success",
+    });
   } catch (error) {
     return res.status(400).json({
       message: error.message,
