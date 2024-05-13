@@ -56,7 +56,6 @@ export const getAllProducts = async (req, res) => {
       length: redisGetdata ? redisGetdata.length : All.length,
     });
   } catch (error) {
-    console.log(error);
     return res.status(400).json({
       message: error.message,
     });
@@ -600,7 +599,6 @@ export const getAllProductsByCategory = async (req, res) => {
     // as là tên mới cho trường category sau khi thực hiện join.
     // $match là phương thức lọc dữ liệu, chỉ lấy các sản phẩm có trường category._id bằng với categoryId.
   } catch (error) {
-    console.log(error);
     return res.status(400).json({
       message: error.message,
     });
@@ -771,7 +769,6 @@ export const searchProducts = async (req: Request, res: Response) => {
 export const uploadXlxsProducts = async (req, res, next) => {
   try {
     const { selectedSheets } = req.body;
-    console.log(typeof Number(selectedSheets));
     let path = req.file.path;
     var workBok = XLSX.readFile(path);
     var sheet_name_list = workBok.SheetNames; //lấy ra cái tên
@@ -819,6 +816,94 @@ export const clearCacheProducts = async (req, res) => {
     return res.json({
       suscess: true,
       message: "Clear Success",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const mostWatchesEposides = async (req, res) => {
+  try {
+    const data = await Products.find().sort({ view: -1 }).limit(10);
+    return res.status(200).json({ data });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const ratingProducts = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { rating } = req.body;
+
+    const product: any = await Products.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    product.rating.push(rating);
+    product.save();
+    return res.json({ message: "Đánh giá đã được lưu thành công" });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const ratingProductStats = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    // Tìm sản phẩm theo productId trong cơ sở dữ liệu
+    const product: any = await Products.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    // Tính toán số lượng đánh giá và trung bình đánh giá của sản phẩm
+    const totalRatings = product.rating.length;
+    const ratingsCount = [0, 0, 0, 0, 0]; // Mảng để lưu số lượng đánh giá cho mỗi mức đánh giá
+    product.rating.forEach((rate) => {
+      if (rate >= 1 && rate <= 5) {
+        ratingsCount[rate - 1]++;
+      }
+    });
+    const percentages = ratingsCount.map((count) => (count / totalRatings) * 100);
+
+    return res.json({
+      totalRatings,
+      percentages,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const ratingProductsStats = async (req, res) => {
+  try {
+    let totalRatings = 0;
+    let totalRatingPoints = 0;
+    const data: any = await Products.find();
+    data.forEach((product: any) => {
+      totalRatings += product.rating.length;
+      totalRatingPoints += product.rating.reduce((a, b) => a + b, 0);
+    });
+
+    // Tính toán trung bình đánh giá của tất cả sản phẩm
+    const averageRating =
+      totalRatings > 0 ? totalRatingPoints / totalRatings : 0;
+
+    return res.json({
+      totalRatings,
+      averageRating,
     });
   } catch (error) {
     return res.status(400).json({

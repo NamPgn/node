@@ -7,7 +7,7 @@ const productSchema = new Schema(
     },
     view: {
       type: Number,
-      default:0,
+      default: 0,
     },
     image: {
       type: String,
@@ -83,6 +83,11 @@ const productSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    rating: [
+      {
+        type: Number,
+      },
+    ],
   },
   { timestamps: true, validateBeforeSave: false }
 );

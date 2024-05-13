@@ -16,6 +16,10 @@ import {
   searchProducts,
   uploadXlxsProducts,
   clearCacheProducts,
+  mostWatchesEposides,
+  ratingProducts,
+  ratingProductsStats,
+  ratingProductStats,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -133,5 +137,9 @@ router.post(
   uploadServer.single("fileupload"),
   uploadAbyss
 );
+router.post("/product/rating/:productId", ratingProducts);
+router.get("/product/rate/:productId", ratingProductStats);
+router.get("/products/rating/stats", ratingProductsStats);
+router.get("/most-watched-episodes", mostWatchesEposides);
 router.param("userId", getAuth);
 export default router;
