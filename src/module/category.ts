@@ -49,6 +49,15 @@ const categorySchema = new mongoose.Schema(
     latestProductUploadDate: {
       type: Date,
     },
+    rating: [
+      {
+        type: Number,
+      },
+    ],
+    ratingCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

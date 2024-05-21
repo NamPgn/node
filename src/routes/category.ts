@@ -9,6 +9,9 @@ import {
   getCategoryLatesupdate,
   getOne,
   push,
+  ratingCategory,
+  ratingCategoryStats,
+  ratingCategorysStatsAll,
   readProductByCategory,
   searchCategory,
   updateCate,
@@ -65,5 +68,8 @@ router.post(
   isAdmin,
   push
 );
+router.post("/rating/:categoryId", ratingCategory);
+router.get("/rate/:categoryId", ratingCategoryStats);
+router.get("/rating/stats", ratingCategorysStatsAll);
 router.param("userId", getAuth);
 export default router;

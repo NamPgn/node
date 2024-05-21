@@ -250,7 +250,8 @@ export const deleteCategoryController = async (req: Request, res: Response) => {
 export const getAllCategoryNotReq = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const data = await Category.find({ _id: { $ne: id } }).populate("products","seri")
+    const data = await Category.find({ _id: { $ne: id } })
+      .populate("products", "seri")
       .sort({ up: -1 })
       .exec();
     return res.json(data);
@@ -313,11 +314,92 @@ export const getCategoryLatesupdate = async (req, res) => {
   try {
     const data = await Category.find()
       .sort({ latestProductUploadDate: -1 })
-      .limit(6)
+      .limit(10)
       .populate("products");
     return res.json({
       data: data,
       success: true,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const ratingCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { rating } = req.body;
+
+    const category: any = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+    category.ratingCount += 1;
+    category.rating.push(rating);
+    category.save();
+    return res.json({ message: "Đánh giá đã được lưu thành công" });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const ratingCategoryStats = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    let sumRating = 0;
+    // Tìm sản phẩm theo productId trong cơ sở dữ liệu
+    const category: any = await Category.findById(categoryId);
+
+    if (!category) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    // Tính toán số lượng đánh giá và trung bình đánh giá của sản phẩm
+    const totalRatings = category.rating.length;
+    const ratingsCount = [0, 0, 0, 0, 0]; // Mảng để lưu số lượng đánh giá cho mỗi mức đánh giá
+    category.rating.forEach((rate) => {
+      if (rate >= 1 && rate <= 5) {
+        ratingsCount[rate - 1]++;
+      }
+      sumRating += rate;
+    });
+    const percentages = ratingsCount.map(
+      (count) => (count / totalRatings) * 100
+    );
+    const averageRating = sumRating / totalRatings;
+    return res.json({
+      totalRatings,
+      percentages,
+      averageRating
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const ratingCategorysStatsAll = async (req, res) => {
+  try {
+    let totalRatings = 0;
+    let totalRatingPoints = 0;
+    const data: any = await Category.find();
+    data.forEach((data: any) => {
+      totalRatings += data.rating.length;
+      totalRatingPoints += data.rating.reduce((a, b) => a + b, 0);
+    });
+
+    // Tính toán trung bình đánh giá của tất cả sản phẩm
+    const averageRating =
+      totalRatings > 0 ? totalRatingPoints / totalRatings : 0;
+
+    return res.json({
+      totalRatings,
+      averageRating,
     });
   } catch (error) {
     return res.status(400).json({
