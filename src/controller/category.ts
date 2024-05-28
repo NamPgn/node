@@ -211,7 +211,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.isActive = isActive;
       (findById.anotherName = anotherName),
         await WeekCategory.findByIdAndUpdate(findById.week, {
-          $pull: { category: findById._id },
+          $addToSet: { category: findById._id },
         });
       await findById.save();
       return res.status(200).json({

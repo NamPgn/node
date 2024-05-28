@@ -23,10 +23,23 @@ export const all = async (req, res) => {
 
 export const one = async (req, res) => {
   try {
-    const data = await WeekCategory.findById(req.params.id)
-      .populate("category")
-      .populate("products");
-    res.json(data);
+    const { w } = req.query;
+    const data = await WeekCategory.find({ name: w }).populate({
+      path: "category",
+      populate: {
+        path: "products",
+        model: "Products",
+      },
+    });
+    let categorys: any = {
+      name: "",
+      content: [],
+    };
+    data.map((items) => {
+      categorys.name = items.name;
+      categorys.content = items.category;
+    });
+    return res.json(categorys);
   } catch (error) {
     return res.status(404).json({
       error: error.message,
@@ -51,7 +64,7 @@ export const create = async (req, res) => {
 export const del = async (req, res) => {
   try {
     const data = await WeekCategory.findByIdAndDelete(req.params.id);
-    res.json({
+    return res.json({
       data: data,
       message: "Successfully deleted",
     });
@@ -65,7 +78,7 @@ export const del = async (req, res) => {
 export const edit = async (req, res) => {
   try {
     const data = await WeekCategory.findByIdAndUpdate(req.params.id, req.body);
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     return res.status(404).json({
       error: error.message,

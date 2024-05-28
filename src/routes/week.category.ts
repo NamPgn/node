@@ -5,7 +5,7 @@ import { getAuth } from '../controller/auth';
 const routerWeek = express.Router();
 
 routerWeek.get('/weeks', all);
-routerWeek.get('/week/:id', one);
+routerWeek.get('/week', one);
 routerWeek.post('/week/:userId', checkToken, requiredSignin, isAuth, create);
 routerWeek.delete('/week/:id/:userId', checkToken, requiredSignin, isAuth, del);
 routerWeek.put('/week/:id/:userId', checkToken, requiredSignin, isAuth, edit);
