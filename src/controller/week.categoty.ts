@@ -85,3 +85,21 @@ export const edit = async (req, res) => {
     });
   }
 };
+
+export const deleteCategoryByWeek = async (req, res) => {
+  try {
+    const weekId = req.params.id;
+    const body = req.body;
+    await WeekCategory.findByIdAndUpdate(weekId, {
+      $pull: { category: body.categoryId },
+    });
+    return res.json({
+      success: true,
+      message: "Delete category by week successfully",
+    });
+  } catch (error) {
+    return res.status(404).json({
+      error: error.message,
+    });
+  }
+};

@@ -7,7 +7,7 @@ import {
   deleteComment,
   updateCommentController,
 } from "../controller/comment";
-import { isAdmin, isAuth, requiredSignin } from "../middlewares/checkAuth";
+import { checkToken, isAdmin, isAuth, requiredSignin } from "../middlewares/checkAuth";
 const routes = express.Router();
 
 routes.get("/comments", getAllCommentsControllers);
@@ -15,6 +15,7 @@ routes.get("/comment/userId/:userId/productId/:productId", getCommentsUserId);
 routes.post(
   "/comment/:id/:userId",
   requiredSignin,
+  checkToken,
   isAuth,
   addCommentController
 );

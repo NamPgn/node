@@ -84,3 +84,13 @@ admin.initializeApp({
 app.listen(port, async () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });
+
+function sendRequest() {
+  // Gửi request sau mỗi 30 phút
+  app.get("/autoConnect", (req, res) => {
+    res.send("Connected");
+  });
+  console.log('Connected');
+}
+
+setInterval(sendRequest, 30 * 60 * 1000);
