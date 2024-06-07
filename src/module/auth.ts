@@ -5,6 +5,9 @@ const authSchema = new mongoose.Schema(
     username: {
       type: String,
     },
+    email: {
+      type: String,
+    },
     isActive: {
       type: Number,
       default: 0,

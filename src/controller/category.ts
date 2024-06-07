@@ -137,6 +137,13 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           });
         }
       );
+    } else {
+      const cate = await addCategory(req.body);
+      return res.status(200).json({
+        success: true,
+        message: "Added product successfully",
+        data: cate,
+      });
     }
   } catch (error) {
     return res.status(400).json({
@@ -374,7 +381,7 @@ export const ratingCategoryStats = async (req, res) => {
     return res.json({
       totalRatings,
       percentages,
-      averageRating
+      averageRating,
     });
   } catch (error) {
     return res.status(400).json({

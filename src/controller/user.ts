@@ -1,6 +1,7 @@
 import { getAll, editUser, deleteUser } from "../services/auth";
 import Auth from "../module/auth";
 import cloudinary from "../config/cloudinary";
+
 export const getAlluser = async (req, res) => {
   try {
     const data = await getAll();
@@ -33,7 +34,7 @@ export const remove = async (req, res) => {
     return res.status(200).json({
       message: "Thành công",
       success: true,
-      data:data
+      data: data,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });
@@ -65,3 +66,5 @@ export const findCartByUser = async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
 };
+
+

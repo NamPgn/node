@@ -1,5 +1,11 @@
 import express from "express";
-import { signup, singin, getAuth } from "../controller/auth";
+import {
+  signup,
+  singin,
+  getAuth,
+  forgotPassword,
+  resetPassword,
+} from "../controller/auth";
 import {
   edit,
   findCartByUser,
@@ -14,6 +20,7 @@ import {
   isSuperAdmin,
   isAdmin,
 } from "../middlewares/checkAuth";
+import { app } from "firebase-admin";
 const router = express.Router();
 
 router.get("/user", getAlluser);
@@ -28,7 +35,7 @@ router.delete(
   isAuth,
   isAdmin,
   isSuperAdmin,
-  remove,
+  remove
 );
 router.put(
   "/user/:id/:userId",
@@ -37,8 +44,10 @@ router.put(
   isAuth,
   isAdmin,
   isSuperAdmin,
-  edit,
+  edit
 );
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:id/:token", resetPassword);
 router.get("/user/:id", getAuth);
 // router.put('/user/image/:id', upload, editImage);
 // router.post('/user/creating', uploadStorageUser.single("xlsx"), uploadXlxs);
