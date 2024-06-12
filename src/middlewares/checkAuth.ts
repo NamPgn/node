@@ -1,9 +1,8 @@
 import { expressjwt } from "express-jwt";
 import jwt from "jsonwebtoken";
-import comments from "../module/comments";
 export const requiredSignin = expressjwt({
   algorithms: ["HS256"],
-  secret: "nampg",
+  secret: process.env.ACCESS_TOKEN_KEY,
   requestProperty: "auth",
 });
 
@@ -43,10 +42,9 @@ export const checkToken = (req, res, next) => {
     });
   }
   try {
-    const payload = jwt.verify(token, process.env.ACCESS_TOKEN_KEY,(err,decode)=>{
+    jwt.verify(token, process.env.ACCESS_TOKEN_KEY, (err, decode) => {
       console.log("1");
     });
-    req.user = payload; 
     next();
   } catch (error) {
     console.log(error);
@@ -56,6 +54,6 @@ export const checkToken = (req, res, next) => {
     if (error instanceof jwt.TokenExpiredError) {
       return res.status(401).json({ message: "Token hết hạn" });
     }
-    return res.status(500).json({ message: "Lỗi máy chủ" }); 
+    return res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };
