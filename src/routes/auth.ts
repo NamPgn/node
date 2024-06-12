@@ -5,6 +5,7 @@ import {
   getAuth,
   forgotPassword,
   resetPassword,
+  refreshToken,
 } from "../controller/auth";
 import {
   edit,
@@ -20,7 +21,6 @@ import {
   isSuperAdmin,
   isAdmin,
 } from "../middlewares/checkAuth";
-import { app } from "firebase-admin";
 const router = express.Router();
 
 router.get("/user", getAlluser);
@@ -28,6 +28,7 @@ router.get("/user/:id", getAuth);
 router.get("/user_one/:id", getone);
 router.post("/signup", signup);
 router.post("/signin", singin);
+router.post('/refreshToken',refreshToken)
 router.delete(
   "/removeUser/:id/:userId",
   checkToken,

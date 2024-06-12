@@ -1,5 +1,4 @@
 import { addUser, getDataUser } from "../services/auth";
-import { generateToken } from "../services/requestToken";
 import { comparePassWord, passwordHash } from "../services/security";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -9,15 +8,9 @@ import Auth from "../module/auth";
 export const signup = async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
-    // const { filename } = req.file;
-    // filename ? filename : "https://taytou.com/wp-content/uploads/2022/08/Tai-anh-dai-dien-cute-de-thuong-hinh-meo-nen-xanh-la.png";
-
-    // console.log("req.file", filename)
-
     const getuser = await getDataUser({ email: email }); //tìm lấy ra cái thằng email
     if (getuser) {
-      //kiểm tra nếu mà nó đã tồn tại thì trả về cái lỗi
-      return res.status(401).json({
+      return res.status(200).json({
         success: false,
         message: "Tài khoản đã tồn tại",
       });
@@ -30,6 +23,46 @@ export const signup = async (req, res) => {
       password: hashPw,
       role: role,
     };
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      auth: {
+        user: process.env.EMAIL,
+        pass: process.env.PS,
+      },
+    });
+
+    var mailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: "Xác nhận đăng ký tài khoản!",
+      text: `Xin chào,
+
+      Chúc mừng! Tài khoản của bạn đã được xác nhận thành công. Bây giờ bạn có thể trải nghiệm ứng dụng của chúng tôi và tham gia vào cộng đồng.
+
+      Ứng dụng của chúng tôi cung cấp nhiều tính năng thú vị, bao gồm:
+      - Xem phim miễn phí trên nền tảng của chúng tôi.
+      - Tham gia và chia sẻ ý kiến trong các nhóm thảo luận về phim tại: [đây](https://www.facebook.com/profile.php?id=61556232330775).
+      - Tương tác với cộng đồng bằng cách bình luận và đánh giá phim yêu thích của bạn tại: [đây](https://www.tiktok.com/@tieu_loli).
+      - Nhận thông báo về các bộ phim mới, sự kiện đặc biệt và ưu đãi hấp dẫn tại: [đây](https://www.facebook.com/profile.php?id=61556232330775).
+
+      Hãy truy cập ứng dụng ngay bây giờ và bắt đầu tu tiên thôi nào các đạo hữu, GET GO.
+
+      Chúng tôi rất mong được phục vụ bạn và hy vọng bạn có thời gian thú vị khi sử dụng ứng dụng.
+
+      Trân trọng,
+      Đội ngũ ứng dụng của chúng tôi`,
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    });
     await addUser(newUser);
     return res.status(200).json({
       success: true,
@@ -49,7 +82,7 @@ export const singin = async (req, res) => {
     const { password, username } = req.body;
     const getUserLogin = await getDataUser({ username: username });
     if (!getUserLogin) {
-      return res.status(401).json({
+      return res.status(200).json({
         success: false,
         message: "Tài khoản không tồn tại",
         code: 401,
@@ -58,9 +91,9 @@ export const singin = async (req, res) => {
 
     const comparePw = comparePassWord(password, getUserLogin.password);
     if (!comparePw) {
-      return res.status(400).json({
+      return res.status(200).json({
         success: false,
-        message: "Nhập lại mật khẩu đi",
+        message: "Sai thông tin đăng nhập",
         code: 400,
       });
     }
@@ -72,24 +105,20 @@ export const singin = async (req, res) => {
       cart: getUserLogin.cart,
       image: getUserLogin.image,
     };
-    const tokenAuth = generateToken(user);
+    const tokenAuth = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {
+      expiresIn: "10h",
+    });
+    const refreshTokenAuth = jwt.sign(user, process.env.REFRESH_TOKEN_KEY, {
+      expiresIn: "30d",
+    });
     req.session = user;
-    // send mail with defined transport object
-
-    // const mailOptions = {
-    //     from: `${process.env.EMAIL}`,
-    //     to: `${email}`,
-    //     subject: 'Nam chào bạn',
-    //     text: 'This is a test email from Node.js'
-    // };
-    // sendMail(mailOptions);
-
     return res.status(200).json({
       code: 200,
       success: true,
       token: tokenAuth,
       message: "Đăng nhập thành công!",
       user: user,
+      refreshToken: refreshTokenAuth,
     });
   } catch (error) {
     return res.status(400).json({
@@ -99,6 +128,47 @@ export const singin = async (req, res) => {
     });
   }
 };
+
+export const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh Token empty!" });
+    }
+
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY, (err, decode) => {
+      if (err) {
+        return res.status(403).json({ message: "Invalid Token!" });
+      }
+      const user = {
+        _id: decode._id,
+        username: decode.username,
+        email: decode.email,
+        role: decode.role,
+        cart: decode.cart,
+        image: decode.image,
+      };
+      const newAccessToken = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {
+        expiresIn: "24h",
+      });
+      return res.json({
+        code: 200,
+        success: true,
+        token: newAccessToken,
+        message: "Đăng nhập thành công!",
+        user: user,
+        refreshToken: refreshToken,
+      });
+    });
+  } catch (error) {
+    return res.status(400).json({
+      code: 400,
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const getAuth = async (req, res, next, id) => {
   try {
     const user = await Auth.findById(id).exec();
@@ -114,7 +184,7 @@ export const getAuth = async (req, res, next, id) => {
     return res.status(400).json({
       code: 400,
       success: false,
-      message: "Đăng nhập không thành công!",
+      message: error.message,
     });
   }
 };
