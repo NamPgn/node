@@ -5,7 +5,6 @@ export const requiredSignin = expressjwt({
   secret: process.env.ACCESS_TOKEN_KEY,
   requestProperty: "auth",
 });
-
 export const isAuth = (req, res, next) => {
   const status = req.profile._id == req.auth._id;
   if (!status) {
@@ -35,25 +34,35 @@ export const isSuperAdmin = (req, res, next) => {
 };
 
 export const checkToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Kiểm tra xem token đã được gửi lên hay chưa
+  const token = req.headers.authorization.split(" ")[1];
   if (!token) {
+    return res.status(401).json({
+      message: "Token empty",
+    });
+  }
+  if (!req.headers.authorization) {
+    //check nếu k có token gửi lên
     return res.status(401).json({
       message: "Không được phép",
     });
   }
-  try {
-    jwt.verify(token, process.env.ACCESS_TOKEN_KEY, (err, decode) => {
-      console.log("1");
-    });
+  jwt.verify(token, process.env.ACCESS_TOKEN_KEY, async (error, payload) => {
+    if (error) {
+      if (error.name == "JsonWebTokenError") {
+        return res
+          .status(401)
+          .json({ message: "Token không hợp lệ", code: 401 });
+      }
+      if (error.name == "TokenExpiredError") {
+        return res.status(401).json({
+          message: "Token hết hạn",
+        });
+      }
+    }
+    // const User = await Auth.findById(payload._id);
+    // if (!User) return res.status(401).json({ message: "Unauthorized" });
+    // if (User.role !== 1) return res.status(401).json({ message: "Bạn k có quyền!" });
+    // req.user = User;
     next();
-  } catch (error) {
-    console.log(error);
-    if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({ message: "Token không hợp lệ", code: 401 });
-    }
-    if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({ message: "Token hết hạn" });
-    }
-    return res.status(500).json({ message: "Lỗi máy chủ" });
-  }
+  });
 };

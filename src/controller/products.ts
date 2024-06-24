@@ -10,6 +10,7 @@ import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
+import CryptoJS from "crypto-js";
 // import Approve from "../module/approve";
 
 export const getAllProducts = async (req, res) => {
@@ -82,6 +83,7 @@ export const addProduct = async (req, res) => {
       video2,
     } = req.body;
     // const folderName = "image";
+
     const file = req.file;
     // Kiểm tra quyền hạn của người dùng
     if (file) {
@@ -120,7 +122,7 @@ export const addProduct = async (req, res) => {
             typeId: typeId || undefined,
             year: year,
             country: country,
-            dailyMotionServer: dailyMotionServer,
+            dailyMotionServer: CryptoJS.AES.encrypt(dailyMotionServer, process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER).toString(),
             trailer: trailer,
           };
           // const data = await Approve.create({ products: dataAdd });
@@ -221,7 +223,7 @@ export const addProduct = async (req, res) => {
         LinkCopyright: LinkCopyright,
         year: year,
         country: country,
-        dailyMotionServer: dailyMotionServer,
+        dailyMotionServer: CryptoJS.AES.encrypt(dailyMotionServer, process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER).toString(),
         video2: video2,
         trailer: trailer,
       };
@@ -386,7 +388,7 @@ export const editProduct = async (req, res, next) => {
           findById.trailer = trailer;
           findById.country = country;
           findById.year = year;
-          findById.dailyMotionServer = dailyMotionServer;
+          findById.dailyMotionServer = CryptoJS.AES.encrypt(dailyMotionServer, process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER).toString();
           findById.categorymain = categorymain;
           findById.category = category;
           findById.typeId = typeId;
@@ -444,7 +446,7 @@ export const editProduct = async (req, res, next) => {
       findById.trailer = trailer;
       findById.country = country;
       findById.year = year;
-      findById.dailyMotionServer = dailyMotionServer;
+      findById.dailyMotionServer = CryptoJS.AES.encrypt(dailyMotionServer, process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER).toString();
       findById.categorymain = categorymain;
       findById.category = category;
       findById.typeId = typeId;
