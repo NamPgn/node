@@ -23,12 +23,12 @@ const redisClient = new Redis({
 //   reconnectOnError: (err) => {
 //     const targetError = "READONLY";
 //     if (err.message.includes(targetError)) {
-//       Only reconnect when the error contains "READONLY"
+//       //Only reconnect when the error contains "READONLY"
 //       return true; // or `return 1;`
 //     }
 //   },
 //   retryStrategy: (times) => {
-//     Xác định thời gian giữa các lần thử kết nối lại
+//     //Xác định thời gian giữa các lần thử kết nối lại
 //     return Math.min(times * 50, 2000);
 //   },
 // });

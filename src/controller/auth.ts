@@ -102,7 +102,6 @@ export const singin = async (req, res) => {
       username: getUserLogin.username,
       // email: getUserLogin.email,
       role: getUserLogin.role,
-      cart: getUserLogin.cart,
       image: getUserLogin.image,
     };
     const tokenAuth = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {

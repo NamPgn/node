@@ -45,7 +45,15 @@ export const getone = async (req, res, next) => {
   try {
     const id = req.params.id;
     const user = await Auth.findById(id)
-      .populate("cart.product", "name seri image category")
+      .populate({
+        path: "cart.product",
+        select:"name seri",
+        populate: {
+          path: "category",
+          model: "Category",
+          select:"linkImg name",
+        },
+      })
       .exec();
     user.password = undefined;
     return res.status(200).json(user);
@@ -66,5 +74,3 @@ export const findCartByUser = async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
 };
-
-
