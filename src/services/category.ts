@@ -8,7 +8,9 @@ export const getAllCategory = async () => {
 };
 
 export const getCategory = async (id) => {
-  return await Category.findOne({ _id: id }).populate("products");
+  const category = await Category.findOne({ _id: id }).populate("products");
+  category.products.sort((a:any, b:any) => parseInt(b.seri) - parseInt(a.seri));
+  return category
 };
 
 export const addCategory = async (data) => {

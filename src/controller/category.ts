@@ -65,7 +65,30 @@ export const getAll = async (req: any, res: Response) => {
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const data = await getCategory(id);
+    let sumRating = 0;
+    const category = await getCategory(id);
+    if (!category) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+    // Tính toán số lượng đánh giá và trung bình đánh giá của sản phẩm
+    const totalRatings = category.rating.length;
+    const ratingsCount = [0, 0, 0, 0, 0]; // Mảng để lưu số lượng đánh giá cho mỗi mức đánh giá
+    category.rating.forEach((rate) => {
+      if (rate >= 1 && rate <= 5) {
+        ratingsCount[rate - 1]++;
+      }
+      sumRating += rate;
+    });
+    const percentages = ratingsCount.map(
+      (count) => (count / totalRatings) * 100
+    );
+    const averageRating = sumRating / totalRatings;
+    const data = {
+    ...category.toObject(),
+      averageRating:averageRating,
+      percentages:percentages,
+      totalRatings:totalRatings,
+    };
     return res.json(data);
   } catch (error) {
     return res.status(400).json({
@@ -321,8 +344,27 @@ export const getCategoryLatesupdate = async (req, res) => {
   try {
     const data = await Category.find()
       .sort({ latestProductUploadDate: -1 })
-      .limit(10)
+      .limit(8)
       .populate("products");
+    return res.json({
+      data: data,
+      success: true,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const changeCategoryLatest = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const data = await Category.findOneAndUpdate(
+      { _id: id },
+      { latestProductUploadDate: new Date() },
+      { new: true }
+    );
     return res.json({
       data: data,
       success: true,

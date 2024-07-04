@@ -132,6 +132,7 @@ export const addProduct = async (req, res) => {
           };
           // const data = await Approve.create({ products: dataAdd });
           const data: any = await Products.create(dataAdd);
+          console.log(data);
           if (data.category) {
             await Category.findOneAndUpdate(
               { _id: data.category },
@@ -407,7 +408,7 @@ export const editProduct = async (req, res, next) => {
           findById.category = category;
           findById.typeId = typeId;
           findById.trailer = trailer;
-          if (decode === "") {
+          if (dailyMotionServer === "") {
             findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
           } else {
             findById.dailyMotionServer = CryptoJS.AES.encrypt(
@@ -468,7 +469,7 @@ export const editProduct = async (req, res, next) => {
       findById.typeId = typeId;
       findById.trailer = trailer;
       findById.link = link;
-      if (decode === "") {
+      if (dailyMotionServer === "") {
         findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
       } else {
         findById.dailyMotionServer = CryptoJS.AES.encrypt(
@@ -476,11 +477,11 @@ export const editProduct = async (req, res, next) => {
           process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
         ).toString();
       }
-      await Category.findOneAndUpdate(
-        { _id: findById.category },
-        { latestProductUploadDate: new Date() },
-        { new: true }
-      );
+      // await Category.findOneAndUpdate(
+      //   { _id: findById.category },
+      //   { latestProductUploadDate: new Date() },
+      //   { new: true }
+      // );
       const data = await findById.save();
       return res.status(200).json({
         success: true,

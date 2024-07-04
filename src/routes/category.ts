@@ -2,6 +2,7 @@ import express from "express";
 import { getAuth } from "../controller/auth";
 import {
   addCt,
+  changeCategoryLatest,
   deleteCategoryController,
   filterCategoryTrending,
   getAll,
@@ -32,6 +33,7 @@ router.get("/category/latest", getCategoryLatesupdate);
 router.get("/categorys/search", searchCategory);
 router.get("/category/filters", filterCategoryTrending);
 router.get("/category/:id", getOne);
+router.post("/category/changeLatest", changeCategoryLatest);
 router.post(
   "/category/:id/:userId",
   checkToken,
@@ -69,6 +71,7 @@ router.post(
   push
 );
 router.post("/rating/:categoryId", ratingCategory);
+
 router.get("/rate/:categoryId", ratingCategoryStats);
 router.get("/rating/stats", ratingCategorysStatsAll);
 router.param("userId", getAuth);
