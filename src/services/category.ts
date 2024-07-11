@@ -1,9 +1,12 @@
 import Category from "../module/category";
 
-export const getAllCategory = async () => {
+export const getAllCategory = async (page:number,limit:number) => {
+  const skip = (page - 1) * limit;
   return await Category.find()
     .sort({ up: -1 })
     .populate("products", "seri")
+    .skip(skip)
+    .limit(limit)
     .exec();
 };
 

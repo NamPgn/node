@@ -13,48 +13,39 @@ import XLSX from "xlsx";
 import CryptoJS from "crypto-js";
 // import Approve from "../module/approve";
 
-export const getAllProducts = async (req, res) => {
+export const getAllProducts = async (req: Request, res: Response) => {
   try {
-    const page = parseInt(req.query.page) || 0;
-    const skip = (page - 1) * DEFAULT_LIMIT; // số lượng bỏ qua
-    let All = await getAll();
-    const key = "products";
-    const redisGetdata: any = await getDataFromCache("products");
+    const page = parseInt(req.query.page as string) || 1; // Mặc định trang là 1
+    const limit = DEFAULT_LIMIT;
+
+    const key = `products_page_${page}`; // Thêm thông tin trang vào key cache
+    const redisData: any = await getDataFromCache(key);
+
     let data: any;
-    if (redisGetdata) {
-      // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis để hiển thị theo từng trang
-      // await redisClient.set("products", JSON.stringify(All), "EX", 3600); //cappj nhật trong redis server || client
+
+    if (redisData) {
+      // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis
+      data = redisData;
+    } else {
+      // Nếu không có dữ liệu trong Redis, lấy dữ liệu từ database và lưu vào Redis
+      data = await getAll(page, limit);
+
+      // Cache dữ liệu của trang hiện tại
+      cacheData(key, data, "EX", 3600);
+
+      // Theo dõi sự thay đổi trong bộ sưu tập
       Products.watch().on("change", async (change) => {
-        if (change.operationType == "insert") {
-          const newData = change.fullDocument;
-          const value = JSON.stringify(newData);
-          redisDel(key);
-          await cacheData(key, value, "EX", 3600, "XX");
-        }
-
-        if (change.operationType == "delete") {
-          redisDel(key);
-          await cacheData(key, All, "EX", 3600, "XX");
-        }
-
-        if (change.operationType == "update") {
-          redisDel(key);
-          await cacheData(key, All, "EX", 3600, "XX");
+        if (["insert", "delete", "update"].includes(change.operationType)) {
+          redisDel(key); // Xóa cache khi có thay đổi
+          const updatedData = await getAll(page, limit);
+          cacheData(key, updatedData, "EX", 3600); // Cache lại dữ liệu
         }
       });
-      const i = page
-        ? redisGetdata?.slice(skip, skip + DEFAULT_LIMIT)
-        : redisGetdata;
-      data = i;
-    } else {
-      // Nếu không có dữ liệu trong Redis, lấy toàn bộ dữ liệu từ database và lưu vào Redis
-      await cacheData("products", All, "EX", 3600);
-      // await redisClient.set(`products`, JSON.stringify(All), "EX", 3600);
-      data = All;
     }
+
     return res.status(200).json({
       data: data,
-      length: redisGetdata ? redisGetdata.length : All.length,
+      length: data.length,
     });
   } catch (error) {
     return res.status(400).json({

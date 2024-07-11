@@ -58,6 +58,9 @@ const categorySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    hour: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

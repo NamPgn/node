@@ -17,43 +17,38 @@ interface MulterRequest extends Request {
 export const getAll = async (req: any, res: Response) => {
   try {
     const default_limit = 24;
-    const data = await getAllCategory();
-    const page = parseInt(req.query.page) || 0;
+    const page = parseInt(req.query.page) || 1; // Mặc định trang là 1
+
     await Category.createIndexes();
-    const key = "categorys";
-    const resdisData = await getDataFromCache(key);
-    const skip = (page - 1) * default_limit; //số lượng bỏ qua
+
+    const key = `categorys_page_${page}`; // Thêm thông tin trang vào key
+    const redisData = await getDataFromCache(key);
+
     let category: any;
-    if (resdisData) {
+
+    if (redisData) {
+      // Nếu có dữ liệu cache, sử dụng dữ liệu đó
+      category = redisData;
+    } else {
+      // Nếu không có dữ liệu cache, lấy dữ liệu từ cơ sở dữ liệu
+      category = await getAllCategory(page, default_limit);
+      
+      // Cache dữ liệu của trang hiện tại
+      cacheData(key, category, "EX", 3600);
+      
+      // Theo dõi sự thay đổi trong bộ sưu tập
       Category.watch().on("change", async (change) => {
-        if (change.operationType == "insert") {
-          redisDel(key);
-          cacheData(key, data, "EX", 3600, "XX");
-        }
-
-        if (change.operationType == "delete") {
-          redisDel(key);
-          cacheData(key, data, "EX", 3600, "XX");
-        }
-
-        if (change.operationType == "update") {
-          redisDel(key);
-          cacheData(key, data, "EX", 3600, "XX");
+        if (["insert", "delete", "update"].includes(change.operationType)) {
+          redisDel(key); // Xóa cache khi có thay đổi
+          const updatedCategory = await getAllCategory(page, default_limit);
+          cacheData(key, updatedCategory, "EX", 3600); // Cache lại dữ liệu
         }
       });
-
-      const i = page
-        ? resdisData.slice(skip, skip + default_limit)
-        : resdisData;
-      category = i;
-    } else {
-      cacheData("categorys", data, "EX", 3600);
-      // await redisClient.set("categorys", JSON.stringify(data), "EX", 3600);
-      category = data;
     }
+    
     return res.status(200).json({
       data: category,
-      length: data.length,
+      length: category.length,
     });
   } catch (error) {
     return res.status(400).json({
@@ -61,6 +56,8 @@ export const getAll = async (req: any, res: Response) => {
     });
   }
 };
+
+
 
 export const getOne = async (req: Request, res: Response) => {
   try {
@@ -122,6 +119,7 @@ export const addCt = async (req: MulterRequest, res: Response) => {
       time,
       isActive,
       anotherName,
+      hour
     } = req.body;
     const file = req.file;
     if (file) {
@@ -148,6 +146,7 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             year: year,
             time: time,
             isActive: isActive,
+            hour: hour,
           };
           const cate = await addCategory(newDt);
           await WeekCategory.findByIdAndUpdate(cate.week, {
@@ -189,6 +188,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       year,
       isActive,
       anotherName,
+      hour,
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -219,6 +219,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.linkImg = result.url;
           findById.year = year;
           findById.isActive = isActive;
+          findById.hour = hour;
           (findById.anotherName = anotherName), findById.save();
           await WeekCategory.findByIdAndUpdate(findById.week, {
             $set: { category: findById._id },
@@ -239,6 +240,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.time = time;
       findById.year = year;
       findById.isActive = isActive;
+      findById.hour = hour;
       (findById.anotherName = anotherName),
         await WeekCategory.findByIdAndUpdate(findById.week, {
           $addToSet: { category: findById._id },
