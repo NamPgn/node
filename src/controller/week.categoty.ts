@@ -26,9 +26,11 @@ export const one = async (req, res) => {
     const { w } = req.query;
     const data = await WeekCategory.find({ name: w }).populate({
       path: "category",
+      select:"name linkImg seri time type year sumSeri",
       populate: {
         path: "products",
         model: "Products",
+        select:"seri",
       },
     });
     let categorys: any = {

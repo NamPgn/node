@@ -1,6 +1,6 @@
 import Category from "../module/category";
 
-export const getAllCategory = async (page:number,limit:number) => {
+export const getAllCategory = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
   return await Category.find()
     .sort({ up: -1 })
@@ -12,8 +12,10 @@ export const getAllCategory = async (page:number,limit:number) => {
 
 export const getCategory = async (id) => {
   const category = await Category.findOne({ _id: id }).populate("products");
-  category.products.sort((a:any, b:any) => parseInt(b.seri) - parseInt(a.seri));
-  return category
+  category.products.sort(
+    (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
+  );
+  return category;
 };
 
 export const addCategory = async (data) => {

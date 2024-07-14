@@ -14,8 +14,6 @@ import routerCategorymain from "./src/routes/categorymain";
 import routerImage from "./src/routes/image.user";
 import routerWeek from "./src/routes/week.category";
 import routerApprove from "./src/routes/approve";
-import products from "./src/module/products";
-import CryptoJS from "crypto-js";
 const port = process.env.PORT || 3000;
 const serviceAccount: any = {
   type: "service_account",

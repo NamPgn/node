@@ -16,7 +16,7 @@ interface MulterRequest extends Request {
 }
 export const getAll = async (req: any, res: Response) => {
   try {
-    const default_limit = 24;
+    const limit = 24;
     const page = parseInt(req.query.page) || 1; // Mặc định trang là 1
 
     await Category.createIndexes();
@@ -31,7 +31,7 @@ export const getAll = async (req: any, res: Response) => {
       category = redisData;
     } else {
       // Nếu không có dữ liệu cache, lấy dữ liệu từ cơ sở dữ liệu
-      category = await getAllCategory(page, default_limit);
+      category = await getAllCategory(page, limit);
       
       // Cache dữ liệu của trang hiện tại
       cacheData(key, category, "EX", 3600);
@@ -40,7 +40,7 @@ export const getAll = async (req: any, res: Response) => {
       Category.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
           redisDel(key); // Xóa cache khi có thay đổi
-          const updatedCategory = await getAllCategory(page, default_limit);
+          const updatedCategory = await getAllCategory(page, limit);
           cacheData(key, updatedCategory, "EX", 3600); // Cache lại dữ liệu
         }
       });
