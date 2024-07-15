@@ -32,7 +32,7 @@ export const getAll = async (req: any, res: Response) => {
     } else {
       // Nếu không có dữ liệu cache, lấy dữ liệu từ cơ sở dữ liệu
       category = await getAllCategory(page, limit);
-      
+      console.log(category)
       // Cache dữ liệu của trang hiện tại
       cacheData(key, category, "EX", 3600);
       

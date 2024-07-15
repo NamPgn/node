@@ -123,7 +123,6 @@ export const addProduct = async (req, res) => {
           };
           // const data = await Approve.create({ products: dataAdd });
           const data: any = await Products.create(dataAdd);
-          console.log(data);
           if (data.category) {
             await Category.findOneAndUpdate(
               { _id: data.category },

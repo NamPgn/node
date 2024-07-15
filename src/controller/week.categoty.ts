@@ -5,12 +5,13 @@ export const all = async (req, res) => {
     const data: any = await WeekCategory.find()
       .populate({
         path: "category",
+        select: "name linkImg seri time type year sumSeri",
         populate: {
           path: "products",
           model: "Products",
+          select: "seri",
         },
       })
-      .populate("products")
       .sort({ name: 1 }); //123
 
     return res.status(200).json(data);
@@ -26,11 +27,11 @@ export const one = async (req, res) => {
     const { w } = req.query;
     const data = await WeekCategory.find({ name: w }).populate({
       path: "category",
-      select:"name linkImg seri time type year sumSeri",
+      select: "name linkImg seri time type year sumSeri",
       populate: {
         path: "products",
         model: "Products",
-        select:"seri",
+        select: "seri",
       },
     });
     let categorys: any = {

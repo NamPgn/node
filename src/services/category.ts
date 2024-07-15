@@ -2,12 +2,15 @@ import Category from "../module/category";
 
 export const getAllCategory = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
-  return await Category.find()
+  const categories=  await Category.find()
+    .select("name linkImg seri time type year sumSeri")
+    .lean()
     .sort({ up: -1 })
     .populate("products", "seri")
     .skip(skip)
     .limit(limit)
     .exec();
+    return categories
 };
 
 export const getCategory = async (id) => {

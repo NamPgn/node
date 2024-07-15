@@ -1,5 +1,4 @@
 import Types from "../module/types";
-import Products from "../module/products";
 import category from "../module/category";
 import categorymain from "../module/categorymain";
 
@@ -9,7 +8,7 @@ export const GetAllTypeCategorys = async (req, res) => {
       .sort({ path: 1 })
       .populate("categorymain.cates")
       .populate("products")
-      .populate("category");
+      .populate("category", "name linkImg seri time type year sumSeri");
     return res.status(200).json(data);
   } catch (error) {
     return res.status(400).json({
@@ -37,7 +36,7 @@ export const GetOneTypeCategory = async (req, res) => {
         path: "category",
         populate: {
           path: "products",
-          model:"Products"
+          model: "Products",
         },
       });
     return res.status(200).json({
