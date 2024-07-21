@@ -32,10 +32,9 @@ export const getAll = async (req: any, res: Response) => {
     } else {
       // Nếu không có dữ liệu cache, lấy dữ liệu từ cơ sở dữ liệu
       category = await getAllCategory(page, limit);
-      console.log(category)
       // Cache dữ liệu của trang hiện tại
       cacheData(key, category, "EX", 3600);
-      
+
       // Theo dõi sự thay đổi trong bộ sưu tập
       Category.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
@@ -45,7 +44,7 @@ export const getAll = async (req: any, res: Response) => {
         }
       });
     }
-    
+
     return res.status(200).json({
       data: category,
       length: category.length,
@@ -56,8 +55,6 @@ export const getAll = async (req: any, res: Response) => {
     });
   }
 };
-
-
 
 export const getOne = async (req: Request, res: Response) => {
   try {
@@ -81,10 +78,10 @@ export const getOne = async (req: Request, res: Response) => {
     );
     const averageRating = sumRating / totalRatings;
     const data = {
-    ...category.toObject(),
-      averageRating:averageRating,
-      percentages:percentages,
-      totalRatings:totalRatings,
+      ...category.toObject(),
+      averageRating: averageRating,
+      percentages: percentages,
+      totalRatings: totalRatings,
     };
     return res.json(data);
   } catch (error) {
@@ -119,7 +116,7 @@ export const addCt = async (req: MulterRequest, res: Response) => {
       time,
       isActive,
       anotherName,
-      hour
+      hour,
     } = req.body;
     const file = req.file;
     if (file) {
