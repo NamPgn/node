@@ -131,10 +131,11 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           if (error) {
             return res.status(500).json(error);
           }
+          const secureUrl = result.url.replace('http://', 'https://');
           const newDt = {
             anotherName: anotherName,
             name: name,
-            linkImg: result.url,
+            linkImg: secureUrl,
             des: des,
             sumSeri: sumSeri,
             type: type,
@@ -190,7 +191,6 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
     const { id } = req.params;
     const file = req.file;
     const findById = await Category.findById(id);
-
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
@@ -206,6 +206,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           if (error) {
             return res.status(500).json(error);
           }
+          const secureUrl = result.url.replace('http://', 'https://');
           findById.name = name;
           findById.des = des;
           findById.week = week;
@@ -213,7 +214,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.up = up;
           findById.type = type;
           findById.time = time;
-          findById.linkImg = result.url;
+          findById.linkImg = secureUrl;
           findById.year = year;
           findById.isActive = isActive;
           findById.hour = hour;

@@ -4,7 +4,9 @@ import categorymain from "../module/categorymain";
 
 export const GetAllTypeCategorys = async (req, res) => {
   try {
-    const data = await Types.find()
+    const data = await Types.find({
+      name: { $in: ["Hoạt Hình Trung Quốc", "Trang chủ"] }
+    })
       .sort({ path: 1 })
       .populate("categorymain.cates")
       .populate("products")
