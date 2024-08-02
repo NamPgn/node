@@ -22,7 +22,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const redisData: any = await getDataFromCache(key);
 
     let data: any;
-
+    
     if (redisData) {
       // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis
       data = redisData;
@@ -749,7 +749,14 @@ export const getOne = async (req: Request, res: Response) => {
     const id = req.params.id.toString();
     const dataID = await Products.findById(id)
       .populate("comments.user", "username image")
-      .populate("category");
+      .populate({
+        path:"category",
+        populate:{
+          path:"products",
+          model:"Products",
+          select:"seri isApproved"
+        }
+      });
     // Lấy dữ liệu từ Redis
     dataID.view += 1;
     await dataID.save();

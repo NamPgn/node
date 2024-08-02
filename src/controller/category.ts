@@ -126,12 +126,13 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
+          transformation: [{ format: "webp" }],
         },
         async (error, result: any) => {
           if (error) {
             return res.status(500).json(error);
           }
-          const secureUrl = result.url.replace('http://', 'https://');
+          const secureUrl = result.url.replace("http://", "https://");
           const newDt = {
             anotherName: anotherName,
             name: name,
@@ -201,12 +202,13 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
+          transformation: [{ format: "webp" }],
         },
         async (error, result: any) => {
           if (error) {
             return res.status(500).json(error);
           }
-          const secureUrl = result.url.replace('http://', 'https://');
+          const secureUrl = result.url.replace("http://", "https://");
           findById.name = name;
           findById.des = des;
           findById.week = week;
@@ -328,7 +330,7 @@ export const push = async (req, res) => {
 
 export const filterCategoryTrending = async (req, res) => {
   try {
-    const data = await Category.find().sort({ up: -1 }).limit(10);
+    const data = await Category.find().sort({ up: -1 }).limit(6);
     return res.json({
       data: data,
       success: true,
@@ -345,6 +347,23 @@ export const getCategoryLatesupdate = async (req, res) => {
     const data = await Category.find()
       .sort({ latestProductUploadDate: -1 })
       .limit(8)
+      .populate("products");
+    return res.json({
+      data: data,
+      success: true,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const getCategoryLatesupdateFromNextjs = async (req, res) => {
+  try {
+    const data = await Category.find()
+      .sort({ latestProductUploadDate: -1 })
+      .limit(16)
       .populate("products");
     return res.json({
       data: data,

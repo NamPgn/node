@@ -8,6 +8,7 @@ import {
   getAll,
   getAllCategoryNotReq,
   getCategoryLatesupdate,
+  getCategoryLatesupdateFromNextjs,
   getOne,
   push,
   ratingCategory,
@@ -34,6 +35,7 @@ router.get("/categorys/search", searchCategory);
 router.get("/category/filters", filterCategoryTrending);
 router.get("/category/:id", getOne);
 router.post("/category/changeLatest", changeCategoryLatest);
+router.get("/category/latest/next", getCategoryLatesupdateFromNextjs);
 router.post(
   "/category/:id/:userId",
   checkToken,
