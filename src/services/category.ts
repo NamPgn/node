@@ -16,7 +16,7 @@ export const getAllCategory = async (page: number, limit: number) => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ _id: id }).populate({
     path: "products",
-    select: "seri isApproved",
+    select: "seri isApproved category",
   });
   category.products.sort(
     (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
