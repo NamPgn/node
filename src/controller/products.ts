@@ -5,7 +5,6 @@ import Categorymain from "../module/categorymain";
 import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
-import { DEFAULT_LIMIT } from "../constans/constan";
 import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
@@ -15,37 +14,55 @@ import CryptoJS from "crypto-js";
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
+    const limit = 40;
     const page = parseInt(req.query.page as string) || 1; // Mặc định trang là 1
-    const limit = DEFAULT_LIMIT;
 
-    const key = `products_page_${page}`; // Thêm thông tin trang vào key cache
+    let key: string;
     const redisData: any = await getDataFromCache(key);
 
-    let data: any;
-    
-    if (redisData) {
-      // Nếu có dữ liệu trong Redis, lấy dữ liệu từ Redis
-      data = redisData;
+    if (page === 0) {
+      key = `products_all`;
     } else {
-      // Nếu không có dữ liệu trong Redis, lấy dữ liệu từ database và lưu vào Redis
-      data = await getAll(page, limit);
+      key = `products_page_${page}`;
+    }
 
-      // Cache dữ liệu của trang hiện tại
-      cacheData(key, data, "EX", 3600);
+    let products: any;
+    let totalCount: number;
 
-      // Theo dõi sự thay đổi trong bộ sưu tập
+    if (redisData) {
+      ({ products, totalCount } = redisData);
+    } else {
+      if (page === 0) {
+        products = await getAll(0, 0); // Lấy toàn bộ sản phẩm
+        totalCount = products.length;
+      } else {
+        products = await getAll(page, limit); // Lấy sản phẩm theo trang
+        totalCount = await Products.countDocuments();
+      }
+
+      cacheData(key, { products, totalCount }, "EX", 3600);
+
       Products.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
-          redisDel(key); // Xóa cache khi có thay đổi
-          const updatedData = await getAll(page, limit);
-          cacheData(key, updatedData, "EX", 3600); // Cache lại dữ liệu
+          redisDel(key);
+          let updatedProducts;
+          if (page === 0) {
+            updatedProducts = await getAll(0, 0);
+            totalCount = updatedProducts.length;
+          } else {
+            updatedProducts = await getAll(page, limit);
+            totalCount = await Products.countDocuments();
+          }
+          cacheData(key, { products: updatedProducts, totalCount }, "EX", 3600);
         }
       });
     }
 
     return res.status(200).json({
-      data: data,
-      length: data.length,
+      data: products,
+      totalCount,
+      totalPages: page === 0 ? 1 : Math.ceil(totalCount / limit),
+      pageSizeOptions:[]
     });
   } catch (error) {
     return res.status(400).json({
@@ -750,12 +767,12 @@ export const getOne = async (req: Request, res: Response) => {
     const dataID = await Products.findById(id)
       .populate("comments.user", "username image")
       .populate({
-        path:"category",
-        populate:{
-          path:"products",
-          model:"Products",
-          select:"seri isApproved"
-        }
+        path: "category",
+        populate: {
+          path: "products",
+          model: "Products",
+          select: "seri isApproved",
+        },
       });
     // Lấy dữ liệu từ Redis
     dataID.view += 1;

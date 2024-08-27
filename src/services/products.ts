@@ -2,7 +2,9 @@ import Products from "../module/products";
 
 export const getAll = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
-  return await Products.find().skip(skip).limit(limit).exec();
+  return await Products.find().skip(skip).limit(limit).sort({
+    _id: -1,
+  }).exec();
 };
 
 export const get = async (id) => {

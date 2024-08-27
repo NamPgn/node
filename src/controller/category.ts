@@ -17,45 +17,59 @@ interface MulterRequest extends Request {
 export const getAll = async (req: any, res: Response) => {
   try {
     const limit = 24;
-    const page = parseInt(req.query.page); // Mặc định trang là 1
+    const page = parseInt(req.query.page) || 1; // Mặc định page là 0
     await Category.createIndexes();
 
-    let key: number | string;
-    const redisData = await getDataFromCache(key);
-
+    let key: string;
     let category: any;
+    let totalCount: number;
+
     if (page === 0) {
       key = `categorys_all`;
     } else {
       key = `categorys_page_${page}`;
     }
 
+    const redisData = await getDataFromCache(key);
+
     if (redisData) {
-      category = redisData;
+      ({ category, totalCount } = redisData);
     } else {
       if (page === 0) {
         category = await getAllCategory(0, 0);
+        totalCount = category.length;
       } else {
         category = await getAllCategory(page, limit);
+        totalCount = await Category.countDocuments();
       }
 
-      cacheData(key, category, "EX", 3600);
+      cacheData(key, { category, totalCount }, "EX", 3600);
 
       Category.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
-          redisDel(key); // Xóa cache khi có thay đổi
-          const updatedCategory =
-            page === 0
-              ? await getAllCategory(0, 0)
-              : await getAllCategory(page, limit);
-          cacheData(key, updatedCategory, "EX", 3600); // Cache lại dữ liệu
+          redisDel(key);
+          if (page === 0) {
+            const updatedCategory = await getAllCategory(0, 0);
+            totalCount = updatedCategory.length;
+          } else {
+            const updatedCategory = await getAllCategory(page, limit);
+            totalCount = await Category.countDocuments();
+            cacheData(
+              key,
+              { category: updatedCategory, totalCount },
+              "EX",
+              3600
+            );
+          }
         }
       });
     }
 
     return res.status(200).json({
       data: category,
-      length: category.length,
+      totalCount,
+      // currentPage: page,
+      totalPages: page === 0 ? 1 : Math.ceil(totalCount / limit),
     });
   } catch (error) {
     return res.status(400).json({
