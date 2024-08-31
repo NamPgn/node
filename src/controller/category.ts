@@ -17,7 +17,7 @@ interface MulterRequest extends Request {
 export const getAll = async (req: any, res: Response) => {
   try {
     const limit = 24;
-    const page = parseInt(req.query.page) || 1; // Mặc định page là 0
+    const page = parseInt(req.query.page) || 0; // Mặc định page là 0
     await Category.createIndexes();
 
     let key: string;
