@@ -8,6 +8,9 @@ const categorySchema = new mongoose.Schema(
     anotherName: {
       type: String,
     },
+    slug: {
+      type: String,
+    },
     linkImg: {
       type: String,
     },
@@ -27,7 +30,7 @@ const categorySchema = new mongoose.Schema(
       type: String,
     },
     week: {
-      type: mongoose.Types.ObjectId,
+      type: mongoose.Types.ObjectId || undefined,
       ref: "Week",
     },
     up: {
@@ -60,6 +63,17 @@ const categorySchema = new mongoose.Schema(
     },
     hour: {
       type: String,
+    },
+    season: {
+      type: String,
+    },
+    lang: {
+      type: String,
+      default: "Vietsub",
+    },
+    quality: {
+      type: String,
+      default: "HD",
     },
   },
   { timestamps: true }

@@ -29,9 +29,7 @@ export const getAll = async (req: any, res: Response) => {
     } else {
       key = `categorys_page_${page}`;
     }
-
     const redisData = await getDataFromCache(key);
-
     if (redisData) {
       ({ category, totalCount } = redisData);
     } else {
@@ -42,7 +40,6 @@ export const getAll = async (req: any, res: Response) => {
         category = await getAllCategory(page, limit);
         totalCount = await Category.countDocuments();
       }
-
       cacheData(key, { category, totalCount }, "EX", 3600);
 
       Category.watch().on("change", async (change) => {
@@ -139,6 +136,9 @@ export const addCt = async (req: MulterRequest, res: Response) => {
       isActive,
       anotherName,
       hour,
+      season,
+      lang,
+      quality,
     } = req.body;
     const file = req.file;
     if (file) {
@@ -155,6 +155,20 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             return res.status(500).json(error);
           }
           const secureUrl = result.url.replace("http://", "https://");
+          const removeVietnameseTones = (str) => {
+            return str
+              .normalize("NFD") 
+              .replace(/[\u0300-\u036f]/g, "") 
+              .replace(/đ/g, "d") 
+              .replace(/Đ/g, "D");
+          };
+          const slugify = (text) => {
+            return removeVietnameseTones(text) 
+              .toLowerCase()                  
+              .trim()                         
+              .replace(/[\s\W-]+/g, "-")       
+              .replace(/^-+|-+$/g, "");      
+          };
           const newDt = {
             anotherName: anotherName,
             name: name,
@@ -168,6 +182,10 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             time: time,
             isActive: isActive,
             hour: hour,
+            slug: slugify(name),
+            season: season,
+            lang: lang,
+            quality: quality,
           };
           const cate = await addCategory(newDt);
           await WeekCategory.findByIdAndUpdate(cate.week, {
@@ -210,6 +228,10 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       isActive,
       anotherName,
       hour,
+      season,
+      lang,
+      quality,
+      slug
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -253,6 +275,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
         }
       );
     } else {
+
       findById.name = name;
       findById.des = des;
       findById.week = week;
@@ -263,10 +286,15 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.year = year;
       findById.isActive = isActive;
       findById.hour = hour;
-      (findById.anotherName = anotherName),
-        await WeekCategory.findByIdAndUpdate(findById.week, {
-          $addToSet: { category: findById._id },
-        });
+      findById.season = season;
+      findById.lang = lang;
+      findById.quality = quality;
+      findById.slug = slug;
+      findById.anotherName = anotherName,
+      
+      await WeekCategory.findByIdAndUpdate(findById.week, {
+        $addToSet: { category: findById._id },
+      });
       await findById.save();
       return res.status(200).json({
         success: true,

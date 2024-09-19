@@ -62,7 +62,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
       data: products,
       totalCount,
       totalPages: page === 0 ? 1 : Math.ceil(totalCount / limit),
-      pageSizeOptions:[]
+      pageSizeOptions: [],
     });
   } catch (error) {
     return res.status(400).json({
@@ -828,7 +828,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
         message: "Not data",
       });
     }
-    jsonData.map((item) => {
+    jsonData.map(async (item) => {
       if (typeof item.category === "string") {
         return [
           ...jsonData,
@@ -839,15 +839,23 @@ export const uploadXlxsProducts = async (req, res, next) => {
       }
     });
     const data = await Products.insertMany(jsonData);
+    for (const movies of data) {
+      const categoryById = await Category.findById(movies.category);
+      if (categoryById) {
+        await Category.findOneAndUpdate(
+          { _id: categoryById._id },
+          { latestProductUploadDate: new Date() },
+          { new: true }
+        );
+        await Category.findByIdAndUpdate(categoryById._id, {
+          $addToSet: { products: movies._id },
+        });
+      }
+    }
     return res.json({
       data: data,
       success: true,
     });
-    // let saveData = await Product.create(jsonData);
-    //return res.json({
-    //   suscess: true,
-    //   message: "data" + saveData,
-    // });
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -881,6 +889,49 @@ export const mostWatchesEposides = async (req, res) => {
   }
 };
 
+export const editMultipleMovies = async (req, res) => {
+  try {
+    const arrId = req.body;
+    for (const id of arrId) {
+      const product = await Products.findById(id).select("dailyMotionServer");
+      if (product) {
+        const encode = CryptoJS.AES.encrypt(
+          product.dailyMotionServer,
+          process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
+        ).toString();
+        await Products.findByIdAndUpdate(id, { dailyMotionServer: encode });
+      }
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Dữ liệu sản phẩm đã được cập nhật.",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const approveMultipleMovies = async (req, res) => {
+  try {
+    const id = req.body;
+    const data = await Products.updateMany(
+      { _id: { $in: id } },
+      { $set: { isApproved: true } }
+    );
+    return res.status(200).json({
+      success: true,
+      data: data,
+      id: id,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 // export const ratingProducts = async (req, res) => {
 //   try {
 //     const { productId } = req.params;

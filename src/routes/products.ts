@@ -17,6 +17,8 @@ import {
   uploadXlxsProducts,
   clearCacheProducts,
   mostWatchesEposides,
+  approveMultipleMovies,
+  editMultipleMovies,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -133,6 +135,23 @@ router.post(
   isAdmin,
   uploadServer.single("fileupload"),
   uploadAbyss
+);
+
+router.post(
+  "/products/approvedMultiple/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  approveMultipleMovies
+);
+router.post(
+  "/products/encodeMultipleDailymotionServer/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  editMultipleMovies
 );
 // router.post("/product/rating/:productId", ratingProducts);
 // router.get("/product/rate/:productId", ratingProductStats);
