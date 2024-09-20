@@ -764,7 +764,7 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
-    const dataID = await Products.findById(id)
+    const dataID: any = await Products.findById(id)
       .populate("comments.user", "username image")
       .populate({
         path: "category",
@@ -774,7 +774,9 @@ export const getOne = async (req: Request, res: Response) => {
           select: "seri isApproved",
         },
       });
-    // Lấy dữ liệu từ Redis
+    dataID?.category?.products.sort(
+      (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
+    );
     dataID.view += 1;
     await dataID.save();
     const redisGetdata = await getDataFromCache(id);
@@ -853,7 +855,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
       }
     }
     return res.json({
-      data: data,
+      message: "Add Movies Success",
       success: true,
     });
   } catch (error) {
