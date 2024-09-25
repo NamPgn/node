@@ -10,6 +10,7 @@ import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
 import CryptoJS from "crypto-js";
+import { slugify } from "../utills/slugify";
 // import Approve from "../module/approve";
 
 export const getAllProducts = async (req: Request, res: Response) => {
@@ -28,7 +29,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
     let products: any;
     let totalCount: number;
-
     if (redisData) {
       ({ products, totalCount } = redisData);
     } else {
@@ -115,6 +115,7 @@ export const addProduct = async (req, res) => {
           const dataAdd = {
             // _id: mongoose.Types.ObjectId(),
             name: name,
+            slug: `${slugify(name)}-episode-${seri}`,
             category: category || undefined,
             categorymain: categorymain || undefined,
             seri: seri || undefined,
@@ -225,6 +226,7 @@ export const addProduct = async (req, res) => {
     } else {
       const dataAdd = {
         name: name,
+        slug: `${slugify(name)}-episode-${seri}`,
         category: category || undefined,
         seri: seri || undefined,
         options: options,
@@ -375,6 +377,7 @@ export const editProduct = async (req, res, next) => {
       dailyMotionServer,
       link,
       view,
+      slug,
     } = req.body;
     // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
@@ -415,6 +418,7 @@ export const editProduct = async (req, res, next) => {
           findById.category = category;
           findById.typeId = typeId;
           findById.trailer = trailer;
+          findById.slug = slug;
           if (dailyMotionServer === "") {
             findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
           } else {
@@ -476,6 +480,7 @@ export const editProduct = async (req, res, next) => {
       findById.typeId = typeId;
       findById.trailer = trailer;
       findById.link = link;
+      findById.slug = slug;
       if (dailyMotionServer === "") {
         findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
       } else {
@@ -764,14 +769,14 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
-    const dataID: any = await Products.findById(id)
+    const dataID: any = await Products.findOne({ slug: id })
       .populate("comments.user", "username image")
       .populate({
         path: "category",
         populate: {
           path: "products",
           model: "Products",
-          select: "seri isApproved",
+          select: "seri isApproved slug",
         },
       });
     dataID?.category?.products.sort(
@@ -934,79 +939,4 @@ export const approveMultipleMovies = async (req, res) => {
     });
   }
 };
-// export const ratingProducts = async (req, res) => {
-//   try {
-//     const { productId } = req.params;
-//     const { rating } = req.body;
 
-//     const product: any = await Products.findById(productId);
-//     if (!product) {
-//       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
-//     }
-
-//     product.rating.push(rating);
-//     product.save();
-//     return res.json({ message: "Đánh giá đã được lưu thành công" });
-//   } catch (error) {
-//     return res.status(400).json({
-//       message: error.message,
-//     });
-//   }
-// };
-
-// export const ratingProductStats = async (req, res) => {
-//   try {
-//     const { productId } = req.params;
-
-//     // Tìm sản phẩm theo productId trong cơ sở dữ liệu
-//     const product: any = await Products.findById(productId);
-
-//     if (!product) {
-//       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
-//     }
-
-//     // Tính toán số lượng đánh giá và trung bình đánh giá của sản phẩm
-//     const totalRatings = product.rating.length;
-//     const ratingsCount = [0, 0, 0, 0, 0]; // Mảng để lưu số lượng đánh giá cho mỗi mức đánh giá
-//     product.rating.forEach((rate) => {
-//       if (rate >= 1 && rate <= 5) {
-//         ratingsCount[rate - 1]++;
-//       }
-//     });
-//     const percentages = ratingsCount.map((count) => (count / totalRatings) * 100);
-
-//     return res.json({
-//       totalRatings,
-//       percentages,
-//     });
-//   } catch (error) {
-//     return res.status(400).json({
-//       message: error.message,
-//     });
-//   }
-// };
-
-// export const ratingProductsStats = async (req, res) => {
-//   try {
-//     let totalRatings = 0;
-//     let totalRatingPoints = 0;
-//     const data: any = await Products.find();
-//     data.forEach((product: any) => {
-//       totalRatings += product.rating.length;
-//       totalRatingPoints += product.rating.reduce((a, b) => a + b, 0);
-//     });
-
-//     // Tính toán trung bình đánh giá của tất cả sản phẩm
-//     const averageRating =
-//       totalRatings > 0 ? totalRatingPoints / totalRatings : 0;
-
-//     return res.json({
-//       totalRatings,
-//       averageRating,
-//     });
-//   } catch (error) {
-//     return res.status(400).json({
-//       message: error.message,
-//     });
-//   }
-// };

@@ -5,6 +5,9 @@ const productSchema = new Schema(
     name: {
       type: String,
     },
+    slug: {
+      type: String,
+    },
     view: {
       type: Number,
       default: 0,

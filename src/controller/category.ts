@@ -11,6 +11,7 @@ import weekCategory from "../module/week.category";
 import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
+import { slugify } from "../utills/slugify";
 interface MulterRequest extends Request {
   file: any;
 }
@@ -155,20 +156,6 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             return res.status(500).json(error);
           }
           const secureUrl = result.url.replace("http://", "https://");
-          const removeVietnameseTones = (str) => {
-            return str
-              .normalize("NFD") 
-              .replace(/[\u0300-\u036f]/g, "") 
-              .replace(/đ/g, "d") 
-              .replace(/Đ/g, "D");
-          };
-          const slugify = (text) => {
-            return removeVietnameseTones(text) 
-              .toLowerCase()                  
-              .trim()                         
-              .replace(/[\s\W-]+/g, "-")       
-              .replace(/^-+|-+$/g, "");      
-          };
           const newDt = {
             anotherName: anotherName,
             name: name,

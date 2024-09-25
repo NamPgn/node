@@ -14,6 +14,9 @@ import routerCategorymain from "./src/routes/categorymain";
 import routerImage from "./src/routes/image.user";
 import routerWeek from "./src/routes/week.category";
 import routerApprove from "./src/routes/approve";
+import Products from "./src/module/products";
+import { slugify } from "./src/utills/slugify";
+import category from "./src/module/category";
 const port = process.env.PORT || 3000;
 const serviceAccount: any = {
   type: "service_account",
@@ -84,3 +87,22 @@ admin.initializeApp({
 app.listen(port, async () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });
+
+// const updateDocuments = async () => {
+//   try {
+//     // Cập nhật tất cả các tài liệu trong bộ sưu tập
+//     const result = await category.updateMany(
+//       {},
+//       {
+//         $set: {
+//           country: "Chenese",
+//           lang: "Vietsub",
+//           quality: "HĐ",
+//         },
+//       }
+//     );
+//     console.log("thành công");
+//   } catch (error) {
+//     console.error("Error updating documents:", error);
+//   }
+// };

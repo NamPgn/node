@@ -2,9 +2,14 @@ import Products from "../module/products";
 
 export const getAll = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
-  return await Products.find().skip(skip).limit(limit).sort({
-    _id: -1,
-  }).exec();
+  return await Products.find()
+    .skip(skip)
+    .limit(limit)
+    .sort({
+      _id: -1,
+    })
+    .populate("category", "lang quality season country year")
+    .exec();
 };
 
 export const get = async (id) => {

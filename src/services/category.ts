@@ -3,7 +3,7 @@ import Category from "../module/category";
 export const getAllCategory = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
   const categories = await Category.find()
-    .select("name linkImg seri time type year sumSeri up week slug")
+    .select("name linkImg seri time type year sumSeri up week slug isActive")
     .lean()
     .sort({ up: -1 })
     .populate("products", "seri")
@@ -16,7 +16,7 @@ export const getAllCategory = async (page: number, limit: number) => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id }).populate({
     path: "products",
-    select: "seri isApproved category",
+    select: "seri isApproved category slug",
   });
   category.products.sort(
     (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
