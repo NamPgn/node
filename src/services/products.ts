@@ -8,7 +8,7 @@ export const getAll = async (page: number, limit: number) => {
     .sort({
       _id: -1,
     })
-    .populate("category", "lang quality season country year")
+    .populate("category", "lang quality season country year name")
     .exec();
 };
 
