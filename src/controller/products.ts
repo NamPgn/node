@@ -11,6 +11,7 @@ import { Request, Response } from "express";
 import XLSX from "xlsx";
 import CryptoJS from "crypto-js";
 import { slugify } from "../utills/slugify";
+import weekCategory from "../module/week.category";
 // import Approve from "../module/approve";
 
 export const getAllProducts = async (req: Request, res: Response) => {
@@ -940,3 +941,60 @@ export const approveMultipleMovies = async (req, res) => {
   }
 };
 
+export const autoAddProduct = async (req, res) => {
+  try {
+    const daysOfWeek = [
+      "Chủ Nhật",
+      "Thứ 2",
+      "Thứ 3",
+      "Thứ 4",
+      "Thứ 5",
+      "Thứ 6",
+      "Thứ 7",
+    ];
+
+    const now = new Date();
+
+    const dayIndex = now.getDay();
+
+    const day = daysOfWeek[dayIndex];
+
+    const weekData: any = await weekCategory.findOne({ name: day }).populate({
+      path: "category",
+      select: "name slug",
+      populate: {
+        path: "products",
+        model: "Products",
+        select: "seri isApproved slug",
+      },
+    });
+
+    weekData.category.map(async (item, index) => {
+      const lastProduct = item.products[item.products.length - 1];
+      const episode = parseInt(lastProduct.seri) + 1;
+      const newData = {
+        name: item.name,
+        slug: item.slug + `-episode-${lastProduct.seri}`,
+        isApproved: true,
+        category: item._id,
+        copyright: "hh3d",
+        seri: episode.toString(),
+      };
+      const newMovie = await Products.create(newData);
+      await Category.findOneAndUpdate(
+        { _id: newMovie._id }, // Điều kiện tìm kiếm
+        {
+          $addToSet: { products: newMovie },
+        }
+      );
+    });
+    return res.status(200).json({
+      success: true,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

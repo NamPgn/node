@@ -14,9 +14,6 @@ import routerCategorymain from "./src/routes/categorymain";
 import routerImage from "./src/routes/image.user";
 import routerWeek from "./src/routes/week.category";
 import routerApprove from "./src/routes/approve";
-import Products from "./src/module/products";
-import { slugify } from "./src/utills/slugify";
-import category from "./src/module/category";
 const port = process.env.PORT || 3000;
 const serviceAccount: any = {
   type: "service_account",
@@ -106,3 +103,42 @@ app.listen(port, async () => {
 //     console.error("Error updating documents:", error);
 //   }
 // };
+
+// app.get("/sitemap.xml", async (req, res) => {
+//   const dataCategory = await category.find();
+//   const dataProducts = await products.find();
+//   const renderDataCategorys = dataProducts.map((item) => {
+//     return {
+//       loc: `https://tromphim.site/d/${item.slug}`,
+//       lastmod: new Date().toISOString(),
+//     };
+//   });
+//   const renderDataProducts = dataCategory.map((item) => {
+//     return {
+//       loc: `https://tromphim.site/d/${item.slug}`,
+//       lastmod: new Date().toISOString(),
+//     };
+//   });
+//   Đặt tiêu đề Content-Type là XML
+//   res.header("Content-Type", "application/xml");
+//   const dataArr = [...renderDataCategorys, ...renderDataProducts];
+//   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+//   <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+//     ${dataArr
+//       .map((url: any) => {
+//         return `
+//         <url>
+//           <loc>${url.loc}</loc>
+//           <lastmod>${url.lastmod}</lastmod>
+//         </url>
+//         `;
+//       })
+//       .join("")}
+//   </urlset>
+//   `;
+
+//   Gửi nội dung sitemap về client
+//   res.send(sitemap);
+// });
+
+

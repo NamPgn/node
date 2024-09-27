@@ -19,6 +19,7 @@ import {
   mostWatchesEposides,
   approveMultipleMovies,
   editMultipleMovies,
+  autoAddProduct,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -157,5 +158,13 @@ router.post(
 // router.get("/product/rate/:productId", ratingProductStats);
 // router.get("/products/rating/stats", ratingProductsStats);
 router.get("/most-watched-episodes", mostWatchesEposides);
+router.post(
+  "/products/autoAddEpisodeMovie/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  autoAddProduct
+);
 router.param("userId", getAuth);
 export default router;
