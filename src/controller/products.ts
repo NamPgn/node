@@ -379,6 +379,7 @@ export const editProduct = async (req, res, next) => {
       link,
       view,
       slug,
+      server2
     } = req.body;
     // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
@@ -482,6 +483,8 @@ export const editProduct = async (req, res, next) => {
       findById.trailer = trailer;
       findById.link = link;
       findById.slug = slug;
+      findById.server2 = server2;
+
       if (dailyMotionServer === "") {
         findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
       } else {
