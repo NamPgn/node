@@ -379,7 +379,7 @@ export const editProduct = async (req, res, next) => {
       link,
       view,
       slug,
-      server2
+      server2,
     } = req.body;
     // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
@@ -588,6 +588,7 @@ export const editProduct = async (req, res, next) => {
     // }
     // add
   } catch (error) {
+    console.log(error)
     return res.status(400).json({
       message: error.message,
     });
@@ -972,27 +973,39 @@ export const autoAddProduct = async (req, res) => {
       },
     });
 
-    weekData.category.map(async (item, index) => {
-      const lastProduct = item.products[item.products.length - 1];
-      const episode = parseInt(lastProduct.seri) + 1;
-      const newData = {
-        name: item.name,
-        slug: item.slug + `-episode-${lastProduct.seri}`,
-        isApproved: true,
-        category: item._id,
-        copyright: "hh3d",
-        seri: episode.toString(),
-      };
-      const newMovie = await Products.create(newData);
+    const newData = await Promise.all(
+      weekData.category.map(async (item) => {
+        const lastProduct = item.products[item.products.length - 1];
+        const episode = parseInt(lastProduct.seri) + 1;
+        return {
+          name: item.name,
+          slug: item.slug + `-episode-${episode}`,
+          isApproved: true,
+          category: item._id,
+          copyright: "hh3d",
+          seri: episode.toString(),
+          dailyMotionServer:""
+        };
+      })
+    );
+    const newMovie = await Products.insertMany(newData);
+    await Promise.all(newMovie.map(async (movie) => {
       await Category.findOneAndUpdate(
-        { _id: newMovie._id }, // Điều kiện tìm kiếm
+        { _id: movie._id },
         {
-          $addToSet: { products: newMovie },
-        }
+          $addToSet: { products: movie._id },
+        },
+        
       );
-    });
+      await Category.findOneAndUpdate(
+        { _id: movie.category },
+        { latestProductUploadDate: new Date() },
+        { new: true }
+      );
+    }));
     return res.status(200).json({
       success: true,
+      data: newMovie,
     });
   } catch (error) {
     return res.status(400).json({
