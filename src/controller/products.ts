@@ -588,7 +588,7 @@ export const editProduct = async (req, res, next) => {
     // }
     // add
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return res.status(400).json({
       message: error.message,
     });
@@ -947,16 +947,18 @@ export const approveMultipleMovies = async (req, res) => {
 
 export const autoAddProduct = async (req, res) => {
   try {
-    const daysOfWeek = [
-      "Chủ Nhật",
-      "Thứ 2",
-      "Thứ 3",
-      "Thứ 4",
-      "Thứ 5",
-      "Thứ 6",
-      "Thứ 7",
-    ];
+    // const daysOfWeek = [
+    //   "Chủ nhật",
+    //   "Thứ 2",
+    //   "Thứ 3",
+    //   "Thứ 4",
+    //   "Thứ 5",
+    //   "Thứ 6",
+    //   "Thứ 7",
+    // ];
 
+    const weeks = await weekCategory.find().select("name").sort({ name: 1 });
+    const daysOfWeek = await Promise.all(weeks.map((items) => items.name));
     const now = new Date();
 
     const dayIndex = now.getDay();
@@ -972,9 +974,8 @@ export const autoAddProduct = async (req, res) => {
         select: "seri isApproved slug",
       },
     });
-
     const newData = await Promise.all(
-      weekData.category.map(async (item) => {
+      weekData.category?.map(async (item) => {
         const lastProduct = item.products[item.products.length - 1];
         const episode = parseInt(lastProduct.seri) + 1;
         return {
@@ -995,7 +996,7 @@ export const autoAddProduct = async (req, res) => {
         {
           $addToSet: { products: movie._id },
         },
-        
+
       );
       await Category.findOneAndUpdate(
         { _id: movie.category },
@@ -1008,6 +1009,7 @@ export const autoAddProduct = async (req, res) => {
       data: newMovie,
     });
   } catch (error) {
+    console.log(error);
     return res.status(400).json({
       success: false,
       message: error.message,
