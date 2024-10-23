@@ -186,7 +186,7 @@ export const addCt = async (req: MulterRequest, res: Response) => {
         }
       );
     } else {
-      const cate = await addCategory(req.body);
+      const cate = await addCategory({ ...req.body, slug: slugify(name) });
       return res.status(200).json({
         success: true,
         message: "Added product successfully",
@@ -218,7 +218,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       season,
       lang,
       quality,
-      slug
+      slug,
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -262,7 +262,6 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
         }
       );
     } else {
-
       findById.name = name;
       findById.des = des;
       findById.week = week;
@@ -277,11 +276,10 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.lang = lang;
       findById.quality = quality;
       findById.slug = slug;
-      findById.anotherName = anotherName,
-      
-      await WeekCategory.findByIdAndUpdate(findById.week, {
-        $addToSet: { category: findById._id },
-      });
+      (findById.anotherName = anotherName),
+        await WeekCategory.findByIdAndUpdate(findById.week, {
+          $addToSet: { category: findById._id },
+        });
       await findById.save();
       return res.status(200).json({
         success: true,

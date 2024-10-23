@@ -947,16 +947,6 @@ export const approveMultipleMovies = async (req, res) => {
 
 export const autoAddProduct = async (req, res) => {
   try {
-    // const daysOfWeek = [
-    //   "Chủ nhật",
-    //   "Thứ 2",
-    //   "Thứ 3",
-    //   "Thứ 4",
-    //   "Thứ 5",
-    //   "Thứ 6",
-    //   "Thứ 7",
-    // ];
-
     const weeks = await weekCategory.find().select("name").sort({ name: 1 });
     const daysOfWeek = await Promise.all(weeks.map((items) => items.name));
     const now = new Date();
@@ -976,8 +966,11 @@ export const autoAddProduct = async (req, res) => {
     });
     const newData = await Promise.all(
       weekData.category?.map(async (item) => {
-        const lastProduct = item.products[item.products.length - 1];
-        const episode = parseInt(lastProduct.seri) + 1;
+        let episode = 1;
+        if (item.products && item.products.length > 0) {
+          const lastProduct = item.products[item.products.length - 1];
+          episode = parseInt(lastProduct.seri) + 1;
+        }
         return {
           name: item.name,
           slug: item.slug + `-episode-${episode}`,
@@ -985,25 +978,26 @@ export const autoAddProduct = async (req, res) => {
           category: item._id,
           copyright: "hh3d",
           seri: episode.toString(),
-          dailyMotionServer:""
+          dailyMotionServer: "",
         };
       })
     );
     const newMovie = await Products.insertMany(newData);
-    await Promise.all(newMovie.map(async (movie) => {
-      await Category.findOneAndUpdate(
-        { _id: movie._id },
-        {
-          $addToSet: { products: movie._id },
-        },
-
-      );
-      await Category.findOneAndUpdate(
-        { _id: movie.category },
-        { latestProductUploadDate: new Date() },
-        { new: true }
-      );
-    }));
+    await Promise.all(
+      newMovie.map(async (movie) => {
+        await Category.findOneAndUpdate(
+          { _id: movie._id },
+          {
+            $addToSet: { products: movie._id },
+          }
+        );
+        await Category.findOneAndUpdate(
+          { _id: movie.category },
+          { latestProductUploadDate: new Date() },
+          { new: true }
+        );
+      })
+    );
     return res.status(200).json({
       success: true,
       data: newMovie,
