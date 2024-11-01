@@ -2,6 +2,7 @@ import express from "express";
 import {
   all,
   create,
+  createManyCategory,
   del,
   deleteCategoryByWeek,
   edit,
@@ -30,6 +31,16 @@ routerWeek.post(
   isAdmin,
   isSuperAdmin,
   deleteCategoryByWeek
+);
+
+routerWeek.post(
+  "/week/insertMany/:id/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  isSuperAdmin,
+  createManyCategory
 );
 routerWeek.param("userId", getAuth);
 export default routerWeek;

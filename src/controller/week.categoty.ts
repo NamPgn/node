@@ -1,3 +1,4 @@
+import weekCategory from "../module/week.category";
 import WeekCategory from "../module/week.category";
 
 export const all = async (req, res) => {
@@ -99,6 +100,37 @@ export const deleteCategoryByWeek = async (req, res) => {
     return res.json({
       success: true,
       message: "Delete category by week successfully",
+    });
+  } catch (error) {
+    return res.status(404).json({
+      error: error.message,
+    });
+  }
+};
+
+export const createManyCategory = async (req, res) => {
+  try {
+    const body = req.body;
+    const { id } = req.params;
+    const weekId: any = await weekCategory.findOne({ name: id });
+    if (!weekId) {
+      return res.status(404).json({
+        success: false,
+        message: "Week category not found",
+      });
+    }
+    if (!Array.isArray(weekId?.category)) {
+      return res.status(400).json({
+        success: false,
+        message: "Category is not defined as an array",
+      });
+    }
+    weekId.category = body;
+    await weekId.save();
+    return res.json({
+      data: weekId,
+      success: true,
+      message: "Category added successfully by week",
     });
   } catch (error) {
     return res.status(404).json({

@@ -138,8 +138,6 @@ export const addCt = async (req: MulterRequest, res: Response) => {
       anotherName,
       hour,
       season,
-      lang,
-      quality,
     } = req.body;
     const file = req.file;
     if (file) {
@@ -171,8 +169,6 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             hour: hour,
             slug: slugify(name),
             season: season,
-            lang: lang,
-            quality: quality,
           };
           const cate = await addCategory(newDt);
           await WeekCategory.findByIdAndUpdate(cate.week, {
