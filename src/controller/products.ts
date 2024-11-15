@@ -12,7 +12,6 @@ import XLSX from "xlsx";
 import CryptoJS from "crypto-js";
 import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
-// import Approve from "../module/approve";
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
@@ -840,6 +839,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
         message: "Not data",
       });
     }
+    
     jsonData.map(async (item) => {
       if (typeof item.category === "string") {
         return [
@@ -847,6 +847,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
           (item.category = mongoose.Types.ObjectId.createFromHexString(
             item.category
           )),
+          (item.slug = `${slugify(item.name)}-episode-${item.seri}`),
         ];
       }
     });
@@ -1003,8 +1004,54 @@ export const autoAddProduct = async (req, res) => {
       data: newMovie,
     });
   } catch (error) {
-    console.log(error);
     return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const exportDataToExcel = async (req, res) => {
+  try {
+    // Fetch data from your DB (you can adjust this according to your needs)
+    const data = await Products.find().lean();
+    if (data.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Data empty",
+      });
+    }
+
+    // Define headers dynamically from the keys of the first object in the data
+    const headers = Object.keys(data[0]);
+
+    // Convert the data to a worksheet (with headers)
+    const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
+
+    // Create a new workbook
+    const workbook = XLSX.utils.book_new();
+
+    // Append the worksheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+    // Generate the Excel file as an array
+    const fileBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array", // Ensure the file is an array (not buffer)
+    });
+
+    // Set response headers for file download
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=data.xlsx");
+
+    // Send the Excel file as response
+    res.status(200).send(fileBuffer);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
       success: false,
       message: error.message,
     });

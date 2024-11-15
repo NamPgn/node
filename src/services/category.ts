@@ -1,4 +1,5 @@
 import Category from "../module/category";
+import { resizeImagesUrl } from "../utills/resizeImage";
 
 export const getAllCategory = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
@@ -10,13 +11,14 @@ export const getAllCategory = async (page: number, limit: number) => {
     .skip(skip)
     .limit(limit)
     .exec();
-  return categories;
+  const categoryWithImage = resizeImagesUrl(categories, "linkImg", 250, 300);
+  return categoryWithImage;
 };
 
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id }).populate({
     path: "products",
-    select: "seri isApproved category slug",
+    select: "seri isApproved category slug comment",
   });
   category.products.sort(
     (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)

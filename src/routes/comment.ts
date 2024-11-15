@@ -3,15 +3,21 @@ import { getAuth } from "../controller/auth";
 import {
   addCommentController,
   getAllCommentsControllers,
-  getCommentsUserId,
   deleteComment,
   updateCommentController,
+  findCommentByIdCategory,
+  deleteMultipleComments,
 } from "../controller/comment";
-import { checkToken, isAdmin, isAuth, requiredSignin } from "../middlewares/checkAuth";
+import {
+  checkToken,
+  isAdmin,
+  isAuth,
+  requiredSignin,
+} from "../middlewares/checkAuth";
 const routes = express.Router();
 
 routes.get("/comments", getAllCommentsControllers);
-routes.get("/comment/userId/:userId/productId/:productId", getCommentsUserId);
+routes.get("/comment/category/:id", findCommentByIdCategory);
 routes.post(
   "/comment/:id/:userId",
   requiredSignin,
@@ -27,5 +33,13 @@ routes.put(
   isAdmin,
   updateCommentController
 );
+routes.post(
+  "/comments/deleteMultiple/:userId",
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  deleteMultipleComments
+);
+
 routes.param("userId", getAuth);
 export default routes;

@@ -20,6 +20,7 @@ import {
   approveMultipleMovies,
   editMultipleMovies,
   autoAddProduct,
+  exportDataToExcel,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -166,5 +167,6 @@ router.post(
   isAdmin,
   autoAddProduct
 );
+router.get("/products/export/excel", exportDataToExcel);
 router.param("userId", getAuth);
 export default router;

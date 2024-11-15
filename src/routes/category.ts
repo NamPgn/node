@@ -29,6 +29,7 @@ import { uploadServer } from "../services/upload";
 const router = express.Router();
 
 router.get("/category/products", readProductByCategory);
+
 router.get("/categorys", getAll);
 router.get("/category/latest", getCategoryLatesupdate);
 router.get("/categorys/search", searchCategory);
@@ -36,6 +37,7 @@ router.get("/category/filters", filterCategoryTrending);
 router.get("/category/:id", getOne);
 router.post("/category/changeLatest", changeCategoryLatest);
 router.get("/category/latest/next", getCategoryLatesupdateFromNextjs);
+
 router.post(
   "/category/:id/:userId",
   checkToken,

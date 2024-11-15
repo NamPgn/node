@@ -12,6 +12,7 @@ import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
+import { resizeImageUrl } from "../utills/resizeImage";
 interface MulterRequest extends Request {
   file: any;
 }
@@ -99,6 +100,7 @@ export const getOne = async (req: Request, res: Response) => {
     const averageRating = sumRating / totalRatings;
     const data = {
       ...category.toObject(),
+      linkImg: resizeImageUrl(category.linkImg, 300, 450),
       averageRating: averageRating,
       percentages: percentages,
       totalRatings: totalRatings,
@@ -147,7 +149,10 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
-          transformation: [{ format: "webp" }],
+          width: 250,
+          height: 300,
+          crop: "fill",
+          format: "webp",
         },
         async (error, result: any) => {
           if (error) {
@@ -506,3 +511,5 @@ export const ratingCategorysStatsAll = async (req, res) => {
     });
   }
 };
+
+

@@ -75,6 +75,12 @@ const categorySchema = new mongoose.Schema(
       type: String,
       default: "HD",
     },
+    comment: [
+      {
+        type: mongoose.Types.ObjectId || undefined,
+        ref: "Comment",
+      },
+    ],
   },
   { timestamps: true }
 );

@@ -2,8 +2,8 @@ import { addUser, getDataUser } from "../services/auth";
 import { comparePassWord, passwordHash } from "../services/security";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import bcrypt from "bcrypt";
 import Auth from "../module/auth";
+import { resizeImageUrl } from "../utills/resizeImage";
 
 export const signup = async (req, res) => {
   try {
@@ -102,7 +102,7 @@ export const singin = async (req, res) => {
       username: getUserLogin.username,
       // email: getUserLogin.email,
       role: getUserLogin.role,
-      image: getUserLogin.image,
+      image: resizeImageUrl(getUserLogin.image, 100, 100),
     };
     const tokenAuth = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {
       expiresIn: "10h",
