@@ -105,7 +105,7 @@ export const singin = async (req, res) => {
       image: resizeImageUrl(getUserLogin.image, 100, 100),
     };
     const tokenAuth = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {
-      expiresIn: "10h",
+      expiresIn: "2d",
     });
     const refreshTokenAuth = jwt.sign(user, process.env.REFRESH_TOKEN_KEY, {
       expiresIn: "30d",
