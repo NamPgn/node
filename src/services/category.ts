@@ -7,7 +7,7 @@ export const getAllCategory = async (page: number, limit: number) => {
     .select("name linkImg seri time type year sumSeri up week slug isActive")
     .lean()
     .sort({ up: -1 })
-    .populate("products", "seri")
+    .populate("products", "seri slug")
     .skip(skip)
     .limit(limit)
     .exec();

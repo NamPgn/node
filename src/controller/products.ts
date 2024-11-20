@@ -786,7 +786,7 @@ export const getOne = async (req: Request, res: Response) => {
     dataID?.category?.products.sort(
       (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
     );
-    dataID.view += 1;
+    dataID.view ? (dataID.view += 1) : "";
     await dataID.save();
     const redisGetdata = await getDataFromCache(id);
     let data: any;
@@ -839,7 +839,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
         message: "Not data",
       });
     }
-    
+
     jsonData.map(async (item) => {
       if (typeof item.category === "string") {
         return [
