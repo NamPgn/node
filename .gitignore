@@ -1,5 +1,6 @@
 node_modules
 upload
+*.env
 .vercel
 
 # Local Netlify folder
