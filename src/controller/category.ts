@@ -377,7 +377,7 @@ export const push = async (req, res) => {
 
 export const filterCategoryTrending = async (req, res) => {
   try {
-    const data = await Category.find().sort({ up: -1 });
+    const data = await Category.find().sort({ up: -1 }).limit(10);
     return res.json({
       data: data,
       success: true,
