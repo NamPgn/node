@@ -140,6 +140,8 @@ export const addCt = async (req: MulterRequest, res: Response) => {
       anotherName,
       hour,
       season,
+      upcomingReleases,
+      releaseDate,
     } = req.body;
     const file = req.file;
     if (file) {
@@ -174,11 +176,14 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             hour: hour,
             slug: slugify(name),
             season: season,
+            upcomingReleases: upcomingReleases,
+            releaseDate: releaseDate,
           };
           const cate = await addCategory(newDt);
           await WeekCategory.findByIdAndUpdate(cate.week, {
             $addToSet: { category: cate._id },
           });
+
           return res.status(200).json({
             success: true,
             message: "Added product successfully",
@@ -220,6 +225,8 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       lang,
       quality,
       slug,
+      upcomingReleases,
+      releaseDate,
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -252,6 +259,8 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.year = year;
           findById.isActive = isActive;
           findById.hour = hour;
+          findById.upcomingReleases = upcomingReleases;
+          findById.releaseDate = releaseDate;
           (findById.anotherName = anotherName), findById.save();
           await WeekCategory.findByIdAndUpdate(findById.week, {
             $set: { category: findById._id },
@@ -277,10 +286,12 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.lang = lang;
       findById.quality = quality;
       findById.slug = slug;
+      findById.releaseDate = releaseDate;
       (findById.anotherName = anotherName),
-        await WeekCategory.findByIdAndUpdate(findById.week, {
-          $addToSet: { category: findById._id },
-        });
+        (findById.upcomingReleases = upcomingReleases);
+      await WeekCategory.findByIdAndUpdate(findById.week, {
+        $addToSet: { category: findById._id },
+      });
       await findById.save();
       return res.status(200).json({
         success: true,
@@ -397,12 +408,28 @@ export const getCategoryLatesupdate = async (req, res) => {
 
 export const getCategoryLatesupdateFromNextjs = async (req, res) => {
   try {
-    const data = await Category.find()
-      .sort({ latestProductUploadDate: -1 })
-      .limit(16)
-      .populate("products");
+    let KEY = "LASTESTCATEGORY";
+    const redisData = await getDataFromCache(KEY);
+
+    let getDataFromCaches: any;
+    if (redisData) {
+      getDataFromCaches = redisData;
+    } else {
+      const data = await Category.find()
+        .sort({ latestProductUploadDate: -1 })
+        .limit(16)
+        .populate("products");
+      cacheData(KEY, data, "EX", 3600);
+      getDataFromCaches = data;
+    }
+    Category.watch().on("change", async (change) => {
+      const operationTypes = ["insert", "delete", "update"];
+      if (operationTypes.includes(change.operationType)) {
+        await redisDel(KEY);
+      }
+    });
     return res.json({
-      data: data,
+      data: getDataFromCaches,
       success: true,
     });
   } catch (error) {
@@ -512,4 +539,22 @@ export const ratingCategorysStatsAll = async (req, res) => {
   }
 };
 
-
+export const getUpcomingReleases = async (req, res) => {
+  try {
+    const data = await Category.find({ upcomingReleases: "comming" })
+      .select("name linkImg sumSeri type week year slug time releaseDate")
+      .populate({
+        path: "products",
+        model: "Products",
+        select: "seri slug",
+      });
+    return res.status(200).json({
+      message: "done",
+      data: data,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};

@@ -1,37 +1,39 @@
 const Redis = require("ioredis");
 
-// const redisClient = new Redis({
-//   port: 18098,
-//   host: process.env.REDIS_HOST,
-//   password: process.env.REDIS_PASSWORD,
-//   reconnectOnError: (err) => {
-//     const targetError = "READONLY";
-//     if (err.message.includes(targetError)) {
-//       // Only reconnect when the error contains "READONLY"
-//       return true; // or `return 1;`
-//     }
-//   },
-//   retryStrategy: (times) => {
-//     // Xác định thời gian giữa các lần thử kết nối lại
-//     return Math.min(times * 50, 2000);
-//   },
-// });
-
 const redisClient = new Redis({
-  port: 6379,
-  host: "127.0.0.1",
+  port: 18098,
+  host: process.env.REDIS_HOST,
+  password: process.env.REDIS_PASSWORD,
   reconnectOnError: (err) => {
     const targetError = "READONLY";
     if (err.message.includes(targetError)) {
-      //Only reconnect when the error contains "READONLY"
+      // Only reconnect when the error contains "READONLY"
       return true; // or `return 1;`
     }
   },
   retryStrategy: (times) => {
-    //Xác định thời gian giữa các lần thử kết nối lại
+    // Xác định thời gian giữa các lần thử kết nối lại
     return Math.min(times * 50, 2000);
   },
 });
+
+// const redisClient = new Redis({
+//   port: 6379,
+//   host: "127.0.0.1",
+//   reconnectOnError: (err) => {
+//     const targetError = "READONLY";
+//     if (err.message.includes(targetError)) {
+//       //Only reconnect when the error contains "READONLY"
+//       return true; // or `return 1;`
+//     }
+//   },
+//   retryStrategy: (times) => {
+//     //Xác định thời gian giữa các lần thử kết nối lại
+//     return Math.min(times * 50, 2000);
+//   },
+// });
+
+
 
 export async function getDataFromCache(key) {
   const cachedData = await redisClient.get(key);

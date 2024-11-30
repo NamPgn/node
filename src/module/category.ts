@@ -81,6 +81,13 @@ const categorySchema = new mongoose.Schema(
         ref: "Comment",
       },
     ],
+    upcomingReleases: {
+      type: String,
+      default: "comeout",
+    },
+    releaseDate: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

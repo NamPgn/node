@@ -10,6 +10,7 @@ import {
   getCategoryLatesupdate,
   getCategoryLatesupdateFromNextjs,
   getOne,
+  getUpcomingReleases,
   push,
   ratingCategory,
   ratingCategoryStats,
@@ -75,8 +76,8 @@ router.post(
   push
 );
 router.post("/rating/:categoryId", ratingCategory);
-
 router.get("/rate/:categoryId", ratingCategoryStats);
 router.get("/rating/stats", ratingCategorysStatsAll);
+router.get("/categorys/releases", getUpcomingReleases);
 router.param("userId", getAuth);
 export default router;
