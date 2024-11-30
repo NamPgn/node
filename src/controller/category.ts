@@ -377,7 +377,7 @@ export const push = async (req, res) => {
 
 export const filterCategoryTrending = async (req, res) => {
   try {
-    const data = await Category.find().sort({ up: -1 }).limit(6);
+    const data = await Category.find().sort({ up: -1 });
     return res.json({
       data: data,
       success: true,
@@ -419,7 +419,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
         .sort({ latestProductUploadDate: -1 })
         .limit(16)
         .populate("products");
-      cacheData(KEY, data, "EX", 3600);
+      cacheData(KEY, data);
       getDataFromCaches = data;
     }
     Category.watch().on("change", async (change) => {
