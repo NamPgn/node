@@ -81,10 +81,19 @@ export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     let sumRating = 0;
+
+    // Kiểm tra cache trước
+    const cachedData = await getDataFromCache(id);
+    if (cachedData) {
+      return res.json(JSON.parse(cachedData));
+    }
+
+    // Lấy dữ liệu từ database
     const category = await getCategory(id);
     if (!category) {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
     }
+
     // Tính toán số lượng đánh giá và trung bình đánh giá của sản phẩm
     const totalRatings = category.rating.length;
     const ratingsCount = [0, 0, 0, 0, 0]; // Mảng để lưu số lượng đánh giá cho mỗi mức đánh giá
@@ -94,19 +103,32 @@ export const getOne = async (req: Request, res: Response) => {
       }
       sumRating += rate;
     });
+
     const percentages = ratingsCount.map(
       (count) => (count / totalRatings) * 100
     );
-    const averageRating = sumRating / totalRatings;
+    const averageRating = totalRatings ? sumRating / totalRatings : 0;
+
     const data = {
       ...category.toObject(),
       linkImg: resizeImageUrl(category.linkImg, 300, 450),
-      averageRating: averageRating,
-      percentages: percentages,
-      totalRatings: totalRatings,
+      averageRating,
+      percentages,
+      totalRatings,
     };
-    return res.json(data);
-  } catch (error) {
+
+    await cacheData(id, JSON.stringify(data), "EX", 3600, "NX");
+    Products.watch().on("change", async (change: any) => {
+      console.log(change);
+      if (["insert", "delete", "update"].includes(change.operationType)) {
+        const changedId = change.documentKey?._id;
+        if (changedId) {
+          await redisDel(id.toString());
+        }
+      }
+    });
+    return res.status(200).json(data);
+  } catch (error: any) {
     return res.status(400).json({
       message: error.message,
     });
@@ -418,7 +440,8 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       const data = await Category.find()
         .sort({ latestProductUploadDate: -1 })
         .limit(16)
-        .populate("products");
+        .select("name linkImg slug")
+        .populate("products", "seri");
       cacheData(KEY, data);
       getDataFromCaches = data;
     }
