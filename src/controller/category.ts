@@ -13,6 +13,7 @@ import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
+import Call from "../module/Call";
 interface MulterRequest extends Request {
   file: any;
 }
@@ -43,7 +44,6 @@ export const getAll = async (req: any, res: Response) => {
         totalCount = await Category.countDocuments();
       }
       cacheData(key, { category, totalCount }, "EX", 3600);
-
       Category.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
           redisDel(key);
@@ -63,7 +63,7 @@ export const getAll = async (req: any, res: Response) => {
         }
       });
     }
-
+await Call.find();
     return res.status(200).json({
       data: category,
       totalCount,
@@ -84,6 +84,7 @@ export const getOne = async (req: Request, res: Response) => {
 
     // Kiểm tra cache trước
     const cachedData = await getDataFromCache(id);
+    await Call.find();
     if (cachedData) {
       return res.json(JSON.parse(cachedData));
     }
@@ -119,7 +120,6 @@ export const getOne = async (req: Request, res: Response) => {
 
     await cacheData(id, JSON.stringify(data), "EX", 3600, "NX");
     Products.watch().on("change", async (change: any) => {
-      console.log(change);
       if (["insert", "delete", "update"].includes(change.operationType)) {
         const changedId = change.documentKey?._id;
         if (changedId) {
@@ -432,6 +432,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
   try {
     let KEY = "LASTESTCATEGORY";
     const redisData = await getDataFromCache(KEY);
+    await Call.find();
 
     let getDataFromCaches: any;
     if (redisData) {

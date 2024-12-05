@@ -12,12 +12,13 @@ import XLSX from "xlsx";
 import CryptoJS from "crypto-js";
 import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
+import Call from "../module/Call";
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const limit = 40;
     const page = parseInt(req.query.page as string) || 1; // Mặc định trang là 1
-
+    await Call.find();
     let key: string;
     const redisData: any = await getDataFromCache(key);
 
@@ -773,6 +774,7 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
+    await Call.find();
     const dataID: any = await Products.findOne({ slug: id })
       .populate("comments.user", "username image")
       .populate({
