@@ -16,11 +16,17 @@ export const getAllCategory = async (page: number, limit: number) => {
 };
 
 export const getCategory = async (id) => {
-  const category = await Category.findOne({ slug: id }).populate({
-    path: "products",
-    select: "seri isApproved category slug comment",
-  });
-  category.products.sort(
+  const category = await Category.findOne({ slug: id })
+    .select(
+      "name linkImg sumSeri type year time lang quality slug country averageRating percentages totalRatings rating des up"
+    )
+    .populate({
+      path: "products",
+      model: "Products",
+      select: "seri isApproved category slug comment",
+    });
+
+  category?.products?.sort(
     (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
   );
   return category;

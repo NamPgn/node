@@ -63,7 +63,7 @@ export const getAll = async (req: any, res: Response) => {
         }
       });
     }
-await Call.find();
+    await Call.find();
     return res.status(200).json({
       data: category,
       totalCount,
@@ -82,22 +82,13 @@ export const getOne = async (req: Request, res: Response) => {
     const id = req.params.id;
     let sumRating = 0;
 
-    // Kiểm tra cache trước
-    const cachedData = await getDataFromCache(id);
-    await Call.find();
-    if (cachedData) {
-      return res.json(JSON.parse(cachedData));
-    }
-
-    // Lấy dữ liệu từ database
     const category = await getCategory(id);
     if (!category) {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
     }
 
-    // Tính toán số lượng đánh giá và trung bình đánh giá của sản phẩm
     const totalRatings = category.rating.length;
-    const ratingsCount = [0, 0, 0, 0, 0]; // Mảng để lưu số lượng đánh giá cho mỗi mức đánh giá
+    const ratingsCount = [0, 0, 0, 0, 0];
     category.rating.forEach((rate) => {
       if (rate >= 1 && rate <= 5) {
         ratingsCount[rate - 1]++;
@@ -117,16 +108,6 @@ export const getOne = async (req: Request, res: Response) => {
       percentages,
       totalRatings,
     };
-
-    await cacheData(id, JSON.stringify(data), "EX", 3600, "NX");
-    Products.watch().on("change", async (change: any) => {
-      if (["insert", "delete", "update"].includes(change.operationType)) {
-        const changedId = change.documentKey?._id;
-        if (changedId) {
-          await redisDel(id.toString());
-        }
-      }
-    });
     return res.status(200).json(data);
   } catch (error: any) {
     return res.status(400).json({
@@ -432,7 +413,6 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
   try {
     let KEY = "LASTESTCATEGORY";
     const redisData = await getDataFromCache(KEY);
-    await Call.find();
 
     let getDataFromCaches: any;
     if (redisData) {

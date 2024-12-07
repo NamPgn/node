@@ -18,7 +18,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const limit = 40;
     const page = parseInt(req.query.page as string) || 1; // Mặc định trang là 1
-    await Call.find();
     let key: string;
     const redisData: any = await getDataFromCache(key);
 
