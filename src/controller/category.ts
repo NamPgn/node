@@ -63,7 +63,6 @@ export const getAll = async (req: any, res: Response) => {
         }
       });
     }
-    await Call.find();
     return res.status(200).json({
       data: category,
       totalCount,
@@ -421,7 +420,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       const data = await Category.find()
         .sort({ latestProductUploadDate: -1 })
         .limit(16)
-        .select("name linkImg slug")
+        .select("name linkImg slug sumSeri")
         .populate("products", "seri");
       cacheData(KEY, data);
       getDataFromCaches = data;
