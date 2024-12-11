@@ -30,7 +30,7 @@ const categorySchema = new mongoose.Schema(
       type: String,
     },
     week: {
-      type: mongoose.Types.ObjectId || undefined,
+      type: mongoose.Types.ObjectId,
       ref: "Week",
     },
     up: {
@@ -87,6 +87,10 @@ const categorySchema = new mongoose.Schema(
     },
     releaseDate: {
       type: String,
+    },
+    isMovie: {
+      type: String,
+      default: "drama",
     },
   },
   { timestamps: true }

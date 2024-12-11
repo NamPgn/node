@@ -229,6 +229,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       slug,
       upcomingReleases,
       releaseDate,
+      isMovie
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -263,6 +264,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.hour = hour;
           findById.upcomingReleases = upcomingReleases;
           findById.releaseDate = releaseDate;
+          findById.isMovie = isMovie;
           (findById.anotherName = anotherName), findById.save();
           await WeekCategory.findByIdAndUpdate(findById.week, {
             $set: { category: findById._id },
@@ -289,6 +291,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.quality = quality;
       findById.slug = slug;
       findById.releaseDate = releaseDate;
+      findById.isMovie = isMovie;
       (findById.anotherName = anotherName),
         (findById.upcomingReleases = upcomingReleases);
       await WeekCategory.findByIdAndUpdate(findById.week, {
@@ -420,13 +423,13 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       const data = await Category.find()
         .sort({ latestProductUploadDate: -1 })
         .limit(16)
-        .select("name linkImg slug sumSeri")
+        .select("name linkImg slug sumSeri isMovie")
         .populate("products", "seri");
       cacheData(KEY, data);
       getDataFromCaches = data;
     }
     Category.watch().on("change", async (change) => {
-      const operationTypes = ["insert", "delete", "update"];
+      const operationTypes = ["insert", "delete"];
       if (operationTypes.includes(change.operationType)) {
         await redisDel(KEY);
       }
