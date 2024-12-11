@@ -428,8 +428,8 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       cacheData(KEY, data);
       getDataFromCaches = data;
     }
-    Category.watch().on("change", async (change) => {
-      const operationTypes = ["insert", "delete"];
+    Products.watch().on("change", async (change) => {
+      const operationTypes = ["insert", "delete", "update"];
       if (operationTypes.includes(change.operationType)) {
         await redisDel(KEY);
       }
