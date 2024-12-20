@@ -92,6 +92,9 @@ const categorySchema = new mongoose.Schema(
       type: String,
       default: "drama",
     },
+    episode_many_title: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

@@ -4,6 +4,8 @@ const redisClient = new Redis({
   port: 18098,
   host: process.env.REDIS_HOST,
   password: process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
   reconnectOnError: (err) => {
     const targetError = "READONLY";
     if (err.message.includes(targetError)) {
@@ -20,6 +22,8 @@ const redisClient = new Redis({
 // const redisClient = new Redis({
 //   port: 6379,
 //   host: "127.0.0.1",
+//   maxRetriesPerRequest: null,
+//   enableReadyCheck: false,
 //   reconnectOnError: (err) => {
 //     const targetError = "READONLY";
 //     if (err.message.includes(targetError)) {
@@ -32,8 +36,6 @@ const redisClient = new Redis({
 //     return Math.min(times * 50, 2000);
 //   },
 // });
-
-
 
 export async function getDataFromCache(key) {
   const cachedData = await redisClient.get(key);
