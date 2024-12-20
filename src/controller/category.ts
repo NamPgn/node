@@ -8,13 +8,12 @@ import Products from "../module/products";
 import Category from "../module/category";
 import WeekCategory from "../module/week.category";
 import weekCategory from "../module/week.category";
-import redisClient, { cacheData, getDataFromCache, redisDel } from "../redis";
+import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
-import { Queue, Worker } from "bullmq";
-const myQueue = new Queue("categoryQueue", { connection: redisClient });
+import Call from "../module/Call";
 interface MulterRequest extends Request {
   file: any;
 }
@@ -77,69 +76,44 @@ export const getAll = async (req: any, res: Response) => {
   }
 };
 
-const worker = new Worker(
-  "categoryQueue",
-  async (job) => {
-    const { id } = job.data;
-    try {
-      const category = await getCategory(id);
-      
-      if (!category) {
-        throw new Error("Sản phẩm không tồn tại");
-      }
-
-      let sumRating = 0;
-      const totalRatings = category.rating.length;
-      const ratingsCount = [0, 0, 0, 0, 0];
-      category.rating.forEach((rate) => {
-        if (rate >= 1 && rate <= 5) {
-          ratingsCount[rate - 1]++;
-        }
-        sumRating += rate;
-      });
-
-      const percentages = ratingsCount.map(
-        (count) => (count / totalRatings) * 100
-      );
-      const averageRating = totalRatings ? sumRating / totalRatings : 0;
-      return {
-        ...category.toObject(),
-        linkImg: resizeImageUrl(category.linkImg, 300, 450),
-        averageRating,
-        percentages,
-        totalRatings,
-      };
-    } catch (error: any) {
-      console.error(`Error in getCategory: ${error.message}`);
-      throw error;
-    }
-  },
-  { connection: redisClient }
-);
-
-
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
+    let sumRating = 0;
 
-    await myQueue.add("categoryQueue", { id }, { delay: 2500 });
+    const category = await getCategory(id);
+    if (!category) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
 
-    const result = await new Promise((resolve, reject) => {
-      worker.on("completed", (job, result) => {
-        resolve(result);
-      });
-
-      worker.on("failed", (job, err) => {
-        reject(new Error(err.message));
-      });
+    const totalRatings = category.rating.length;
+    const ratingsCount = [0, 0, 0, 0, 0];
+    category.rating.forEach((rate) => {
+      if (rate >= 1 && rate <= 5) {
+        ratingsCount[rate - 1]++;
+      }
+      sumRating += rate;
     });
 
-    return res.status(200).json(result);
+    const percentages = ratingsCount.map(
+      (count) => (count / totalRatings) * 100
+    );
+    const averageRating = totalRatings ? sumRating / totalRatings : 0;
+
+    const data = {
+      ...category.toObject(),
+      linkImg: resizeImageUrl(category.linkImg, 300, 450),
+      averageRating,
+      percentages,
+      totalRatings,
+    };
+    return res.status(200).json(data);
   } catch (error: any) {
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({
+      message: error.message,
+    });
   }
 };
-worker.setMaxListeners(20);
 
 export const readProductByCategory = async (req: Request, res: Response) => {
   try {
@@ -255,7 +229,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       slug,
       upcomingReleases,
       releaseDate,
-      isMovie,
+      isMovie
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -443,7 +417,6 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
     const redisData = await getDataFromCache(KEY);
 
     let getDataFromCaches: any;
-
     if (redisData) {
       getDataFromCaches = redisData;
     } else {

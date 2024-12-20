@@ -5,7 +5,7 @@ import Categorymain from "../module/categorymain";
 import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
-import redisClient, { cacheData, getDataFromCache, redisDel } from "../redis";
+import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
@@ -13,8 +13,7 @@ import CryptoJS from "crypto-js";
 import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
 import Call from "../module/Call";
-import { Queue, Worker } from "bullmq";
-const productsQueue = new Queue("productQueue", { connection: redisClient });
+
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const limit = 40;
@@ -771,12 +770,10 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
   }
 };
 
-const productWorker: any = new Worker(
-  "productQueue",
-  async (job) => {
-    const { id } = job.data;
-
-    // Lấy dữ liệu từ MongoDB
+export const getOne = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id.toString();
+    await Call.find();
     const dataID: any = await Products.findOne({ slug: id })
       .populate("comments.user", "username image")
       .populate({
@@ -787,48 +784,20 @@ const productWorker: any = new Worker(
           select: "seri isApproved slug",
         },
       });
-
-    if (!dataID) {
-      throw new Error("Sản phẩm không tồn tại");
-    }
-
-    dataID.category?.products.sort(
+    dataID?.category?.products.sort(
       (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
     );
     dataID.view += 1;
     await dataID.save();
-
-    await cacheData(id, dataID, "EX", 3600, "NX");
-
-    return dataID;
-  },
-  {
-    connection: redisClient,
-  }
-);
-
-export const getOne = async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id.toString();
-    await Call.find();
     const redisGetdata = await getDataFromCache(id);
+    let data: any;
     if (redisGetdata) {
-      return res.status(200).json(redisGetdata);
+      data = dataID;
+    } else {
+      await cacheData(id, dataID, "EX", 3600, "NX");
+      data = dataID;
     }
-    await productsQueue.add("getProduct", { id }, { delay: 3000 });
-    // console.log("Đợi:", job.id);
-
-    const result = await new Promise((resolve, reject) => {
-      productWorker.on("completed", (job, result) => {
-        resolve(result);
-      });
-
-      productWorker.on("failed", (job, err) => {
-        reject(new Error(err.message));
-      });
-    });
-
-    return res.status(200).json(result);
+    return res.status(200).json(dataID);
   } catch (error) {
     return res.status(400).json({
       message: error.message,
