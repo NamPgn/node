@@ -813,8 +813,8 @@ export const getOne = async (req: Request, res: Response) => {
     if (redisGetdata) {
       return res.status(200).json(redisGetdata);
     }
-    await productsQueue.add("getProduct", { id }, { delay: 3000 });
-    // console.log("Đợi:", job.id);
+    const job = await productsQueue.add("getProduct", { id });
+    console.log("Đợi:", job.id);
 
     const result = await new Promise((resolve, reject) => {
       productWorker.on("completed", (job, result) => {

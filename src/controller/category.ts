@@ -84,7 +84,7 @@ const worker = new Worker(
     const { id } = job.data;
     try {
       const category = await getCategory(id);
-      
+
       if (!category) {
         throw new Error("Sản phẩm không tồn tại");
       }
@@ -115,16 +115,18 @@ const worker = new Worker(
       throw error;
     }
   },
-  { connection: redisClient,concurrency:2 }
+  { connection: redisClient, concurrency: 2 }
 );
-
 
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
 
-    await myQueue.add("categoryQueue", { id }, { delay: 2500 });
-
+    const job = await myQueue.add(
+      "categoryQueue",
+      { id },
+    );
+    console.log("Đợi:", job.id);
     const result = await new Promise((resolve, reject) => {
       worker.on("completed", (job, result) => {
         resolve(result);
