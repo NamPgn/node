@@ -802,9 +802,7 @@ const productWorker: any = new Worker(
 
     return dataID;
   },
-  {
-    connection: redisClient,
-  }
+  { connection: redisClient, concurrency: 2 }
 );
 
 export const getOne = async (req: Request, res: Response) => {

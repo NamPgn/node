@@ -15,9 +15,6 @@ import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 
-
-
-
 const myQueue = new Queue("categoryQueue", { connection: redisClient });
 interface MulterRequest extends Request {
   file: any;
@@ -118,7 +115,7 @@ const worker = new Worker(
       throw error;
     }
   },
-  { connection: redisClient }
+  { connection: redisClient,concurrency:2 }
 );
 
 
