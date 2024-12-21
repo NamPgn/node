@@ -8,11 +8,14 @@ import Products from "../module/products";
 import Category from "../module/category";
 import WeekCategory from "../module/week.category";
 import weekCategory from "../module/week.category";
-import { cacheData, getDataFromCache, redisDel } from "../redis";
+import redisClient, { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
+import { Queue, Worker } from "bullmq";
+
+const myQueue = new Queue("categoryQueue", { connection: redisClient });
 import Call from "../module/Call";
 interface MulterRequest extends Request {
   file: any;
