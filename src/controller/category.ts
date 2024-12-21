@@ -15,7 +15,10 @@ import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 
-const myQueue = new Queue("categoryQueue", { connection: redisClient });
+const myQueue = new Queue("categoryQueue", {
+  connection: redisClient,
+});
+
 interface MulterRequest extends Request {
   file: any;
 }
@@ -115,16 +118,29 @@ const worker = new Worker(
       throw error;
     }
   },
-  { connection: redisClient, concurrency: 2 }
+  {
+    connection: redisClient,
+    concurrency: 2,
+  }
 );
 
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-
     const job = await myQueue.add(
       "categoryQueue",
-      { id },
+      {
+        id,
+      },
+      {
+        removeOnComplete: {
+          age: 3600, // keep up to 1 hour
+          count: 100, // keep up to 1000 jobs
+        },
+        removeOnFail: {
+          age: 24 * 3600, // keep up to 24 hours
+        },
+      }
     );
     console.log("Đợi:", job.id);
     const result = await new Promise((resolve, reject) => {

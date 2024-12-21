@@ -14,7 +14,9 @@ import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
 import Call from "../module/Call";
 import { Queue, Worker } from "bullmq";
-const productsQueue = new Queue("productQueue", { connection: redisClient });
+const productsQueue = new Queue("productQueue", {
+  connection: redisClient,
+});
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const limit = 40;
@@ -360,6 +362,7 @@ export const delProduct = async (req, res, next) => {
 export const editProduct = async (req, res, next) => {
   try {
     const id = req.params.id;
+
     const folderName = "products";
     const file = req.file;
     const {
@@ -430,6 +433,8 @@ export const editProduct = async (req, res, next) => {
             ).toString();
           }
           const data = await findById.save();
+          redisDel(findById.slug);
+          await productsQueue.remove(findById.slug);
           return res.status(200).json({
             success: true,
             message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -498,6 +503,9 @@ export const editProduct = async (req, res, next) => {
       //   { latestProductUploadDate: new Date() },
       //   { new: true }
       // );
+      await productsQueue.remove(findById.slug);
+      redisDel(findById.slug);
+
       const data = await findById.save();
       return res.status(200).json({
         success: true,
@@ -802,7 +810,12 @@ const productWorker: any = new Worker(
 
     return dataID;
   },
-  { connection: redisClient, concurrency: 2 }
+  {
+    connection: redisClient,
+    concurrency: 2,
+    removeOnComplete: { age: 3600, count: 200 },
+    removeOnFail: { age: 86400 },
+  }
 );
 
 export const getOne = async (req: Request, res: Response) => {
@@ -813,9 +826,21 @@ export const getOne = async (req: Request, res: Response) => {
     if (redisGetdata) {
       return res.status(200).json(redisGetdata);
     }
-    const job = await productsQueue.add("getProduct", { id });
+    const job = await productsQueue.add(
+      "getProduct",
+      { id },
+      {
+        jobId: id,
+        removeOnComplete: {
+          age: 3600, // keep up to 1 hour
+          count: 1000, // keep up to 1000 jobs
+        },
+        removeOnFail: {
+          age: 24 * 3600, // keep up to 24 hours
+        },
+      }
+    );
     console.log("Đợi:", job.id);
-
     const result = await new Promise((resolve, reject) => {
       productWorker.on("completed", (job, result) => {
         resolve(result);
