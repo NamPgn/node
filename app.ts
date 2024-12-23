@@ -14,6 +14,7 @@ import routerCategorymain from "./src/routes/categorymain";
 import routerImage from "./src/routes/image.user";
 import routerWeek from "./src/routes/week.category";
 import routerApprove from "./src/routes/approve";
+import { limiter } from './src/config/limitter';
 const port = process.env.PORT;
 const serviceAccount: any = {
   type: "service_account",
@@ -44,24 +45,24 @@ const routers = [
   routerApprove,
 ];
 const app: Express = express();
-const limiter = require("express-limiter")(app);
-app.use(express.urlencoded({ extended: true }));
+// const limiter = require("express-limiter")(app);
+// app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
+app.use(limiter)
 app.use((req: Request, res: Response, next) => {
   res.setHeader("Access-Control-Allow-Origin", "https://tromphim.netlify.app");
   next();
 });
 
 app.use(cors());
-limiter({
-  path: "/",
-  method: "post",
-  lookup: ["connection.remoteAddress"],
-  total: 50, // Số lượng yêu cầu tối đa trong một khoảng thời gian
-  expire: 1000 * 60 * 60, // 1 giờ
-  message: "Quá nhiều yêu cầu, vui lòng thử lại sau một giờ.",
-});
+// limiter({
+//   path: "/",
+//   method: "post",
+//   lookup: ["connection.remoteAddress"],
+//   total: 50, // Số lượng yêu cầu tối đa trong một khoảng thời gian
+//   expire: 1000 * 60 * 60, // 1 giờ
+//   message: "Quá nhiều yêu cầu, vui lòng thử lại sau một giờ.",
+// });
 
 routers.map((router) => app.use("/api", router));
 
