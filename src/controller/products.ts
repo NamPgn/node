@@ -16,6 +16,11 @@ import Call from "../module/Call";
 import { Queue, Worker } from "bullmq";
 const productsQueue = new Queue("productQueue", {
   connection: redisClient,
+  streams: {
+    events: {
+      maxLen: 1000
+    }
+  }
 });
 export const getAllProducts = async (req: Request, res: Response) => {
   try {

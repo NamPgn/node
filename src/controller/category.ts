@@ -17,6 +17,11 @@ import { Queue, Worker } from "bullmq";
 
 const myQueue = new Queue("categoryQueue", {
   connection: redisClient,
+  streams: {
+    events: {
+      maxLen: 1000
+    }
+  }
 });
 
 interface MulterRequest extends Request {
