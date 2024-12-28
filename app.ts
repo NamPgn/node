@@ -45,6 +45,7 @@ const routers = [
   routerApprove,
 ];
 const app: Express = express();
+app.set("trust proxy",true);
 // const limiter = require("express-limiter")(app);
 // app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
