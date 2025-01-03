@@ -82,7 +82,7 @@ export const getOne = async (req: Request, res: Response) => {
 
     const category = await getCategory(id);
     if (!category) {
-      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+      return res.status(404).json({ message: "Sản phẩm không tồn tại"+id });
     }
 
     const totalRatings = category.rating.length;
