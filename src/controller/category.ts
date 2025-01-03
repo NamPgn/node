@@ -94,7 +94,7 @@ const worker = new Worker(
       const category = await getCategory(id);
 
       if (!category) {
-        throw new Error("Sản phẩm không tồn tại");
+        throw new Error("Sản phẩm không tồn tại"+id);
       }
 
       let sumRating = 0;
