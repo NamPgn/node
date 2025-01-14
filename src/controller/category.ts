@@ -19,9 +19,9 @@ const myQueue = new Queue("categoryQueue", {
   connection: redisClient,
   streams: {
     events: {
-      maxLen: 1000
-    }
-  }
+      maxLen: 1000,
+    },
+  },
 });
 
 interface MulterRequest extends Request {
@@ -405,7 +405,9 @@ export const searchCategory = async (req: Request, res: Response) => {
     var regex = new RegExp(searchValue, "i");
     const data = await Category.find({
       $or: [{ name: regex }],
-    });
+    })
+      .select("name linkImg lang quality type")
+      .sort({ up: -1 });
     return res.status(200).json(data);
   } catch (error) {
     return res.status(400).json({
