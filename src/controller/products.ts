@@ -18,9 +18,9 @@ const productsQueue = new Queue("productQueue", {
   connection: redisClient,
   streams: {
     events: {
-      maxLen: 1000
-    }
-  }
+      maxLen: 1000,
+    },
+  },
 });
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
@@ -177,7 +177,6 @@ export const addProduct = async (req, res) => {
           return res.status(200).json({
             success: true,
             message: "Added product successfully",
-            data: data,
           });
         }
       );
@@ -282,7 +281,6 @@ export const addProduct = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Added product successfully",
-        data: data,
       });
     }
     // Xử lý sự kiện khi stream ghi dữ liệu thành công
@@ -443,7 +441,6 @@ export const editProduct = async (req, res, next) => {
           return res.status(200).json({
             success: true,
             message: "Dữ liệu sản phẩm đã được cập nhật.",
-            data: data,
           });
         }
       );
@@ -515,7 +512,6 @@ export const editProduct = async (req, res, next) => {
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
-        data: data,
       });
     }
     // if (req.files || req.files.file || req.files.image) {
@@ -618,8 +614,6 @@ export const deleteMultipleProduct = async (req, res) => {
     });
     return res.status(200).json({
       success: true,
-      data: data,
-      id: id,
     });
   } catch (error) {
     return res.status(400).json({
@@ -706,7 +700,7 @@ export const pushToWeek = async (req, res) => {
     const newData = await WeekCategory.findByIdAndUpdate(body.weekId, {
       $addToSet: { products: data },
     });
-    res.json(newData);
+    return res.json(newData);
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -732,7 +726,6 @@ export const sendingApprove = async (req, res) => {
     return res.json({
       message: "Done",
       success: true,
-      data: data,
     });
   } catch (error) {
     return res.status(400).json({
@@ -759,7 +752,6 @@ export const cancelSendingApprove = async (req, res) => {
     return res.json({
       message: "Done",
       success: true,
-      data: data,
     });
   } catch (error) {
     return res.status(400).json({
@@ -995,7 +987,6 @@ export const approveMultipleMovies = async (req, res) => {
     );
     return res.status(200).json({
       success: true,
-      data: data,
       id: id,
     });
   } catch (error) {
@@ -1061,7 +1052,6 @@ export const autoAddProduct = async (req, res) => {
     );
     return res.status(200).json({
       success: true,
-      data: newMovie,
     });
   } catch (error) {
     return res.status(400).json({

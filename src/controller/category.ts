@@ -239,16 +239,14 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           return res.status(200).json({
             success: true,
             message: "Added product successfully",
-            data: cate,
           });
         }
       );
     } else {
-      const cate = await addCategory({ ...req.body, slug: slugify(name) });
+      await addCategory({ ...req.body, slug: slugify(name) });
       return res.status(200).json({
         success: true,
         message: "Added product successfully",
-        data: cate,
       });
     }
   } catch (error) {
@@ -351,7 +349,6 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
-        data: findById,
       });
     }
   } catch (error) {
@@ -507,7 +504,6 @@ export const changeCategoryLatest = async (req, res) => {
       { new: true }
     );
     return res.json({
-      data: data,
       success: true,
     });
   } catch (error) {
