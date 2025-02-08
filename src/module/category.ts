@@ -95,6 +95,7 @@ const categorySchema = new mongoose.Schema(
     episode_many_title: {
       type: String,
     },
+    searchCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

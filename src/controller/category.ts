@@ -402,8 +402,9 @@ export const searchCategory = async (req: Request, res: Response) => {
     var regex = new RegExp(searchValue, "i");
     const data = await Category.find({
       $or: [{ name: regex }],
+      $inc: { searchCount: 1 }
     })
-      .select("name linkImg lang quality type")
+      .select("name linkImg lang quality type slug searchCount")
       .sort({ up: -1 });
     return res.status(200).json(data);
   } catch (error) {
