@@ -133,7 +133,7 @@ export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     // const jobCounter = await redisClient.incr("jobCounter");
-    await myQueue.add(
+    const job = await myQueue.add(
       "categoryQueue",
       {
         id,
@@ -149,7 +149,7 @@ export const getOne = async (req: Request, res: Response) => {
         },
       }
     );
-    console.log("Đợi category:", id);
+    console.log("Đợi category:", id + " " + job.id);
     const result = await new Promise((resolve, reject) => {
       worker.on("completed", (job, result) => {
         resolve(result);
