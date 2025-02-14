@@ -14,7 +14,7 @@ import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
 import Call from "../module/Call";
 import { Queue, Worker } from "bullmq";
-const productsQueue = new Queue("productQueue", {
+const productsQueue: any = new Queue("productQueue", {
   connection: redisClient,
   streams: {
     events: {
@@ -837,7 +837,7 @@ export const getOne = async (req: Request, res: Response) => {
         },
       }
     );
-    console.log("Đợi:", job.id);
+    console.log("Đợi movie:", job.id);
     const result = await new Promise((resolve, reject) => {
       productWorker.on("completed", (job, result) => {
         resolve(result);
@@ -1102,6 +1102,24 @@ export const exportDataToExcel = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const clearCacheRedisAndQueue = async (req: Request, res: Response) => {
+  try {
+    const keys = await redisClient.keys("*");
+    if (keys.length > 0) {
+      await redisClient.del(keys); 
+    }
+    return res.json({
+      success: true,
+      message: "Cache & Queue cleared successfully!",
+    });
+  } catch (error: any) {
+    return res.status(400).json({
       success: false,
       message: error.message,
     });

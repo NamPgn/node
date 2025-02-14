@@ -21,6 +21,7 @@ import {
   editMultipleMovies,
   autoAddProduct,
   exportDataToExcel,
+  clearCacheRedisAndQueue,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -166,6 +167,15 @@ router.post(
   isAuth,
   isAdmin,
   autoAddProduct
+);
+
+router.post(
+  "/products/clear/redis/bull/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  clearCacheRedisAndQueue
 );
 router.get("/products/export/excel", exportDataToExcel);
 router.param("userId", getAuth);

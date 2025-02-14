@@ -94,7 +94,7 @@ const worker = new Worker(
       const category = await getCategory(id);
 
       if (!category) {
-        throw new Error("Sản phẩm không tồn tại"+id);
+        throw new Error("Sản phẩm không tồn tại" + id);
       }
 
       let sumRating = 0;
@@ -132,12 +132,14 @@ const worker = new Worker(
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const job = await myQueue.add(
+    // const jobCounter = await redisClient.incr("jobCounter");
+    await myQueue.add(
       "categoryQueue",
       {
         id,
       },
       {
+        // jobId: `[${jobCounter.toString()}] | ${id}`,
         removeOnComplete: {
           age: 3600, // keep up to 1 hour
           count: 100, // keep up to 1000 jobs
@@ -147,7 +149,7 @@ export const getOne = async (req: Request, res: Response) => {
         },
       }
     );
-    console.log("Đợi:", job.id);
+    console.log("Đợi category:", id);
     const result = await new Promise((resolve, reject) => {
       worker.on("completed", (job, result) => {
         resolve(result);
@@ -402,7 +404,7 @@ export const searchCategory = async (req: Request, res: Response) => {
     var regex = new RegExp(searchValue, "i");
     const data = await Category.find({
       $or: [{ name: regex }],
-      $inc: { searchCount: 1 }
+      $inc: { searchCount: 1 },
     })
       .select("name linkImg lang quality type slug searchCount")
       .sort({ up: -1 });
