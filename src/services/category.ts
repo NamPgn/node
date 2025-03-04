@@ -18,7 +18,7 @@ export const getAllCategory = async (page: number, limit: number) => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id })
     .select(
-      "name linkImg sumSeri type year time lang quality slug country averageRating percentages totalRatings rating des up isMovie hour"
+      "name linkImg sumSeri type year time lang quality slug country averageRating percentages totalRatings rating des up isMovie hour anotherName"
     )
     .populate({
       path: "products",

@@ -170,11 +170,8 @@ router.post(
 );
 
 router.post(
-  "/products/clear/redis/bull/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
+  "/products/clear/redis/bull",
+
   clearCacheRedisAndQueue
 );
 router.get("/products/export/excel", exportDataToExcel);

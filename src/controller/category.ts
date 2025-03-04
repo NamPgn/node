@@ -141,11 +141,11 @@ export const getOne = async (req: Request, res: Response) => {
       {
         // jobId: `[${jobCounter.toString()}] | ${id}`,
         removeOnComplete: {
-          age: 3600, // keep up to 1 hour
-          count: 100, // keep up to 1000 jobs
+          age: 3600, 
+          count: 100, 
         },
         removeOnFail: {
-          age: 24 * 3600, // keep up to 24 hours
+          age: 24 * 3600,
         },
       }
     );
