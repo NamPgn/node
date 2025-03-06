@@ -141,8 +141,8 @@ export const getOne = async (req: Request, res: Response) => {
       {
         // jobId: `[${jobCounter.toString()}] | ${id}`,
         removeOnComplete: {
-          age: 3600, 
-          count: 100, 
+          age: 3600,
+          count: 100,
         },
         removeOnFail: {
           age: 24 * 3600,
@@ -382,10 +382,11 @@ export const deleteCategoryController = async (req: Request, res: Response) => {
 
 export const getAllCategoryNotReq = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
-    const data = await Category.find({ _id: { $ne: id } })
+    const slug = req.params.id;
+    const data = await Category.find({ slug: { $ne: slug } })
       .populate("products", "seri")
       .sort({ up: -1 })
+      .limit(8)
       .exec();
     return res.json(data);
   } catch (error) {
