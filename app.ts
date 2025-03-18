@@ -14,7 +14,8 @@ import routerCategorymain from "./src/routes/categorymain";
 import routerImage from "./src/routes/image.user";
 import routerWeek from "./src/routes/week.category";
 import routerApprove from "./src/routes/approve";
-import { limiter } from './src/config/limitter';
+import routerBanner from "./src/routes/banner";
+import { limiter } from "./src/config/limitter";
 const port = process.env.PORT;
 const serviceAccount: any = {
   type: "service_account",
@@ -43,13 +44,14 @@ const routers = [
   routerWeek,
   routerImage,
   routerApprove,
+  routerBanner,
 ];
 const app: Express = express();
-app.set("trust proxy",1);
+app.set("trust proxy", 1);
 // const limiter = require("express-limiter")(app);
 // app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(limiter)
+app.use(limiter);
 app.use((req: Request, res: Response, next) => {
   res.setHeader("Access-Control-Allow-Origin", "https://tromphim.netlify.app");
   next();
