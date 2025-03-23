@@ -1,5 +1,5 @@
 import express from "express";
-import { deleteBanner, getBanners, uploadBanner } from "../controller/banner";
+import { deleteBanner, getBanners, updateBanner, uploadBanner } from "../controller/banner";
 import { uploadServer } from "../services/upload";
 
 const router = express.Router();
@@ -7,5 +7,5 @@ const router = express.Router();
 router.post("/banner/upload", uploadServer.single("file"), uploadBanner);
 router.get("/banners", getBanners);
 router.delete("/banner/:id", deleteBanner);
-router.put("/banner/:id", deleteBanner);
+router.put("/banner/:id", updateBanner);
 export default router;
