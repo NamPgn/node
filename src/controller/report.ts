@@ -18,20 +18,79 @@ export const createReport = async (req: Request, res: Response) => {
 
     // Lấy thông tin IP và User Agent
     const ipAddress = req.ip;
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const realIP = req.headers['x-real-ip'];
     const userAgent = req.headers["user-agent"];
+    // Tạo fingerprint từ nhiều thông tin
+    const fingerprint = `${ipAddress}-${forwardedFor}-${realIP}-${userAgent}`;
 
-    // Kiểm tra xem IP này đã report phim này trong 24h gần đây chưa
-    const existingReport = await Report.findOne({
-      product: productId,
-      ipAddress,
-      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-    });
+    // Kiểm tra spam trong 24h qua dựa trên nhiều tiêu chí
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const spamChecks = await Promise.all([
+      // Check based on IP
+      Report.countDocuments({
+        ipAddress,
+        createdAt: { $gte: last24Hours }
+      }),
+      // Check based on fingerprint
+      Report.countDocuments({
+        fingerprint,
+        createdAt: { $gte: last24Hours }
+      }),
+      // Check total reports on this product in last 24h
+      Report.countDocuments({
+        product: productId,
+        createdAt: { $gte: last24Hours }
+      })
+    ]);
 
-    if (existingReport) {
-      return res.status(400).json({
-        message: "Bạn đã báo cáo phim này trong 24h qua",
+    const [ipCount, fingerprintCount, productReportCount] = spamChecks;
+
+    // Giới hạn số lượng report
+    const IP_LIMIT = 5; // Số report tối đa/IP/24h
+    const FINGERPRINT_LIMIT = 3; // Số report tối đa/fingerprint/24h
+    const PRODUCT_LIMIT = 50; // Số report tối đa/product/24h
+
+    if (ipCount >= IP_LIMIT) {
+      return res.status(429).json({
+        message: "Bạn đã báo cáo quá nhiều lần trong 24h qua",
         success: false
       });
+    }
+
+    if (fingerprintCount >= FINGERPRINT_LIMIT) {
+      return res.status(429).json({
+        message: "Phát hiện dấu hiệu spam",
+        success: false
+      });
+    }
+
+    if (productReportCount >= PRODUCT_LIMIT) {
+      return res.status(429).json({
+        message: "Phim này đã nhận quá nhiều báo cáo trong 24h qua",
+        success: false
+      });
+    }
+
+    // Kiểm tra nội dung comment có phải spam không
+    if (comment) {
+      // Kiểm tra độ dài comment
+      if (comment.length < 10 || comment.length > 500) {
+        return res.status(400).json({
+          message: "Nội dung báo cáo phải từ 10 đến 500 ký tự",
+          success: false
+        });
+      }
+
+      // Kiểm tra comment có chứa link spam không
+      const spamLinkPattern = /(http|https|www|\.com|\.net|\.org)/i;
+      if (spamLinkPattern.test(comment)) {
+        return res.status(400).json({
+          message: "Không được phép gửi link trong báo cáo",
+          success: false
+        });
+      }
     }
 
     // Tạo report mới
@@ -40,9 +99,16 @@ export const createReport = async (req: Request, res: Response) => {
       reaction,
       comment,
       ipAddress,
-      userAgent
+      userAgent,
+      fingerprint,
+      forwardedFor,
+      realIP,
+      status: 'pending',
+      adminNote: '',
+      resolvedAt: null,
+      resolvedBy: null
     });
-    console.log(comment + ipAddress);
+
     res.status(201).json({
       message: "Báo cáo đã được gửi",
       success: true,
@@ -79,20 +145,49 @@ export const getProductReports = async (req: Request, res: Response) => {
   }
 };
 
-// Get all reports with pagination
+// Get reports with advanced filtering and pagination
 export const getAllReports = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
+    const search = req.query.search as string;
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+    const sortBy = req.query.sortBy as string || 'createdAt';
+    const sortOrder = req.query.sortOrder as string || 'desc';
+
     const skip = (page - 1) * limit;
+    const query: any = {};
 
-    const reports = await Report.find()
-      .populate('product', 'name slug')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    // Áp dụng các bộ lọc
+    if (status && status !== 'all') {
+      query.status = status;
+    }
 
-    const total = await Report.countDocuments();
+    if (search) {
+      query.$or = [
+        { comment: { $regex: search, $options: 'i' } },
+        { reaction: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (startDate && endDate) {
+      query.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    const [reports, total] = await Promise.all([
+      Report.find(query)
+        .populate('product', 'name slug thumbnail')
+        .populate('resolvedBy', 'username')
+        .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+        .skip(skip)
+        .limit(limit),
+      Report.countDocuments(query)
+    ]);
 
     res.status(200).json({
       success: true,
@@ -106,10 +201,158 @@ export const getAllReports = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    console.error("Error getting all reports:", error);
+    console.error("Error getting reports:", error);
     res.status(500).json({
       message: "Có lỗi xảy ra khi lấy danh sách báo cáo",
       success: false
     });
   }
 };
+
+// // Update report status and add admin note
+// export const updateReportStatus = async (req: Request, res: Response) => {
+//   try {
+//     const { id } = req.params;
+//     const { status, adminNote } = req.body;
+//     const adminId = req.user?._id; // Assuming you have user info in request
+
+//     if (!['pending', 'resolved', 'rejected'].includes(status)) {
+//       return res.status(400).json({
+//         message: "Trạng thái không hợp lệ",
+//         success: false
+//       });
+//     }
+
+//     const report = await Report.findById(id);
+//     if (!report) {
+//       return res.status(404).json({
+//         message: "Không tìm thấy báo cáo",
+//         success: false
+//       });
+//     }
+
+//     // Nếu report đã được xử lý, không cho phép thay đổi
+//     if (report.status !== 'pending') {
+//       return res.status(400).json({
+//         message: "Báo cáo này đã được xử lý",
+//         success: false
+//       });
+//     }
+
+//     const updatedReport = await Report.findByIdAndUpdate(
+//       id,
+//       {
+//         status,
+//         adminNote: adminNote || '',
+//         resolvedAt: new Date(),
+//         resolvedBy: adminId
+//       },
+//       { new: true }
+//     ).populate('product', 'name slug thumbnail')
+//      .populate('resolvedBy', 'username');
+
+//     // Nếu report được resolve, cập nhật số lượng report cho product
+//     if (status === 'resolved') {
+//       await Products.findByIdAndUpdate(report.product, {
+//         $inc: { reportCount: 1 }
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: `Báo cáo đã được ${status === 'resolved' ? 'chấp nhận' : 'từ chối'}`,
+//       data: updatedReport
+//     });
+
+//   } catch (error) {
+//     console.error("Error updating report:", error);
+//     res.status(500).json({
+//       message: "Có lỗi xảy ra khi cập nhật báo cáo",
+//       success: false
+//     });
+//   }
+// };
+
+// // Delete report (soft delete)
+// export const deleteReport = async (req: Request, res: Response) => {
+//   try {
+//     const { id } = req.params;
+//     const adminId = req.user?._id;
+
+//     const report = await Report.findById(id);
+//     if (!report) {
+//       return res.status(404).json({
+//         message: "Không tìm thấy báo cáo",
+//         success: false
+//       });
+//     }
+
+//     // Soft delete
+//     await Report.findByIdAndUpdate(id, {
+//       isDeleted: true,
+//       deletedAt: new Date(),
+//       deletedBy: adminId
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Đã xóa báo cáo"
+//     });
+
+//   } catch (error) {
+//     console.error("Error deleting report:", error);
+//     res.status(500).json({
+//       message: "Có lỗi xảy ra khi xóa báo cáo",
+//       success: false
+//     });
+//   }
+// };
+
+// // Get report statistics
+// export const getReportStats = async (req: Request, res: Response) => {
+//   try {
+//     const [totalStats, recentStats] = await Promise.all([
+//       // Tổng số báo cáo theo trạng thái
+//       Report.aggregate([
+//         {
+//           $group: {
+//             _id: "$status",
+//             count: { $sum: 1 }
+//           }
+//         }
+//       ]),
+//       // Số báo cáo trong 7 ngày gần đây
+//       Report.aggregate([
+//         {
+//           $match: {
+//             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+//           }
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+//               status: "$status"
+//             },
+//             count: { $sum: 1 }
+//           }
+//         }
+//       ])
+//     ]);
+
+//     res.status(200).json({
+//       success: true,
+//       data: {
+//         totalStats,
+//         recentStats
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error getting report stats:", error);
+//     res.status(500).json({
+//       message: "Có lỗi xảy ra khi lấy thống kê báo cáo",
+//       success: false
+//     });
+//   }
+// };
