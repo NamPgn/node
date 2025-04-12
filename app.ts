@@ -55,7 +55,7 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://67fa56cbf31fa30008ccc997--testmoviee.netlify.app/'
+  'https://67fa56cbf31fa30008ccc997--testmoviee.netlify.app'
 ];
 
 const app: Express = express();
