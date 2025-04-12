@@ -94,29 +94,29 @@ const worker = new Worker(
       const category = await getCategory(id);
 
       if (!category) {
-        throw new Error("Sản phẩm không tồn tại" + id);
+        throw new Error("Danh mục không tồn tại " + id);
       }
 
-      let sumRating = 0;
-      const totalRatings = category.rating.length;
-      const ratingsCount = [0, 0, 0, 0, 0];
-      category.rating.forEach((rate) => {
-        if (rate >= 1 && rate <= 5) {
-          ratingsCount[rate - 1]++;
-        }
-        sumRating += rate;
-      });
+      // let sumRating = 0;
+      // const totalRatings = category.rating.length;
+      // const ratingsCount = [0, 0, 0, 0, 0];
+      // category.rating.forEach((rate) => {
+      //   if (rate >= 1 && rate <= 5) {
+      //     ratingsCount[rate - 1]++;
+      //   }
+      //   sumRating += rate;
+      // });
 
-      const percentages = ratingsCount.map(
-        (count) => (count / totalRatings) * 100
-      );
-      const averageRating = totalRatings ? sumRating / totalRatings : 0;
+      // const percentages = ratingsCount.map(
+      //   (count) => (count / totalRatings) * 100
+      // );
+      // const averageRating = totalRatings ? sumRating / totalRatings : 0;
       return {
         ...category.toObject(),
         linkImg: resizeImageUrl(category.linkImg, 300, 450),
-        averageRating,
-        percentages,
-        totalRatings,
+        // averageRating,
+        // percentages,
+        // totalRatings,
       };
     } catch (error: any) {
       console.error(`Error in getCategory: ${error.message}`);
@@ -435,7 +435,7 @@ export const push = async (req, res) => {
 
 export const filterCategoryTrending = async (req, res) => {
   try {
-    const data = await Category.find().sort({ up: -1 }).limit(10);
+    const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie rating hour quality time");
     return res.json({
       data: data,
       success: true,
@@ -451,8 +451,12 @@ export const getCategoryLatesupdate = async (req, res) => {
   try {
     const data = await Category.find()
       .sort({ latestProductUploadDate: -1 })
-      .limit(8)
-      .populate("products");
+      .limit(8).select('_id name linkImg slug').populate({
+        path: 'products',
+        model: 'Products',
+        select: 'seri slug',
+        options: { limit: 8, sort: { seri: -1 } }
+      })
     return res.json({
       data: data,
       success: true,
@@ -467,19 +471,51 @@ export const getCategoryLatesupdate = async (req, res) => {
 export const getCategoryLatesupdateFromNextjs = async (req, res) => {
   try {
     let KEY = "LASTESTCATEGORY";
-    const redisData = await getDataFromCache(KEY);
 
-    let getDataFromCaches: any;
+    let getDataFromCaches = await getDataFromCache(KEY);
 
-    if (redisData) {
-      getDataFromCaches = redisData;
-    } else {
-      const data = await Category.find()
-        .sort({ latestProductUploadDate: -1 })
-        .limit(16)
-        .select("name linkImg slug sumSeri isMovie")
-        .populate("products", "seri");
-      cacheData(KEY, data);
+    // if (redisData) {
+    //   getDataFromCaches = redisData;
+    // } else {
+    //   const data = await Category.find()
+    //     .sort({ latestProductUploadDate: -1 })
+    //     .limit(16)
+    //     .select("name linkImg slug sumSeri isMovie")
+    //     .populate("products", "seri");
+    //   cacheData(KEY, data);
+    //   getDataFromCaches = data;
+    // }
+
+    if (!getDataFromCaches) {
+      // Nếu chưa có cache thì query từ DB
+      const data = await Category.aggregate([
+        { $sort: { latestProductUploadDate: -1 } },
+        { $limit: 16 },
+        {
+          $lookup: {
+            from: "products",
+            localField: "products",
+            foreignField: "_id",
+            as: "products",
+            pipeline: [
+              { $sort: { createdAt: -1 } },
+              { $limit: 1 },
+              { $project: { seri: 1 } }
+            ]
+          }
+        },
+        {
+          $project: {
+            name: 1,
+            linkImg: 1,
+            slug: 1,
+            sumSeri: 1,
+            isMovie: 1,
+            products: 1
+          }
+        }
+      ]);
+      await cacheData(KEY, data);
       getDataFromCaches = data;
     }
     Products.watch().on("change", async (change) => {

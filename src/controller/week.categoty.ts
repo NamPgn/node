@@ -3,17 +3,63 @@ import WeekCategory from "../module/week.category";
 
 export const all = async (req, res) => {
   try {
-    const data: any = await WeekCategory.find()
-      .populate({
-        path: "category",
-        select: "name linkImg seri time type year sumSeri",
-        populate: {
-          path: "products",
-          model: "Products",
-          select: "seri",
-        },
-      })
-      .sort({ name: 1 }); //123
+
+    const data = await WeekCategory.aggregate([
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+          pipeline: [
+            {
+              $lookup: {
+                from: "products",
+                localField: "products",
+                foreignField: "_id",
+                as: "products",
+                pipeline: [
+                  { $sort: { createdAt: -1 } },
+                  { $limit: 1 },
+                  { $project: { seri: 1 } }
+                ]
+              }
+            },
+            {
+              $project: {
+                name: 1,
+                linkImg: 1,
+                sumSeri: 1,
+                time: 1,
+                year: 1,
+                type: 1,
+                products: 1,
+              }
+            }
+          ]
+        }
+      },
+      {
+        $sort: { name: 1 }
+      }
+    ])
+    // const data: any = await WeekCategory.find()
+    //   .populate({
+    //     path: "category",
+    //     select: "name linkImg seri time type year sumSeri",
+    //     populate: {
+    //       path: "products",
+    //       model: "Products",
+    //       select: "seri",
+    //       options: {
+    //         limit: 1,
+    //         sort: {
+    //           createdAt: -1,
+    //         },
+    //       },
+    //     },
+    //   })
+    //   .sort({ name: 1 }); //123
 
     return res.status(200).json(data);
   } catch (error) {
@@ -26,15 +72,55 @@ export const all = async (req, res) => {
 export const one = async (req, res) => {
   try {
     const { w } = req.query;
-    const data = await WeekCategory.find({ name: w }).populate({
-      path: "category",
-      select: "name linkImg seri time type year sumSeri slug",
-      populate: {
-        path: "products",
-        model: "Products",
-        select: "seri",
+    // const data = await WeekCategory.find({ name: w }).populate({
+    //   path: "category",
+    //   select: "name linkImg seri time type year sumSeri slug",
+    //   populate: {
+    //     path: "products",
+    //     model: "Products",
+    //     select: "seri",
+    //   },
+    // });
+    const data = await WeekCategory.aggregate([
+      { $match: { name: w } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+          pipeline: [
+            {
+              $lookup: {
+                from: "products",
+                localField: "products",
+                foreignField: "_id",
+                as: "products",
+                pipeline: [
+                  { $sort: { createdAt: -1 } },
+                  { $limit: 1 },
+                  { $project: { seri: 1 } }
+                ]
+              }
+            },
+            {
+              $project: {
+                name: 1,
+                linkImg: 1,
+                sumSeri: 1,
+                time: 1,
+                year: 1,
+                type: 1,
+                slug: 1,
+                products: 1
+              }
+            }
+          ]
+        }
       },
-    });
+      { $sort: { name: 1 } }
+    ]);
+    
     let categorys: any = {
       name: "",
       content: [],

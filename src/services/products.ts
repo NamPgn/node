@@ -2,7 +2,7 @@ import Products from "../module/products";
 
 export const getAll = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
-  return await Products.find()
+  return await Products.find().select('name slug category seri uploadDate view dailyMotionServer')
     .skip(skip)
     .limit(limit)
     .sort({

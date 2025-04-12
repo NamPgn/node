@@ -41,6 +41,7 @@ router.get("/product/filter", filterCategoryByProducts);
 router.get("/product/v", searchProducts);
 router.get("/product/:id", getOne);
 router.get("/category/products/:id", getAllProductsByCategory);
+
 router.get("/product/comments/:id", findCommentByIdProduct);
 router.post("/product/vimeo", uploadServer.single("fileDinary"), uploadVimeo);
 router.post(

@@ -14,6 +14,8 @@ import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
 import Call from "../module/Call";
 import { Queue, Worker } from "bullmq";
+import Series from "../module/season";
+import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
 const productsQueue: any = new Queue("productQueue", {
   connection: redisClient,
   streams: {
@@ -24,7 +26,7 @@ const productsQueue: any = new Queue("productQueue", {
 });
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
-    const limit = 40;
+    const limit = 20;
     const page = parseInt(req.query.page as string) || 1; // Mặc định trang là 1
     let key: string;
     const redisData: any = await getDataFromCache(key);
@@ -141,9 +143,9 @@ export const addProduct = async (req, res) => {
             dailyMotionServer:
               dailyMotionServer !== ""
                 ? CryptoJS.AES.encrypt(
-                    dailyMotionServer,
-                    process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-                  ).toString()
+                  dailyMotionServer,
+                  process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
+                ).toString()
                 : "",
             trailer: trailer,
           };
@@ -161,6 +163,7 @@ export const addProduct = async (req, res) => {
                 $addToSet: { products: data.products }, // Sử dụng $addToSet để thêm data.products vào mảng products
               }
             );
+
           }
 
           if (data.categorymain) {
@@ -248,9 +251,9 @@ export const addProduct = async (req, res) => {
         dailyMotionServer:
           dailyMotionServer !== ""
             ? CryptoJS.AES.encrypt(
-                dailyMotionServer,
-                process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-              ).toString()
+              dailyMotionServer,
+              process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
+            ).toString()
             : "",
         video2: video2,
         trailer: trailer,
@@ -321,7 +324,7 @@ export const delProduct = async (req, res, next) => {
     // const imageFile = admin
     //   .storage()
     //   .bucket(bucketName)
-    //   .file(`${folderName}/${decodedImage}`); //còn thằng này không có folder mà là lấy chay nên phải lấy ra thằng cuối cùng .
+    //   .file(`${folderName}/${decodedImage}`); //còn thằng này không có folder mà lấy chay nên phải lấy ra thằng cuối cùng .
     // if (decodedImage) {
     //   await imageFile.delete();
     // }
@@ -345,6 +348,21 @@ export const delProduct = async (req, res, next) => {
         //tìm thằng category
         $pull: { products: { $in: [id] } }, // tìm tất ca thằng product trong list category có id trùng vs thằng id product
       });
+
+
+      const category_id = await Category.findOne({
+        _id: deletedProduct.category,
+      });
+
+      if (category_id?.relatedSeasons) {
+        const relatedSeasons = await Series.findOne({
+          _id: category_id.relatedSeasons,
+        });
+
+        if (relatedSeasons?.slug) {
+          await invalidateSeasonCacheByProduct(relatedSeasons.slug);
+        }
+      }
     }
 
     cloudinary.uploader.destroy(deletedProduct.image);
@@ -436,8 +454,20 @@ export const editProduct = async (req, res, next) => {
             ).toString();
           }
           const data = await findById.save();
-          redisDel(findById.slug);
+
           await productsQueue.remove(findById.slug);
+          const category_id = await Category.findOne({
+            _id: data.category,
+          });
+          const relatedSeasons = await Series.findOne({
+            _id: category_id?.relatedSeasons,
+          });
+
+          if (relatedSeasons?.slug) {
+            await invalidateSeasonCacheByProduct(relatedSeasons.slug);
+          }
+          redisDel(findById.slug);
+         
           return res.status(200).json({
             success: true,
             message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -453,6 +483,20 @@ export const editProduct = async (req, res, next) => {
         await Category.findByIdAndUpdate(findById.category, {
           $push: { products: findById._id },
         });
+
+        const category_id = await Category.findOne({
+          _id: findById.category,
+        });
+
+        if (category_id?.relatedSeasons) {
+          const relatedSeasons = await Series.findOne({
+            _id: category_id.relatedSeasons,
+          });
+
+          if (relatedSeasons?.slug) {
+            await invalidateSeasonCacheByProduct(relatedSeasons.slug);
+          }
+        }
       }
 
       if (findById.categorymain) {
@@ -815,6 +859,9 @@ const productWorker: any = new Worker(
   }
 );
 
+
+
+
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
@@ -1009,13 +1056,22 @@ export const autoAddProduct = async (req, res) => {
 
     const weekData: any = await weekCategory.findOne({ name: day }).populate({
       path: "category",
-      select: "name slug",
+      select: "name slug relatedSeasons",
       populate: {
         path: "products",
         model: "Products",
         select: "seri isApproved slug",
       },
     });
+
+    const relatedSeasons = await Series.find({
+      _id: { $in: weekData.category?.relatedSeasons },
+    });
+
+    const seasonSlugs = relatedSeasons.map(season => season.slug);
+    // Xóa cache cho tất cả các season liên quan
+    await invalidateSeasonCacheByProduct(seasonSlugs);
+
     const newData = await Promise.all(
       weekData.category?.map(async (item) => {
         let episode = 1;
@@ -1112,7 +1168,7 @@ export const clearCacheRedisAndQueue = async (req: Request, res: Response) => {
   try {
     const keys = await redisClient.keys("*");
     if (keys.length > 0) {
-      await redisClient.del(keys); 
+      await redisClient.del(keys);
     }
     return res.json({
       success: true,

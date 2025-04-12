@@ -67,6 +67,10 @@ const categorySchema = new mongoose.Schema(
     season: {
       type: String,
     },
+    relatedSeasons: {
+      type: mongoose.Types.ObjectId,
+      ref: "Season"
+    },
     lang: {
       type: String,
       default: "Vietsub",
