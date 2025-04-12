@@ -17,7 +17,7 @@ import routerApprove from "./src/routes/approve";
 import routerBanner from "./src/routes/banner";
 import routerSeason from "./src/routes/season";
 import routerReport from "./src/routes/report";
-import { limiter } from "./src/config/limitter";
+import { limiter } from "./src/middlewares";
 const port = process.env.PORT;
 const serviceAccount: any = {
   type: "service_account",

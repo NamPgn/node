@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import Report from "../module/report";
 import Products from "../module/products";
-
 // Create a new report
 export const createReport = async (req: Request, res: Response) => {
   try {
@@ -16,62 +15,12 @@ export const createReport = async (req: Request, res: Response) => {
       });
     }
 
-    // Lấy thông tin IP và User Agent
+    // Lấy thông tin nhận dạng
     const ipAddress = req.ip;
     const forwardedFor = req.headers['x-forwarded-for'];
     const realIP = req.headers['x-real-ip'];
     const userAgent = req.headers["user-agent"];
-    // Tạo fingerprint từ nhiều thông tin
     const fingerprint = `${ipAddress}-${forwardedFor}-${realIP}-${userAgent}`;
-
-    // Kiểm tra spam trong 24h qua dựa trên nhiều tiêu chí
-    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
-    const spamChecks = await Promise.all([
-      // Check based on IP
-      Report.countDocuments({
-        ipAddress,
-        createdAt: { $gte: last24Hours }
-      }),
-      // Check based on fingerprint
-      Report.countDocuments({
-        fingerprint,
-        createdAt: { $gte: last24Hours }
-      }),
-      // Check total reports on this product in last 24h
-      Report.countDocuments({
-        product: productId,
-        createdAt: { $gte: last24Hours }
-      })
-    ]);
-
-    const [ipCount, fingerprintCount, productReportCount] = spamChecks;
-
-    // Giới hạn số lượng report
-    const IP_LIMIT = 5; // Số report tối đa/IP/24h
-    const FINGERPRINT_LIMIT = 3; // Số report tối đa/fingerprint/24h
-    const PRODUCT_LIMIT = 50; // Số report tối đa/product/24h
-
-    if (ipCount >= IP_LIMIT) {
-      return res.status(429).json({
-        message: "Bạn đã báo cáo quá nhiều lần trong 24h qua",
-        success: false
-      });
-    }
-
-    if (fingerprintCount >= FINGERPRINT_LIMIT) {
-      return res.status(429).json({
-        message: "Phát hiện dấu hiệu spam",
-        success: false
-      });
-    }
-
-    if (productReportCount >= PRODUCT_LIMIT) {
-      return res.status(429).json({
-        message: "Phim này đã nhận quá nhiều báo cáo trong 24h qua",
-        success: false
-      });
-    }
 
     // Kiểm tra nội dung comment có phải spam không
     if (comment) {
