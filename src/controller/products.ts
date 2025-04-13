@@ -17,6 +17,7 @@ import { Queue, Worker } from "bullmq";
 import Series from "../module/season";
 import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
 import redisClient from "../config/redis.config";
+
 const productsQueue: any = new Queue("productQueue", {
   connection: redisClient,
   streams: {
