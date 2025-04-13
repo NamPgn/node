@@ -21,37 +21,43 @@ import {
   isSuperAdmin,
   isAdmin,
 } from "../middlewares/checkAuth";
+import { ROUTES } from "../constants/routes.constant";
+
 const router = express.Router();
 
-router.get("/user", getAlluser);
-router.get("/user/:id", getAuth);
-router.get("/user_one/:id", getone);
-router.post("/signup", signup);
-router.post("/signin", singin);
-router.post('/refreshToken',refreshToken)
+router.get(ROUTES.USER.ROOT, getAlluser);
+router.get(ROUTES.USER.DETAIL, getAuth);
+router.get(ROUTES.USER.USER_ONE, getone);
+router.post(ROUTES.AUTH.SIGNUP, signup);
+router.post(ROUTES.AUTH.SIGNIN, singin);
+router.post(ROUTES.AUTH.REFRESH, refreshToken);
 router.delete(
-  "/removeUser/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  isSuperAdmin,
+  ROUTES.USER.REMOVE,
+  [checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    isSuperAdmin,
+  ],
   remove
 );
 router.put(
-  "/user/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  isSuperAdmin,
+  ROUTES.USER.UPDATE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    isSuperAdmin,
+  ],
   edit
 );
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password/:id/:token", resetPassword);
-router.get("/user/:id", getAuth);
+router.post(ROUTES.USER.FORGOT_PASSWORD, forgotPassword);
+router.post(ROUTES.USER.RESET_PASSWORD, resetPassword);
+router.get(ROUTES.USER.GET_AUTH, getAuth);
 // router.put('/user/image/:id', upload, editImage);
 // router.post('/user/creating', uploadStorageUser.single("xlsx"), uploadXlxs);
-router.get("/user/cart/:id", findCartByUser);
+router.get(ROUTES.USER.GET_USER_CART, findCartByUser);
 router.param("userId", getAuth);
+
 export default router;

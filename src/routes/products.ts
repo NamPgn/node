@@ -34,26 +34,29 @@ import {
 import { getAuth } from "../controller/auth";
 import { uploadAbyss } from "../controller/video.server.abyss";
 import { uploadVimeo } from "../controller/video.server.dinary";
+import { ROUTES } from "../constants/routes.constant";
 
 const router = express.Router();
-router.get("/products", getAllProducts);
-router.get("/product/filter", filterCategoryByProducts);
-router.get("/product/v", searchProducts);
-router.get("/product/:id", getOne);
-router.get("/category/products/:id", getAllProductsByCategory);
 
-router.get("/product/comments/:id", findCommentByIdProduct);
-router.post("/product/vimeo", uploadServer.single("fileDinary"), uploadVimeo);
+router.get(ROUTES.PRODUCTS.ROOT, getAllProducts);
+router.get(ROUTES.PRODUCTS.FILTER, filterCategoryByProducts);
+router.get(ROUTES.PRODUCTS.SEARCH, searchProducts);
+router.get(ROUTES.PRODUCTS.DETAIL, getOne);
+router.get(ROUTES.PRODUCTS.BY_CATEGORY, getAllProductsByCategory);
+router.get(ROUTES.PRODUCTS.COMMENTS, findCommentByIdProduct);
+router.post(ROUTES.PRODUCTS.VIMEO, uploadServer.single("fileDinary"), uploadVimeo);
+
 router.post(
-  "/products/clear/:userId",
+  ROUTES.PRODUCTS.CLEAR_CACHE,
   checkToken,
   requiredSignin,
   isAuth,
   isAdmin,
   clearCacheProducts
 );
+
 router.delete(
-  "/product/:id/:userId",
+  ROUTES.PRODUCTS.DELETE,
   checkToken,
   requiredSignin,
   isAuth,
@@ -61,8 +64,9 @@ router.delete(
   isSuperAdmin,
   delProduct
 );
+
 router.post(
-  "/product/:userId",
+  ROUTES.PRODUCTS.ADD,
   checkToken,
   requiredSignin,
   isAuth,
@@ -70,8 +74,9 @@ router.post(
   uploadServer.single("image"),
   addProduct
 );
+
 router.put(
-  "/product/:id/:userId",
+  ROUTES.PRODUCTS.UPDATE,
   checkToken,
   requiredSignin,
   isAuth,
@@ -79,41 +84,47 @@ router.put(
   uploadServer.single("image"),
   editProduct
 );
+
 router.post(
-  "/products/creating",
-  // checkToken,
-  // requiredSignin,
-  // isAuth,
-  // isAdmin,
-  uploadServer.single("excelProduct"),
+  ROUTES.PRODUCTS.UPLOAD_EXCEL,
+  [checkToken,
+    requiredSignin,
+    isAuth,
+    isSuperAdmin,
+    uploadServer.single("excelProduct")
+  ],
   uploadXlxsProducts
 );
+
 router.post(
-  "/products/deleteMultiple/:userId",
+  ROUTES.PRODUCTS.DELETE_MULTIPLE,
   checkToken,
   requiredSignin,
   isAuth,
   isSuperAdmin,
   deleteMultipleProduct
 );
+
 router.post(
-  "/product/pushlist/:id/:userId",
+  ROUTES.PRODUCTS.PUSH_TO_TYPES,
   checkToken,
   requiredSignin,
   isAuth,
   isAdmin,
   pushtoTypes
 );
+
 router.post(
-  "/product/week/:id",
+  ROUTES.PRODUCTS.PUSH_TO_WEEK,
   checkToken,
   requiredSignin,
   isAuth,
   isAdmin,
   pushToWeek
 );
+
 router.post(
-  "/product/approve/:id/:userId",
+  ROUTES.PRODUCTS.APPROVE,
   checkToken,
   requiredSignin,
   isAuth,
@@ -123,7 +134,7 @@ router.post(
 );
 
 router.post(
-  "/product/approve/cancel/:id/:userId",
+  ROUTES.PRODUCTS.CANCEL_APPROVE,
   checkToken,
   requiredSignin,
   isAuth,
@@ -131,8 +142,9 @@ router.post(
   isSuperAdmin,
   cancelSendingApprove
 );
+
 router.post(
-  "/product/abyss/:id/:userId",
+  ROUTES.PRODUCTS.UPLOAD_ABYSS,
   checkToken,
   requiredSignin,
   isAuth,
@@ -142,27 +154,27 @@ router.post(
 );
 
 router.post(
-  "/products/approvedMultiple/:userId",
+  ROUTES.PRODUCTS.APPROVE_MULTIPLE,
   checkToken,
   requiredSignin,
   isAuth,
   isAdmin,
   approveMultipleMovies
 );
+
 router.post(
-  "/products/encodeMultipleDailymotionServer/:userId",
+  ROUTES.PRODUCTS.ENCODE_MULTIPLE,
   checkToken,
   requiredSignin,
   isAuth,
   isAdmin,
   editMultipleMovies
 );
-// router.post("/product/rating/:productId", ratingProducts);
-// router.get("/product/rate/:productId", ratingProductStats);
-// router.get("/products/rating/stats", ratingProductsStats);
-router.get("/most-watched-episodes", mostWatchesEposides);
+
+router.get(ROUTES.PRODUCTS.MOST_WATCHED, mostWatchesEposides);
+
 router.post(
-  "/products/autoAddEpisodeMovie/:userId",
+  ROUTES.PRODUCTS.AUTO_ADD,
   checkToken,
   requiredSignin,
   isAuth,
@@ -170,11 +182,9 @@ router.post(
   autoAddProduct
 );
 
-router.post(
-  "/products/clear/redis/bull",
+router.post(ROUTES.PRODUCTS.CLEAR_REDIS, clearCacheRedisAndQueue);
+router.get(ROUTES.PRODUCTS.EXPORT_EXCEL, exportDataToExcel);
 
-  clearCacheRedisAndQueue
-);
-router.get("/products/export/excel", exportDataToExcel);
 router.param("userId", getAuth);
+
 export default router;

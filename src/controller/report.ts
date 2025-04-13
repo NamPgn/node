@@ -131,7 +131,6 @@ export const getAllReports = async (req: Request, res: Response) => {
     const [reports, total] = await Promise.all([
       Report.find(query)
         .populate('product', 'name slug thumbnail')
-        .populate('resolvedBy', 'username')
         .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
         .skip(skip)
         .limit(limit),

@@ -8,12 +8,13 @@ import Products from "../module/products";
 import Category from "../module/category";
 import WeekCategory from "../module/week.category";
 import weekCategory from "../module/week.category";
-import redisClient, { cacheData, getDataFromCache, redisDel } from "../redis";
+import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
+import redisClient from "../config/redis.config";
 
 const myQueue = new Queue("categoryQueue", {
   connection: redisClient,
@@ -126,6 +127,7 @@ const worker = new Worker(
   {
     connection: redisClient,
     concurrency: 2,
+    lockDuration: 60000,
   }
 );
 

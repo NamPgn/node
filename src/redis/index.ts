@@ -1,23 +1,24 @@
-const Redis = require("ioredis");
+import redisClient from "../config/redis.config";
 
-const redisClient = new Redis({
-  port: 18098,
-  host: process.env.REDIS_HOST,
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  reconnectOnError: (err) => {
-    const targetError = "READONLY";
-    if (err.message.includes(targetError)) {
-      // Only reconnect when the error contains "READONLY"
-      return true; // or `return 1;`
-    }
-  },
-  retryStrategy: (times) => {
-    // Xác định thời gian giữa các lần thử kết nối lại
-    return Math.min(times * 50, 2000);
-  },
-});
+
+// const redisClient = new Redis({
+//   port: 18098,
+//   host: process.env.REDIS_HOST,
+//   password: process.env.REDIS_PASSWORD,
+//   maxRetriesPerRequest: null,
+//   enableReadyCheck: false,
+//   reconnectOnError: (err) => {
+//     const targetError = "READONLY";
+//     if (err.message.includes(targetError)) {
+//       // Only reconnect when the error contains "READONLY"
+//       return true; // or `return 1;`
+//     }
+//   },
+//   retryStrategy: (times) => {
+//     // Xác định thời gian giữa các lần thử kết nối lại
+//     return Math.min(times * 50, 2000);
+//   },
+// });
 
 // const redisClient = new Redis({
 //   port: 6379,
@@ -72,12 +73,12 @@ export const getData = async (url) => {
   }
 };
 
-redisClient.on("connect", () => {
-  console.log("Connected to Redis");
-});
+// redisClient.on("connect", () => {
+//   console.log("Connected to Redis");
+// });
 
-redisClient.on("error", (error) => {
-  console.error("Failed to connect to Redis", error);
-});
+// redisClient.on("error", (error) => {
+//   console.error("Failed to connect to Redis", error);
+// });
 
-export default redisClient;
+// export default redisClient;

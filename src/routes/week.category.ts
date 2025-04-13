@@ -16,30 +16,60 @@ import {
   isAdmin,
 } from "../middlewares/checkAuth";
 import { getAuth } from "../controller/auth";
+import { ROUTES } from "../constants/routes.constant";
+
 const routerWeek = express.Router();
 
-routerWeek.get("/weeks", all);
-routerWeek.get("/week", one);
-routerWeek.post("/week/:userId", checkToken, requiredSignin, isAuth, create);
-routerWeek.delete("/week/:id/:userId", checkToken, requiredSignin, isAuth, del);
-routerWeek.put("/week/:id/:userId", checkToken, requiredSignin, isAuth, edit);
+routerWeek.get(ROUTES.WEEK.ALL, all);
+routerWeek.get(ROUTES.WEEK.ROOT, one);
 routerWeek.post(
-  "/week/category/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  isSuperAdmin,
+  ROUTES.WEEK.ADD,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth
+  ],
+  create
+);
+routerWeek.delete(
+  ROUTES.WEEK.DELETE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth
+  ],
+  del
+);
+routerWeek.put(
+  ROUTES.WEEK.UPDATE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth
+  ],
+  edit
+);
+routerWeek.post(
+  ROUTES.WEEK.DELETE_CATEGORY,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    isSuperAdmin
+  ],
   deleteCategoryByWeek
 );
 
 routerWeek.post(
-  "/week/insertMany/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  isSuperAdmin,
+  ROUTES.WEEK.INSERT_MANY,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    isSuperAdmin
+  ],
   createManyCategory
 );
 routerWeek.param("userId", getAuth);

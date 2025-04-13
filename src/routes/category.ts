@@ -27,57 +27,81 @@ import {
   requiredSignin,
 } from "../middlewares/checkAuth";
 import { uploadServer } from "../services/upload";
+import { ROUTES } from "../constants/routes.constant";
+
 const router = express.Router();
 
-router.get("/category/products", readProductByCategory);
+// Product by category routes
+router.get(ROUTES.CATEGORY.PRODUCTS, readProductByCategory);
 
-router.get("/categorys", getAll);
-router.get("/category/latest", getCategoryLatesupdate);
-router.get("/categorys/search", searchCategory);
-router.get("/category/filters", filterCategoryTrending);
-router.get("/category/:id", getOne);
-router.post("/category/changeLatest", changeCategoryLatest);
-router.get("/category/latest/next", getCategoryLatesupdateFromNextjs);
+// Category listing routes
+router.get(ROUTES.CATEGORY.ALL, getAll);
+router.get(ROUTES.CATEGORY.LATEST, getCategoryLatesupdate);
+router.get(ROUTES.CATEGORY.SEARCH, searchCategory);
+router.get(ROUTES.CATEGORY.FILTER, filterCategoryTrending);
+router.get(`${ROUTES.CATEGORY.ROOT}${ROUTES.CATEGORY.DETAIL}`, getOne);
+router.post(ROUTES.CATEGORY.CHANGE_LATEST, changeCategoryLatest);
+router.get(ROUTES.CATEGORY.LATEST_NEXT, getCategoryLatesupdateFromNextjs);
 
+// Protected category management routes
 router.post(
-  "/category/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  uploadServer.single("file"),
+  ROUTES.CATEGORY.UPDATE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    uploadServer.single("file")
+  ],
   updateCate
 );
-router.get("/category/getAllCategoryNotRequest/:id", getAllCategoryNotReq);
+
+router.get(ROUTES.CATEGORY.ALL_NOT_REQ, getAllCategoryNotReq);
+
 router.post(
-  "/category/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  uploadServer.single("file"),
+  ROUTES.CATEGORY.ADD,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    uploadServer.single("file")
+  ],
   addCt
 );
+
 router.delete(
-  "/category/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
-  isSuperAdmin,
+  ROUTES.CATEGORY.DELETE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    isSuperAdmin
+  ],
   deleteCategoryController
 );
+
 router.post(
-  "/category/week/:id/:userId",
-  checkToken,
-  requiredSignin,
-  isAuth,
-  isAdmin,
+  ROUTES.CATEGORY.WEEK,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin
+  ],
   push
 );
-router.post("/rating/:categoryId", ratingCategory);
-router.get("/rate/:categoryId", ratingCategoryStats);
-router.get("/rating/stats", ratingCategorysStatsAll);
-router.get("/categorys/releases", getUpcomingReleases);
+
+// Rating routes
+router.post(ROUTES.CATEGORY.RATING.ADD, ratingCategory);
+router.get(ROUTES.CATEGORY.RATING.GET, ratingCategoryStats);
+router.get(ROUTES.CATEGORY.RATING.STATS, ratingCategorysStatsAll);
+
+// Release routes
+router.get(ROUTES.CATEGORY.RELEASES, getUpcomingReleases);
+
+// Param middleware
 router.param("userId", getAuth);
+
 export default router;

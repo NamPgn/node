@@ -5,7 +5,7 @@ import Categorymain from "../module/categorymain";
 import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
-import redisClient, { cacheData, getDataFromCache, redisDel } from "../redis";
+import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
@@ -16,6 +16,7 @@ import Call from "../module/Call";
 import { Queue, Worker } from "bullmq";
 import Series from "../module/season";
 import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
+import redisClient from "../config/redis.config";
 const productsQueue: any = new Queue("productQueue", {
   connection: redisClient,
   streams: {
@@ -467,7 +468,7 @@ export const editProduct = async (req, res, next) => {
             await invalidateSeasonCacheByProduct(relatedSeasons.slug);
           }
           redisDel(findById.slug);
-         
+
           return res.status(200).json({
             success: true,
             message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -856,6 +857,7 @@ const productWorker: any = new Worker(
     concurrency: 2,
     removeOnComplete: { age: 3600, count: 200 },
     removeOnFail: { age: 86400 },
+    lockDuration: 60000,
   }
 );
 
