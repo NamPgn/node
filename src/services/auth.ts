@@ -14,7 +14,6 @@ export const getAll = async () => {
     return await User.find();
 }
 
-
 //add
 export const addUser = async (user) => {
     // const newUser = new User(user)

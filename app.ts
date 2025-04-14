@@ -5,25 +5,26 @@ import { initializeFirebase } from "./src/config/firebase";
 import { configureExpress } from "./src/config/express";
 import { configureRoutes } from "./src/config/routes";
 
-const port = process.env.PORT || 8080;
-const app = express();
+const port = process.env.PORT_LOCAL || 8080;
 
-// Configure Express
-configureExpress(app);
-
-// Configure Routes
-configureRoutes(app);
-
-// Start server
 const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDatabase();
+    
+    // Initialize Express
+    const app = express();
+
+    // Configure Express (middleware, CORS, etc.)
+    await configureExpress(app);
+
+    // Configure Routes
+    configureRoutes(app);
 
     // Initialize Firebase
     initializeFirebase();
 
-    // Start listening
+    // Start server
     app.listen(port, () => {
       console.log(`
         🚀 Server is running!

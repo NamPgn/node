@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "axios": "^1.4.0",
     "back-end": "file:",
     "bcrypt": "^5.1.0",
@@ -41,6 +42,7 @@
     "request": "^2.88.2",
     "serverless-http": "^3.2.0",
     "slugify": "^1.6.6",
+    "socket.io": "^4.8.1",
     "ts-node": "^10.9.2",
     "xlsx": "^0.18.5"
   },

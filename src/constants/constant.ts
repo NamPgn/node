@@ -14,6 +14,8 @@ export const ALLOWED_ORIGINS = [
 	'http://localhost:3001',
 	'http://localhost:5173',
 	'http://localhost:5174',
+	'http://127.0.0.1:5173',
+	'http://127.0.0.1:5174',
 	'https://feature-fix--testmoviee.netlify.app',
 	'https://testmoviee.netlify.app',
 ]
@@ -26,3 +28,10 @@ export const SET_HEADER = {
 }
 
 
+export const CHANNELS = {
+	// ... existing channels ...
+	PRODUCT_UPDATE: 'product:update',
+	PRODUCT_CREATE: 'product:create',
+	PRODUCT_DELETE: 'product:delete'
+  };
+  

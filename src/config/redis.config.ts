@@ -1,51 +1,51 @@
 import Redis from 'ioredis';
 
-// Production config
-export const productionConfig = {
-  port: 18098,
-  host: process.env.REDIS_HOST,
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false
-};
-
-// Development config
-export const developmentConfig = {
-  port: 6379,
-  host: "127.0.0.1",
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false
-};
-
-// Common config options
+// Common config shared for all clients
 const commonConfig = {
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
   reconnectOnError: (err: Error) => {
-    const targetError = "READONLY";
-    if (err.message.includes(targetError)) {
-      return true;
-    }
-    return false;
+    return err.message.includes("READONLY");
   },
-  retryStrategy: (times: number) => {
-    return Math.min(times * 50, 2000);
-  }
+  retryStrategy: (times: number) => Math.min(times * 50, 2000)
 };
 
-// Create Redis client based on environment
-const config = process.env.NODE_ENV === 'production' 
-  ? { ...productionConfig, ...commonConfig }
-  : { ...developmentConfig, ...commonConfig };
+// Environment-specific configs
+const envConfig = process.env.NODE_ENV === 'production'
+  ? {
+      port: Number(process.env.REDIS_PORT) || 18098,
+      host: process.env.REDIS_HOST,
+      password: process.env.REDIS_PASSWORD,
+    }
+  : {
+      port: 6379,
+      host: "127.0.0.1",
+    };
 
+// Merge configs 
+export const config = {
+  ...envConfig,
+  ...commonConfig,
+};
+// Create main Redis client
 const redisClient = new Redis(config);
 
-// Event handlers
+// Publisher
+export const publisher = new Redis(config);
+publisher.on("connect", () => console.log("📤 Redis Publisher connected"));
+publisher.on("error", (err) => console.error("❌ Redis Publisher error:", err));
+
+// Subscriber
+export const subscriber = new Redis(config);
+subscriber.on("connect", () => console.log("📥 Redis Subscriber connected"));
+subscriber.on("error", (err) => console.error("❌ Redis Subscriber error:", err));
+
+// Main client (optional use)
 redisClient.on("connect", () => {
-  process.env.NODE_ENV === 'production' ? console.log('✅ Redis connected production successfully') : console.log('✅ Redis connected development successfully');
-//   console.log("✅ Redis connected successfully");
+  console.log(`✅ Redis connected in ${process.env.NODE_ENV} mode`);
+});
+redisClient.on("error", (err) => {
+  console.error("❌ Redis connection error:", err);
 });
 
-redisClient.on("error", (error) => {
-  console.error("❌ Redis connection error:", error);
-});
-
-export default redisClient; 
+export default redisClient;

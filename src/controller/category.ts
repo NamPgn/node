@@ -15,6 +15,7 @@ import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 import redisClient from "../config/redis.config";
+import { RealtimeService } from "../services/realtime.service";
 
 const myQueue = new Queue("categoryQueue", {
   connection: redisClient,
@@ -545,6 +546,7 @@ export const changeCategoryLatest = async (req, res) => {
       { latestProductUploadDate: new Date() },
       { new: true }
     );
+    await RealtimeService.notifyProductUpdate(null);
     return res.json({
       success: true,
     });
