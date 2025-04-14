@@ -1,5 +1,5 @@
 import express from "express";
-import { createReport, getAllReports, getProductReports } from "../controller/report";
+import { createReport, deleteReport, getAllReports, getProductReports } from "../controller/report";
 import { reportRateLimiter } from "../middlewares/reportRateLimit";
 
 const router = express.Router();
@@ -12,5 +12,7 @@ router.get("/report/:productId", getProductReports);
 
 // Route để lấy tất cả reports (có phân trang)
 router.get("/reports", getAllReports);
+
+router.delete('/reports/:id', deleteReport)
 
 export default router;

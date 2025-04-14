@@ -221,40 +221,33 @@ export const getAllReports = async (req: Request, res: Response) => {
 //   }
 // };
 
-// // Delete report (soft delete)
-// export const deleteReport = async (req: Request, res: Response) => {
-//   try {
-//     const { id } = req.params;
-//     const adminId = req.user?._id;
+// Delete report (soft delete)
+export const deleteReport = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const report = await Report.findById(id);
+    if (!report) {
+      return res.status(404).json({
+        message: "Không tìm thấy báo cáo",
+        success: false
+      });
+    }
 
-//     const report = await Report.findById(id);
-//     if (!report) {
-//       return res.status(404).json({
-//         message: "Không tìm thấy báo cáo",
-//         success: false
-//       });
-//     }
+    await Report.findByIdAndDelete(id);
 
-//     // Soft delete
-//     await Report.findByIdAndUpdate(id, {
-//       isDeleted: true,
-//       deletedAt: new Date(),
-//       deletedBy: adminId
-//     });
+    res.status(200).json({
+      success: true,
+      message: "Đã xóa báo cáo"
+    });
 
-//     res.status(200).json({
-//       success: true,
-//       message: "Đã xóa báo cáo"
-//     });
-
-//   } catch (error) {
-//     console.error("Error deleting report:", error);
-//     res.status(500).json({
-//       message: "Có lỗi xảy ra khi xóa báo cáo",
-//       success: false
-//     });
-//   }
-// };
+  } catch (error) {
+    console.error("Error deleting report:", error);
+    res.status(500).json({
+      message: "Có lỗi xảy ra khi xóa báo cáo",
+      success: false
+    });
+  }
+};
 
 // // Get report statistics
 // export const getReportStats = async (req: Request, res: Response) => {

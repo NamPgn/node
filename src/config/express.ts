@@ -3,10 +3,11 @@ import cors from "cors";
 import { limiter } from "../middlewares";
 import { ALLOWED_ORIGINS } from "../constants/constant";
 
+
 export const configureExpress = (app: Express) => {
   // Trust proxy
-  app.set("trust proxy", 1);
-
+  app.set('trust proxy', 1);
+  
   // Body parser
   app.use(express.json());
 
@@ -34,3 +35,4 @@ export const configureExpress = (app: Express) => {
     res.send("API is running 🚀");
   });
 }; 
+
