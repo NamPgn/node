@@ -39,7 +39,7 @@ export const configureExpress = async (app: Express) => {
 
 
   // Initialize Socket.IO server
-  await createSocketServer();
+  // await createSocketServer();
 
   // Health check route
   app.get("/", (req: Request, res: Response) => {
