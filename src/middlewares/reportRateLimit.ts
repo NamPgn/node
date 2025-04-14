@@ -1,10 +1,27 @@
 import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 
+// Helper function để lấy IP thật từ client
+const getClientIp = (req: Request): any => {
+  // Lấy IP từ các header
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
+  
+  // Nếu có nhiều IP trong x-forwarded-for, lấy IP đầu tiên (IP của client)
+  const clientIp = Array.isArray(forwardedFor) 
+    ? forwardedFor[0]?.trim()
+    : typeof forwardedFor === 'string'
+      ? forwardedFor.split(',')[0].trim()
+      : null;
+
+  return clientIp || realIp || req.ip || 'unknown';
+};
+
 // Rate limiter cho IP
 export const ipRateLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 2, // Giới hạn 2 request/IP/24h
+  keyGenerator: (req: Request) => getClientIp(req),
   message: {
     message: "Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau 24h",
     success: false,
@@ -14,7 +31,8 @@ export const ipRateLimiter = rateLimit({
   skipFailedRequests: false,
   skipSuccessfulRequests: false,
   handler: (req, res, next, options) => {
-    console.log(`IP Rate Limit Exceeded - IP: ${req.ip}`);
+    const ip = getClientIp(req);
+    console.log(`IP Rate Limit Exceeded - Client IP: ${ip}`);
     res.status(options.statusCode).json(options.message);
   }
 });
@@ -25,8 +43,9 @@ export const productRateLimiter = rateLimit({
   max: 30, // Giới hạn 30 report/product/24h
   keyGenerator: (req: Request) => {
     const productId = req.body.productId || "unknown";
-    console.log(`Product Rate Limit Check - Product ID: ${productId}`);
-    return productId;
+    const ip = getClientIp(req);
+    console.log(`Product Rate Limit Check - Product ID: ${productId}, Client IP: ${ip}`);
+    return `${productId}-${ip}`; // Kết hợp productId và IP để tăng tính bảo mật
   },
   message: {
     message: "Phim này đã nhận quá nhiều báo cáo trong 24h qua",
@@ -37,7 +56,9 @@ export const productRateLimiter = rateLimit({
   skipFailedRequests: false,
   skipSuccessfulRequests: false,
   handler: (req, res, next, options) => {
-    console.log(`Product Rate Limit Exceeded - Product ID: ${req.body.productId}`);
+    const productId = req.body.productId;
+    const ip = getClientIp(req);
+    console.log(`Product Rate Limit Exceeded - Product ID: ${productId}, Client IP: ${ip}`);
     res.status(options.statusCode).json(options.message);
   }
 });
@@ -47,16 +68,9 @@ export const fingerprintRateLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 2, // Giới hạn 2 request/fingerprint/24h
   keyGenerator: (req: Request) => {
-    // Lấy real IP từ proxy
-    const realIP = req.ip || 
-                  (typeof req.headers['x-forwarded-for'] === 'string' 
-                    ? req.headers['x-forwarded-for'].split(',')[0] 
-                    : null) || 
-                  req.headers['x-real-ip'] ||
-                  'unknown';
-                  
+    const ip = getClientIp(req);
     const userAgent = req.headers["user-agent"] || 'unknown';
-    const fingerprint = `${realIP}-${userAgent}`;
+    const fingerprint = `${ip}-${userAgent}`;
     console.log(`Fingerprint Rate Limit Check - Fingerprint: ${fingerprint}`);
     return fingerprint;
   },
@@ -69,7 +83,9 @@ export const fingerprintRateLimiter = rateLimit({
   skipFailedRequests: false,
   skipSuccessfulRequests: false,
   handler: (req, res, next, options) => {
-    const fingerprint = `${req.ip}-${req.headers["user-agent"]}`;
+    const ip = getClientIp(req);
+    const userAgent = req.headers["user-agent"];
+    const fingerprint = `${ip}-${userAgent}`;
     console.log(`Fingerprint Rate Limit Exceeded - Fingerprint: ${fingerprint}`);
     res.status(options.statusCode).json(options.message);
   }
@@ -83,8 +99,9 @@ export const reportRateLimiter = async (
 ) => {
   try {
     // Log request info for debugging
+    const clientIp = getClientIp(req);
     console.log('Report Request Info:', {
-      ip: req.ip,
+      clientIp,
       forwardedFor: req.headers['x-forwarded-for'],
       realIP: req.headers['x-real-ip'],
       userAgent: req.headers['user-agent'],
@@ -93,7 +110,6 @@ export const reportRateLimiter = async (
     });
 
     // Áp dụng lần lượt các rate limiters
-    // Nếu một limiter thất bại, dừng ngay và trả về lỗi
     await new Promise((resolve, reject) => {
       ipRateLimiter(req, res, (err) => {
         if (err) reject(err);
@@ -117,14 +133,14 @@ export const reportRateLimiter = async (
 
     next();
   } catch (error) {
+    const clientIp = getClientIp(req);
     console.error('Rate limit error:', {
       error,
-      ip: req.ip,
+      clientIp,
       productId: req.body.productId,
       timestamp: new Date().toISOString()
     });
     
-    // Nếu đã có response được gửi, không gửi thêm
     if (!res.headersSent) {
       res.status(429).json({
         message: "Quá nhiều yêu cầu, vui lòng thử lại sau",

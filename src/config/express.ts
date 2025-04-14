@@ -6,7 +6,7 @@ import { ALLOWED_ORIGINS } from "../constants/constant";
 
 export const configureExpress = (app: Express) => {
   // Trust proxy
-  app.set('trust proxy', 1);
+  app.set('trust proxy', true);
   
   // Body parser
   app.use(express.json());
