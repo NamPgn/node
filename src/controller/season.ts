@@ -1,31 +1,36 @@
 import { Request, Response } from "express";
 import Series from "../module/season";
 import Category from "../module/category";
-import slugify from 'slugify';
+import slugify from "slugify";
 import { cacheData } from "../redis";
 import { getDataFromCache } from "../redis";
 
 // Get all seasons with their linked categories
 export const getAllSeasons = async (req: Request, res: Response) => {
   try {
-    const seasons = await Series.find().populate("categories", "name description _id");
+    const seasons = await Series.find().populate(
+      "categories",
+      "name description _id"
+    );
     res.status(200).json(seasons);
   } catch (error) {
     res.status(500).json({ message: "Error fetching seasons", error });
   }
 };
-
 
 export const getAllSeasonsHeader = async (req: Request, res: Response) => {
   try {
-    const seasons = await Series.find().where("isActive").equals(true).select("name slug");
+    const seasons = await Series.find()
+      .where("isActive")
+      .equals(true)
+      .select("name slug");
     res.status(200).json(seasons);
   } catch (error) {
     res.status(500).json({ message: "Error fetching seasons", error });
   }
 };
 
-// Get a single season by ID with linked categories 
+// Get a single season by ID with linked categories
 export const getSeasonById = async (req: Request, res: Response) => {
   try {
     const redisKey = `season:${req.params.slug}`;
@@ -34,7 +39,7 @@ export const getSeasonById = async (req: Request, res: Response) => {
     if (cachedData) {
       return res.json({
         success: true,
-        data: cachedData
+        data: cachedData,
       });
     }
 
@@ -42,24 +47,26 @@ export const getSeasonById = async (req: Request, res: Response) => {
       .select("name slug _id")
       .populate({
         path: "categories",
-        select: "name sumSeri slug linkImg des _id"
+        select: "name sumSeri slug linkImg des _id",
       });
 
     if (!season) {
       return res.status(404).json({ message: "Season not found" });
     }
 
-    const categoryIds = season.categories?.map((cat: any) => cat._id).filter(Boolean);
-    
+    const categoryIds = season.categories
+      ?.map((cat: any) => cat._id)
+      .filter(Boolean);
+
     if (!categoryIds || categoryIds.length === 0) {
       const seasonData = {
         ...season.toObject(),
-        categories: []
+        categories: [],
       };
       await cacheData(redisKey, seasonData);
       return res.json({
         success: true,
-        data: seasonData
+        data: seasonData,
       });
     }
 
@@ -72,16 +79,15 @@ export const getSeasonById = async (req: Request, res: Response) => {
             select: "slug seri _id",
             options: {
               sort: { createdAt: -1 },
-              limit: 1
-            }
+              limit: 1,
+            },
           });
         return {
           _id: category._id,
-          products: category.products
+          products: category.products,
         };
       })
     );
-
 
     const categoriesWithProduct = season.categories.map((cat: any) => {
       const match = latestProducts.find(
@@ -91,20 +97,20 @@ export const getSeasonById = async (req: Request, res: Response) => {
 
       return {
         ...cat.toObject(),
-        lastProduct
+        lastProduct,
       };
     });
 
     const seasonData = {
       ...season.toObject(),
-      categories: categoriesWithProduct
+      categories: categoriesWithProduct,
     };
 
     await cacheData(redisKey, seasonData);
 
     res.json({
       success: true,
-      data: seasonData
+      data: seasonData,
     });
   } catch (error) {
     console.error("Error in getSeasonById:", error);
@@ -112,18 +118,24 @@ export const getSeasonById = async (req: Request, res: Response) => {
   }
 };
 
-
 // Create a new season
 export const createSeason = async (req: Request, res: Response) => {
   try {
-    const { name, description, partNumber, categories, releaseYear, totalEpisodes } = req.body;
+    const {
+      name,
+      description,
+      partNumber,
+      categories,
+      releaseYear,
+      totalEpisodes,
+    } = req.body;
 
     // Generate slug from name
     let slug = slugify(name, {
-      lower: true,      // Convert to lower case
-      strict: true,     // Strip special characters
-      locale: 'vi',     // Handle Vietnamese characters
-      trim: true        // Trim spaces from beginning and end
+      lower: true, // Convert to lower case
+      strict: true, // Strip special characters
+      locale: "vi", // Handle Vietnamese characters
+      trim: true, // Trim spaces from beginning and end
     });
 
     // Check if slug exists
@@ -141,7 +153,7 @@ export const createSeason = async (req: Request, res: Response) => {
       releaseYear,
       totalEpisodes,
       isActive: true,
-      slug
+      slug,
     });
 
     const savedSeason = await season.save();
@@ -171,14 +183,14 @@ export const updateSeason = async (req: Request, res: Response) => {
       let slug = slugify(name, {
         lower: true,
         strict: true,
-        locale: 'vi',
-        trim: true
+        locale: "vi",
+        trim: true,
       });
 
       // Check if new slug exists and is different from current
       const existingSlug = await Series.findOne({
         slug,
-        _id: { $ne: req.params.id }
+        _id: { $ne: req.params.id },
       });
 
       if (existingSlug) {
@@ -188,18 +200,18 @@ export const updateSeason = async (req: Request, res: Response) => {
       updateData = {
         ...updateData,
         name,
-        slug
+        slug,
       };
     }
 
-    const season = await Series.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    ).populate("categories", "name description _id");
+    const season = await Series.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+    }).populate("categories", "name description _id");
 
     if (!season) {
-      return res.status(404).json({ success: false, message: 'Season not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Season not found" });
     }
 
     res.json({ success: true, data: season });
@@ -238,7 +250,9 @@ export const addCategoriesToSeries = async (req: Request, res: Response) => {
     const { categoryIds } = req.body;
 
     // Convert single categoryId to array if needed
-    const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [categoryIds];
+    const categoryIdsArray = Array.isArray(categoryIds)
+      ? categoryIds
+      : [categoryIds];
 
     // Validate if series exists
     const series = await Series.findById(seriesId);
@@ -256,7 +270,7 @@ export const addCategoriesToSeries = async (req: Request, res: Response) => {
     const updatedSeries = await Series.findByIdAndUpdate(
       seriesId,
       {
-        $addToSet: { categories: { $each: categoryIdsArray } }
+        $addToSet: { categories: { $each: categoryIdsArray } },
       },
       { new: true }
     ).populate("categories", "name description -_id");
@@ -269,92 +283,148 @@ export const addCategoriesToSeries = async (req: Request, res: Response) => {
 
     res.status(200).json(updatedSeries);
   } catch (error) {
-    res.status(500).json({ message: "Error adding categories to series", error });
+    res
+      .status(500)
+      .json({ message: "Error adding categories to series", error });
   }
 };
 
 export const getSeriesByCategories = async (req: Request, res: Response) => {
   try {
     const { seriesId } = req.params;
-    const series = await Series.findById(seriesId).populate("categories", "name description -_id");
+    const series = await Series.findById(seriesId).populate(
+      "categories",
+      "name description -_id"
+    );
     res.status(200).json(series);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching series categories", error });
+    res
+      .status(500)
+      .json({ message: "Error fetching series categories", error });
   }
-}
+};
 
 // Get all categories of a series
 export const getSeriesCategories = async (req: Request, res: Response) => {
   try {
     const { seriesId, categoryId } = req.query;
 
-    // Function to get top 5 categories
+    // Lấy top 5 category (nếu không có seriesId hoặc cần fallback)
     const getTop5Categories = async (excludeCategoryId?: any) => {
-      const query = excludeCategoryId ? { _id: { $ne: excludeCategoryId } } : {};
-      return await Category.find(query)
-        .sort({ up: -1 })
-        .limit(5)
-        .select("name anotherName slug linkImg sumSeri lang quality");
+      const matchQuery = excludeCategoryId
+        ? { _id: { $ne: excludeCategoryId } }
+        : {};
+      return await Category.aggregate([
+        { $match: matchQuery },
+        { $sort: { up: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: "products",
+            localField: "products",
+            foreignField: "_id",
+            as: "products",
+            pipeline: [
+              { $sort: { createdAt: -1 } },
+              { $limit: 1 },
+              { $project: { seri: 1, slug: 1, _id: 0 } },
+            ],
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            anotherName: 1,
+            slug: 1,
+            linkImg: 1,
+            sumSeri: 1,
+            lang: 1,
+            quality: 1,
+            products: 1,
+          },
+        },
+      ]);
     };
 
-    // Case 1: No seriesId - return top 5 categories
-    if (!seriesId || seriesId === 'undefined') {
+    // Nếu không có seriesId thì return top 5
+    if (!seriesId || seriesId === "undefined") {
       const topCategories = await getTop5Categories(categoryId);
-      return res.status(200).json({
-        data: topCategories,
-        success: true
-      });
+      return res.status(200).json({ data: topCategories, success: true });
     }
 
-    // Case 2: Invalid seriesId - check if series exists
-    const series = await Series.findById(seriesId);
+    // Lấy series
+    const series = await Series.findById(seriesId).lean();
     if (!series) {
       const topCategories = await getTop5Categories(categoryId);
-      return res.status(200).json({
-        data: topCategories,
-        success: true
-      });
+      return res.status(200).json({ data: topCategories, success: true });
     }
 
-    // Case 3: Valid seriesId - get series categories
-    const seriesWithCategories = await Series.findById(seriesId)
-      .populate("categories", "name anotherName slug linkImg sumSeri lang quality");
+    // Truy vấn categories từ aggregate
+    let categories = await Category.aggregate([
+      { $match: { _id: { $in: series.categories } } },
+      { $sort: { up: -1 } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "products",
+          foreignField: "_id",
+          as: "products",
+          pipeline: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+            { $project: { seri: 1, slug: 1, _id: 0 } },
+          ],
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          anotherName: 1,
+          slug: 1,
+          linkImg: 1,
+          sumSeri: 1,
+          lang: 1,
+          quality: 1,
+          products: 1,
+        },
+      },
+    ]);
 
-    let categories = seriesWithCategories.categories;
-
-    // Case 4: If categoryId provided, filter it out
+    // Nếu có categoryId cần loại bỏ thì filter
     if (categoryId) {
-      categories = categories.filter((category: any) =>
-        category._id.toString() !== categoryId
+      categories = categories.filter(
+        (category: any) => category._id.toString() !== categoryId
       );
 
-      // If no categories left after filtering, return top 5
+      // Nếu filter xong mà hết thì fallback
       if (categories.length === 0) {
         const topCategories = await getTop5Categories(categoryId);
-        return res.status(200).json({
-          data: topCategories,
-          success: true
-        });
+        return res.status(200).json({ data: topCategories, success: true });
       }
     }
 
-    res.status(200).json({
-      data: categories,
-      success: true
-    });
+    return res.status(200).json({ data: categories, success: true });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching series categories", error });
+    console.error("getSeriesCategories error:", error);
+    return res
+      .status(500)
+      .json({ message: "Error fetching series categories", error });
   }
 };
 
 // Remove categories from a series
-export const removeCategoriesFromSeries = async (req: Request, res: Response) => {
+export const removeCategoriesFromSeries = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { seriesId } = req.params;
     const { categoryIds } = req.body;
 
     // Convert single categoryId to array if needed
-    const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [categoryIds];
+    const categoryIdsArray = Array.isArray(categoryIds)
+      ? categoryIds
+      : [categoryIds];
 
     // Validate if series exists
     const series = await Series.findById(seriesId);
@@ -366,7 +436,7 @@ export const removeCategoriesFromSeries = async (req: Request, res: Response) =>
     const updatedSeries = await Series.findByIdAndUpdate(
       seriesId,
       {
-        $pull: { categories: { $in: categoryIdsArray } }
+        $pull: { categories: { $in: categoryIdsArray } },
       },
       { new: true }
     ).populate("categories", "name description -_id");
@@ -379,6 +449,8 @@ export const removeCategoriesFromSeries = async (req: Request, res: Response) =>
 
     res.status(200).json(updatedSeries);
   } catch (error) {
-    res.status(500).json({ message: "Error removing categories from series", error });
+    res
+      .status(500)
+      .json({ message: "Error removing categories from series", error });
   }
 };
