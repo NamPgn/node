@@ -44,7 +44,8 @@ export const ROUTES = {
       GET: '/rate/:categoryId',
       STATS: '/rating/stats'
     },
-    RELEASES: '/categorys/releases'
+    RELEASES: '/categorys/releases',
+    SITEMAP: '/categorys/sitemap',
   },
   PRODUCTS: {
     ROOT: '/products',

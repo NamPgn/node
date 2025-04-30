@@ -3,6 +3,7 @@ import {
   getAllCategory,
   getCategory,
   deleteCategory,
+  getCategoriesSitemap,
 } from "../services/category";
 import Products from "../module/products";
 import Category from "../module/category";
@@ -657,3 +658,37 @@ export const getUpcomingReleases = async (req, res) => {
     });
   }
 };
+
+
+export const getCategorySitemap = async (req: any, res: Response) => {
+  try {
+    await Category.createIndexes();
+    const key = `categorys_sitemap`;
+
+    let category: any;
+
+    const redisData = await getDataFromCache(key);
+    if (redisData) {
+      category = redisData.category;
+    } else {
+      category = await getCategoriesSitemap();
+      cacheData(key, { category }, "EX", 3600);
+
+      Category.watch().on("change", async (change) => {
+        if (["insert", "delete", "update"].includes(change.operationType)) {
+          redisDel(key); 
+        }
+      });
+    }
+
+    return res.status(200).json({
+      data: category,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+
