@@ -9,6 +9,7 @@ import {
   getAllCategoryNotReq,
   getCategoryLatesupdate,
   getCategoryLatesupdateFromNextjs,
+  getCategorySitemap,
   getOne,
   getUpcomingReleases,
   push,
@@ -36,6 +37,7 @@ router.get(ROUTES.CATEGORY.PRODUCTS, readProductByCategory);
 
 // Category listing routes
 router.get(ROUTES.CATEGORY.ALL, getAll);
+router.get(ROUTES.CATEGORY.SITEMAP, getCategorySitemap);
 router.get(ROUTES.CATEGORY.LATEST, getCategoryLatesupdate);
 router.get(ROUTES.CATEGORY.SEARCH, searchCategory);
 router.get(ROUTES.CATEGORY.FILTER, filterCategoryTrending);

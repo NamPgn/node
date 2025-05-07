@@ -72,6 +72,22 @@ export const getAllCategory = async (page: number, limit: number) => {
   return resizeImagesUrl(categories, "linkImg", 250, 300);
 };
 
+export const getCategoriesSitemap = async () => {
+  const categories = await Category.find()
+    .select("slug -_id")
+    .lean()
+    .sort({ up: -1 })
+    .populate({
+      path: "products",
+      select: "seri slug -_id"
+    })
+    .exec();
+
+  const categoryWithImage = resizeImagesUrl(categories, "linkImg", 250, 300);
+  return categoryWithImage;
+};
+
+
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id })
     .select(
