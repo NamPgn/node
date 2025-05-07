@@ -30,15 +30,15 @@ export const config = {
 // Create main Redis client
 const redisClient = new Redis(config);
 
-// Publisher
-export const publisher = new Redis(config);
-publisher.on("connect", () => console.log("📤 Redis Publisher connected"));
-publisher.on("error", (err) => console.error("❌ Redis Publisher error:", err));
+// // Publisher
+// export const publisher = new Redis(config);
+// publisher.on("connect", () => console.log("📤 Redis Publisher connected"));
+// publisher.on("error", (err) => console.error("❌ Redis Publisher error:", err));
 
-// Subscriber
-export const subscriber = new Redis(config);
-subscriber.on("connect", () => console.log("📥 Redis Subscriber connected"));
-subscriber.on("error", (err) => console.error("❌ Redis Subscriber error:", err));
+// // Subscriber
+// export const subscriber = new Redis(config);
+// subscriber.on("connect", () => console.log("📥 Redis Subscriber connected"));
+// subscriber.on("error", (err) => console.error("❌ Redis Subscriber error:", err));
 
 // Main client (optional use)
 redisClient.on("connect", () => {

@@ -15,7 +15,7 @@ import { slugify } from "../utills/slugify";
 import { resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 import redisClient from "../config/redis.config";
-import { RealtimeService } from "../services/realtime.service";
+// import { RealtimeService } from "../services/realtime.service"; 
 
 const myQueue = new Queue("categoryQueue", {
   connection: redisClient,
@@ -98,27 +98,9 @@ const worker = new Worker(
       if (!category) {
         throw new Error("Danh mục không tồn tại " + id);
       }
-
-      // let sumRating = 0;
-      // const totalRatings = category.rating.length;
-      // const ratingsCount = [0, 0, 0, 0, 0];
-      // category.rating.forEach((rate) => {
-      //   if (rate >= 1 && rate <= 5) {
-      //     ratingsCount[rate - 1]++;
-      //   }
-      //   sumRating += rate;
-      // });
-
-      // const percentages = ratingsCount.map(
-      //   (count) => (count / totalRatings) * 100
-      // );
-      // const averageRating = totalRatings ? sumRating / totalRatings : 0;
       return {
         ...category.toObject(),
         linkImg: resizeImageUrl(category.linkImg, 300, 450),
-        // averageRating,
-        // percentages,
-        // totalRatings,
       };
     } catch (error: any) {
       console.error(`Error in getCategory: ${error.message}`);
@@ -546,7 +528,7 @@ export const changeCategoryLatest = async (req, res) => {
       { latestProductUploadDate: new Date() },
       { new: true }
     );
-    await RealtimeService.notifyProductUpdate(null);
+    // await RealtimeService.notifyProductUpdate(null);
     return res.json({
       success: true,
     });

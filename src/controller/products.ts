@@ -17,7 +17,7 @@ import { Queue, Worker } from "bullmq";
 import Series from "../module/season";
 import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
 import redisClient from "../config/redis.config";
-import { RealtimeService } from "../services/realtime.service";
+// import { RealtimeService } from "../services/realtime.service";
 
 const productsQueue: any = new Queue("productQueue", {
   connection: redisClient,
@@ -180,7 +180,7 @@ export const addProduct = async (req, res) => {
               $addToSet: { products: data.products },
             });
           }
-          await RealtimeService.notifyProductCreate(data._id.toString());
+          // await RealtimeService.notifyProductCreate(data._id.toString());
           return res.status(200).json({
             success: true,
             message: "Added product successfully",
@@ -285,7 +285,7 @@ export const addProduct = async (req, res) => {
           $addToSet: { products: data.products },
         });
       }
-      await RealtimeService.notifyProductCreate(data._id.toString());
+      // await RealtimeService.notifyProductCreate(data._id.toString());
       return res.status(200).json({
         success: true,
         message: "Added product successfully",
@@ -310,7 +310,7 @@ export const delProduct = async (req, res, next) => {
       // Sản phẩm không tồn tại
       return res.status(404).json({ message: "Product not found." });
     }
-    await RealtimeService.notifyProductCreate(deletedProduct._id.toString());
+    // await RealtimeService.notifyProductCreate(deletedProduct._id.toString());
     // Xóa tệp video từ Firebase Storage
     // const videoFileName = deletedProduct.link
     //   .split("/")
@@ -475,7 +475,7 @@ export const editProduct = async (req, res, next) => {
             await invalidateSeasonCacheByProduct(relatedSeasons.slug);
           }
           redisDel(findById.slug);
-          await RealtimeService.notifyProductUpdate(findById._id.toString());
+          // await RealtimeService.notifyProductUpdate(findById._id.toString());
           return res.status(200).json({
             success: true,
             message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -561,7 +561,7 @@ export const editProduct = async (req, res, next) => {
       redisDel(findById.slug);
 
       const data = await findById.save();
-      await RealtimeService.notifyProductUpdate(findById._id.toString());
+      // await RealtimeService.notifyProductUpdate(findById._id.toString());
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -1083,7 +1083,7 @@ export const autoAddProduct = async (req, res) => {
     const seasonSlugs = relatedSeasons.map(season => season.slug);
     // Xóa cache cho tất cả các season liên quan
     await invalidateSeasonCacheByProduct(seasonSlugs);
-    await RealtimeService.notifyProductUpdate(null);
+    // await RealtimeService.notifyProductUpdate(null);
     const newData = await Promise.all(
       weekData.category?.map(async (item) => {
         let episode = 1;
