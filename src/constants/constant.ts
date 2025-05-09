@@ -18,6 +18,7 @@ export const ALLOWED_ORIGINS = [
 	'http://127.0.0.1:5174',
 	'https://feature-fix--testmoviee.netlify.app',
 	'https://testmoviee.netlify.app',
+	'https://feature-ui--testmoviee.netlify.app'
 ]
 
 

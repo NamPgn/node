@@ -453,24 +453,38 @@ export const filterCategoryTrending = async (req, res) => {
 
 export const getCategoryLatesupdate = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
+
+    const totalItems = await Category.countDocuments()
+
     const data = await Category.find()
       .sort({ latestProductUploadDate: -1 })
-      .limit(8).select('_id name linkImg slug').populate({
-        path: 'products',
-        model: 'Products',
-        select: 'seri slug',
-        options: { limit: 8, sort: { seri: -1 } }
-      })
+      .skip(skip)
+      .limit(limit)
+      .select('_id name linkImg slug')
+      // .populate({
+      //   path: 'products',
+      //   model: 'Products',
+      //   select: 'seri slug',
+      //   options: { limit: 8, sort: { seri: -1 } },
+      // })
+
     return res.json({
-      data: data,
       success: true,
-    });
+      data,
+      totalItems,
+      currentPage: page,
+      totalPages: Math.ceil(totalItems / limit),
+    })
   } catch (error) {
     return res.status(400).json({
       message: error.message,
-    });
+    })
   }
-};
+}
+
 
 export const getCategoryLatesupdateFromNextjs = async (req, res) => {
   try {
