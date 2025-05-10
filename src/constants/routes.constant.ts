@@ -71,7 +71,8 @@ export const ROUTES = {
     MOST_WATCHED: '/most-watched-episodes',
     AUTO_ADD: '/products/autoAddEpisodeMovie/:userId',
     CLEAR_REDIS: '/products/clear/redis/bull',
-    EXPORT_EXCEL: '/products/export/excel'
+    EXPORT_EXCEL: '/products/export/excel',
+    ADD_MULTIPLE: '/products/addMultiple/',
   },
   COMMENTS: {
     ROOT: '/comments',

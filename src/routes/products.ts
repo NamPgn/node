@@ -22,6 +22,7 @@ import {
   autoAddProduct,
   exportDataToExcel,
   clearCacheRedisAndQueue,
+  addMultipleEpisodes,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -44,8 +45,12 @@ router.get(ROUTES.PRODUCTS.SEARCH, searchProducts);
 router.get(ROUTES.PRODUCTS.DETAIL, getOne);
 router.get(ROUTES.PRODUCTS.BY_CATEGORY, getAllProductsByCategory);
 router.get(ROUTES.PRODUCTS.COMMENTS, findCommentByIdProduct);
-router.post(ROUTES.PRODUCTS.VIMEO, uploadServer.single("fileDinary"), uploadVimeo);
-
+router.post(
+  ROUTES.PRODUCTS.VIMEO,
+  uploadServer.single("fileDinary"),
+  uploadVimeo
+);
+router.post(ROUTES.PRODUCTS.ADD_MULTIPLE, addMultipleEpisodes);
 router.post(
   ROUTES.PRODUCTS.CLEAR_CACHE,
   checkToken,
@@ -87,11 +92,12 @@ router.put(
 
 router.post(
   ROUTES.PRODUCTS.UPLOAD_EXCEL,
-  [checkToken,
+  [
+    checkToken,
     requiredSignin,
     isAuth,
     isSuperAdmin,
-    uploadServer.single("excelProduct")
+    uploadServer.single("excelProduct"),
   ],
   uploadXlxsProducts
 );
