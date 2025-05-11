@@ -13,7 +13,7 @@ import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
-import { resizeImageUrl } from "../utills/resizeImage";
+import { resizeImagesUrl, resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 import redisClient from "../config/redis.config";
 import { RealtimeService } from "../services/realtime.service";
@@ -492,18 +492,6 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
 
     let getDataFromCaches = await getDataFromCache(KEY);
 
-    // if (redisData) {
-    //   getDataFromCaches = redisData;
-    // } else {
-    //   const data = await Category.find()
-    //     .sort({ latestProductUploadDate: -1 })
-    //     .limit(16)
-    //     .select("name linkImg slug sumSeri isMovie")
-    //     .populate("products", "seri");
-    //   cacheData(KEY, data);
-    //   getDataFromCaches = data;
-    // }
-
     if (!getDataFromCaches) {
       // Nếu chưa có cache thì query từ DB
       const data = await Category.aggregate([
@@ -533,15 +521,22 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
           }
         }
       ]);
-      await cacheData(KEY, data);
-      getDataFromCaches = data;
+
+      // Gọi resizeImagesUrl để thay đổi ảnh
+      const updatedData = resizeImagesUrl(data, "linkImg", 250, 300);
+
+      // Cập nhật lại dữ liệu đã thay đổi ảnh
+      await cacheData(KEY, updatedData);
+      getDataFromCaches = updatedData;
     }
+
     Products.watch().on("change", async (change) => {
       const operationTypes = ["insert", "delete", "update"];
       if (operationTypes.includes(change.operationType)) {
         await redisDel(KEY);
       }
     });
+
     return res.json({
       data: getDataFromCaches,
       success: true,
