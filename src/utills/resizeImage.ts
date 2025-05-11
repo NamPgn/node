@@ -16,6 +16,7 @@ export const resizeImagesUrl = (
       `/upload/w_${width},h_${height},c_fill,f_${format}/` // Thay bằng tham số mới
     );
 
+
     // Trả về đối tượng với URL đã chuyển đổi
     return {
       ...item,
@@ -23,6 +24,7 @@ export const resizeImagesUrl = (
     };
   });
 };
+
 
 export const resizeImageUrl = (
   image: any,
