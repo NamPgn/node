@@ -505,7 +505,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       ]);
 
       // Gọi resizeImagesUrl để thay đổi ảnh
-      const updatedData = resizeImagesUrl(data, "linkImg", 250, 300);
+      const updatedData = resizeImagesUrl(data, "linkImg", 300, 400);
 
       // Cập nhật lại dữ liệu đã thay đổi ảnh
       await cacheData(KEY, updatedData);

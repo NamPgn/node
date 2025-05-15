@@ -33,7 +33,7 @@ export const getAllCategory = async (page: number, limit: number) => {
         },
       },
     ]);
-    return resizeImagesUrl(categories, "linkImg", 250, 300);
+    return resizeImagesUrl(categories, "linkImg", 300, 400);
   }
 
   // Nếu page > 0, lấy theo phân trang
@@ -69,7 +69,7 @@ export const getAllCategory = async (page: number, limit: number) => {
       },
     },
   ]);
-  return resizeImagesUrl(categories, "linkImg", 250, 300);
+  return resizeImagesUrl(categories, "linkImg", 300, 400);
 };
 
 export const getCategoriesSitemap = async () => {
@@ -83,7 +83,7 @@ export const getCategoriesSitemap = async () => {
     })
     .exec();
 
-  const categoryWithImage = resizeImagesUrl(categories, "linkImg", 250, 300);
+  const categoryWithImage = resizeImagesUrl(categories, "linkImg", 300, 400);
   return categoryWithImage;
 };
 
