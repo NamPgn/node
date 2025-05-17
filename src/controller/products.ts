@@ -12,21 +12,12 @@ import XLSX from "xlsx";
 import CryptoJS from "crypto-js";
 import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
-import Call from "../module/Call";
-import { Queue, Worker } from "bullmq";
 import Series from "../module/season";
 import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
+import { productsQueue, productWorker } from "../config/bullmq";
 import redisClient from "../config/redis.config";
 // import { RealtimeService } from "../services/realtime.service";
 
-const productsQueue: any = new Queue("productQueue", {
-  connection: redisClient,
-  streams: {
-    events: {
-      maxLen: 1000,
-    },
-  },
-});
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const limit = 20;
@@ -831,84 +822,58 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
   }
 };
 
-const productWorker: any = new Worker(
-  "productQueue",
-  async (job) => {
-    const { id } = job.data;
-
-    // Lấy dữ liệu từ MongoDB
-    const dataID: any = await Products.findOne({ slug: id })
-      .populate("comments.user", "username image")
-      .populate({
-        path: "category",
-        populate: {
-          path: "products",
-          model: "Products",
-          select: "seri isApproved slug",
-        },
-      });
-
-    if (!dataID) {
-      throw new Error("Sản phẩm không tồn tại");
-    }
-
-    dataID.category?.products.sort(
-      (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
-    );
-    dataID.view += 1;
-    await dataID.save();
-
-    await cacheData(id, dataID, "EX", 3600, "NX");
-
-    return dataID;
-  },
-  {
-    connection: redisClient,
-    concurrency: 2,
-    removeOnComplete: { age: 3600, count: 200 },
-    removeOnFail: { age: 86400 },
-    lockDuration: 60000,
-  }
-);
-
-
-
-
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
-    await Call.find();
+    
+    // Check cache first
     const redisGetdata = await getDataFromCache(id);
     if (redisGetdata) {
       return res.status(200).json(redisGetdata);
     }
+
+    // Create a promise that resolves when the specific job is completed
+    const result = await new Promise((resolve, reject) => {
+      const completedHandler = async (completedJob: any, result: any) => {
+        if (completedJob.id === id) {
+          productWorker.removeListener('completed', completedHandler);
+          productWorker.removeListener('failed', failedHandler);
+          resolve(result);
+        }
+      };
+
+      const failedHandler = async (failedJob: any, error: any) => {
+        if (failedJob.id === id) {
+          productWorker.removeListener('completed', completedHandler);
+          productWorker.removeListener('failed', failedHandler);
+          reject(new Error(error.message));
+        }
+      };
+
+      productWorker.on('completed', completedHandler);
+      productWorker.on('failed', failedHandler);
+    });
+
+    // Add the job after setting up the listeners
     const job = await productsQueue.add(
       "getProduct",
       { id },
       {
         jobId: id,
         removeOnComplete: {
-          age: 3600, // keep up to 1 hour
-          count: 1000, // keep up to 1000 jobs
+          age: 3600,
+          count: 1000,
         },
         removeOnFail: {
-          age: 24 * 3600, // keep up to 24 hours
+          age: 24 * 3600,
         },
       }
     );
     console.log("Đợi movie:", job.id);
-    const result = await new Promise((resolve, reject) => {
-      productWorker.on("completed", (job, result) => {
-        resolve(result);
-      });
-
-      productWorker.on("failed", (job, err) => {
-        reject(new Error(err.message));
-      });
-    });
 
     return res.status(200).json(result);
-  } catch (error) {
+  } catch (error: any) {
+    console.error(`Error in getOne for product ${req.params.id}:`, error);
     return res.status(400).json({
       message: error.message,
     });
@@ -1179,16 +1144,12 @@ export const exportDataToExcel = async (req, res) => {
 export const clearCacheRedisAndQueue = async (req: Request, res: Response) => {
   try {
     const keys = await redisClient.keys("*");
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-    }
-    return res.json({
-      success: true,
-      message: "Cache & Queue cleared successfully!",
+    await redisClient.del(keys);
+    return res.status(200).json({
+      message: "Cache cleared successfully",
     });
-  } catch (error: any) {
+  } catch (error) {
     return res.status(400).json({
-      success: false,
       message: error.message,
     });
   }

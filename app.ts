@@ -4,6 +4,7 @@ import { connectDatabase } from "./src/config/database";
 import { initializeFirebase } from "./src/config/firebase";
 import { configureExpress } from "./src/config/express";
 import { configureRoutes } from "./src/config/routes";
+import { initializeBullMQ } from "./src/config/bullmq";
 
 const port = process.env.PORT_LOCAL || 8080;
 
@@ -23,6 +24,9 @@ const startServer = async () => {
 
     // Initialize Firebase
     initializeFirebase();
+
+    // Initialize BullMQ
+    await initializeBullMQ();
 
     // Start server
     app.listen(port, () => {
