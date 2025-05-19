@@ -191,8 +191,6 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
-          width: 250,
-          height: 300,
           crop: "fill",
           format: "webp",
         },
