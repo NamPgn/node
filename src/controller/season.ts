@@ -148,10 +148,8 @@ export const createSeason = async (req: Request, res: Response) => {
     const season = new Series({
       name,
       description,
-      partNumber,
       categories,
       releaseYear,
-      totalEpisodes,
       isActive: true,
       slug,
     });
@@ -168,6 +166,7 @@ export const createSeason = async (req: Request, res: Response) => {
 
     res.status(201).json(savedSeason);
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: "Error creating season", error });
   }
 };

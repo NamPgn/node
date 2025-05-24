@@ -20,6 +20,7 @@ export const ALLOWED_ORIGINS = [
 	'https://testmoviee.netlify.app',
 	'https://feature-ui--testmoviee.netlify.app',
 	'https://hh3dtq.site',
+	'https://donghua-stream-delta.vercel.app'
 ]
 
 

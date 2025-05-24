@@ -191,8 +191,8 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
-          width: 250,
-          height: 300,
+          width: 300,
+          height: 450,
           crop: "fill",
           format: "webp",
         },
@@ -280,7 +280,10 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
-          transformation: [{ format: "webp" }],
+          width: 300,
+          height: 450,
+          crop: "fill",
+          format: "webp",
         },
         async (error, result: any) => {
           if (error) {
@@ -301,13 +304,32 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.upcomingReleases = upcomingReleases;
           findById.releaseDate = releaseDate;
           findById.isMovie = isMovie;
-          (findById.anotherName = anotherName), findById.save();
-          await WeekCategory.findByIdAndUpdate(findById.week, {
-            $set: { category: findById._id },
-          });
+          findById.anotherName = anotherName;
+          findById.season = season;
+          findById.lang = lang;
+          findById.quality = quality;
+          findById.slug = slug;
+
+          // Lưu category trước
+          await findById.save();
+
+          // Cập nhật week category
+          if (findById.week !== week) {
+            // Nếu week thay đổi, xóa category khỏi week cũ
+            if (findById.week) {
+              await WeekCategory.findByIdAndUpdate(findById.week, {
+                $pull: { category: findById._id }
+              });
+            }
+            // Thêm category vào week mới
+            await WeekCategory.findByIdAndUpdate(week, {
+              $addToSet: { category: findById._id }
+            });
+          }
+
           return res.status(200).json({
             success: true,
-            message: "Edited product successfully",
+            message: "Dữ liệu sản phẩm đã được cập nhật.",
           });
         }
       );
@@ -328,12 +350,26 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.slug = slug;
       findById.releaseDate = releaseDate;
       findById.isMovie = isMovie;
-      (findById.anotherName = anotherName),
-        (findById.upcomingReleases = upcomingReleases);
-      await WeekCategory.findByIdAndUpdate(findById.week, {
-        $addToSet: { category: findById._id },
-      });
+      findById.anotherName = anotherName;
+      findById.upcomingReleases = upcomingReleases;
+
+      // Lưu category trước
       await findById.save();
+
+      // Cập nhật week category
+      if (findById.week !== week) {
+        // Nếu week thay đổi, xóa category khỏi week cũ
+        if (findById.week) {
+          await WeekCategory.findByIdAndUpdate(findById.week, {
+            $pull: { category: findById._id }
+          });
+        }
+        // Thêm category vào week mới
+        await WeekCategory.findByIdAndUpdate(week, {
+          $addToSet: { category: findById._id }
+        });
+      }
+
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -421,7 +457,7 @@ export const push = async (req, res) => {
 
 export const filterCategoryTrending = async (req, res) => {
   try {
-    const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie rating hour quality time");
+    const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName type");
     return res.json({
       data: data,
       success: true,
@@ -446,12 +482,12 @@ export const getCategoryLatesupdate = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .select('_id name linkImg slug')
-      // .populate({
-      //   path: 'products',
-      //   model: 'Products',
-      //   select: 'seri slug',
-      //   options: { limit: 8, sort: { seri: -1 } },
-      // })
+    // .populate({
+    //   path: 'products',
+    //   model: 'Products',
+    //   select: 'seri slug',
+    //   options: { limit: 8, sort: { seri: -1 } },
+    // })
 
     return res.json({
       success: true,
@@ -499,7 +535,14 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
             slug: 1,
             sumSeri: 1,
             isMovie: 1,
-            products: 1
+            products: 1,
+            hour: 1,
+            lang: 1,
+            quality: 1,
+            year: 1,
+            time: 1,
+            type: 1,
+            anotherName: 1
           }
         }
       ]);
@@ -667,7 +710,7 @@ export const getCategorySitemap = async (req: any, res: Response) => {
 
       Category.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
-          redisDel(key); 
+          redisDel(key);
         }
       });
     }
