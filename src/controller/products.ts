@@ -877,34 +877,52 @@ const productWorker: any = new Worker(
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
-    await Call.find();
+    
     const redisGetdata = await getDataFromCache(id);
     if (redisGetdata) {
       return res.status(200).json(redisGetdata);
     }
+
     const job = await productsQueue.add(
       "getProduct",
       { id },
       {
         jobId: id,
-        removeOnComplete: {
-          age: 3600, // keep up to 1 hour
-          count: 1000, // keep up to 1000 jobs
-        },
-        removeOnFail: {
-          age: 24 * 3600, // keep up to 24 hours
-        },
+        removeOnComplete: { age: 3600, count: 1000 },
+        removeOnFail: { age: 24 * 3600 },
       }
     );
-    console.log("Đợi movie:", job.id);
-    const result = await new Promise((resolve, reject) => {
-      productWorker.on("completed", (job, result) => {
-        resolve(result);
-      });
 
-      productWorker.on("failed", (job, err) => {
-        reject(new Error(err.message));
-      });
+    const result = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error("Job timeout"));
+      }, 30000);
+
+      const completedHandler = (completedJob: any, result: any) => {
+        // Chỉ xử lý job hiện tại
+        if (completedJob.id === job.id) {
+          cleanup();
+          resolve(result);
+        }
+      };
+
+      const failedHandler = (failedJob: any, err: any) => {
+        // Chỉ xử lý job hiện tại
+        if (failedJob.id === job.id) {
+          cleanup();
+          reject(new Error(err.message));
+        }
+      };
+
+      const cleanup = () => {
+        clearTimeout(timeout);
+        productWorker.off("completed", completedHandler);
+        productWorker.off("failed", failedHandler);
+      };
+
+      productWorker.on("completed", completedHandler);
+      productWorker.on("failed", failedHandler);
     });
 
     return res.status(200).json(result);

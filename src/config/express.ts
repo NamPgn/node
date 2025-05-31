@@ -1,9 +1,7 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
-import http from "http";
 import { limiter } from "../middlewares";
 import { ALLOWED_ORIGINS } from "../constants/constant";
-import { createSocketServer } from "./socket-server";
 
 export const configureExpress = async (app: Express) => {
   // Trust proxy
