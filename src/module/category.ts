@@ -100,7 +100,13 @@ const categorySchema = new mongoose.Schema(
       type: String,
     },
     searchCount: { type: Number, default: 0 },
+    tags: [{
+      type: mongoose.Types.ObjectId,
+      ref: "Tags",
+      
+    }],
   },
+
   { timestamps: true }
 );
 categorySchema.indexes();

@@ -91,18 +91,24 @@ export const getCategoriesSitemap = async () => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id })
     .select(
-      "name linkImg sumSeri type year time lang quality slug country des up isMovie hour anotherName relatedSeasons"
+      "name linkImg sumSeri type year time lang quality slug country des up isMovie hour anotherName relatedSeasons "
     )
     .populate({
       path: "products",
       model: "Products",
-      select: "seri isApproved category slug",
+      select: "seri isApproved category slug ",
     })
     .populate({
       path: "week",
       model: "Week",
       select: "name",
+    })
+    .populate({
+      path: "tags",
+      model: "Tags",
+      select: "name slug -_id",
     });
+    
 
   category?.products?.sort(
     (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)

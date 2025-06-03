@@ -9,13 +9,16 @@ import {
   getSeriesCategories,
   removeCategoriesFromSeries,
   getSeriesByCategories,
-  getAllSeasonsHeader
+  getAllSeasonsHeader,
+  getAllSeasonsByActive
 } from '../controller/season';
 
 const router = express.Router();
 
 // Get all series
 router.get('/series', getAllSeasons);
+
+router.get('/series/active', getAllSeasonsByActive);
   
 router.get('/series/header', getAllSeasonsHeader);
 

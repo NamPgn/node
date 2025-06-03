@@ -14,6 +14,7 @@ import routerBanner from "../routes/banner";
 import routerSeason from "../routes/season";
 import routerReport from "../routes/report";
 import routerSlider from "../routes/slider";
+import routerTags from "../routes/tags";
 const routes = [
   routerAuth,
   routerProducts,
@@ -29,7 +30,8 @@ const routes = [
   routerBanner,
   routerSeason,
   routerReport,
-  routerSlider
+  routerSlider,
+  routerTags
 ];
 
 export const configureRoutes = (app: Express) => {

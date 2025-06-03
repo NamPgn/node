@@ -18,6 +18,27 @@ export const getAllSeasons = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllSeasonsByActive = async (req: Request, res: Response) => {
+  try {
+    const seasons = await Series.find({ isActive: true })
+      .populate("categories", "name -_id up linkImg anotherName")
+      .select("name slug -_id categories");
+
+    const categoryTopRate: any = await Category
+      .find()
+      .sort({ up: -1 })
+      .limit(3)
+      .select("name anotherName up -_id year linkImg slug");
+
+    res.status(200).json({
+      seasons,
+      categoryTopRate,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching seasons", error });
+  }
+};
+
 export const getAllSeasonsHeader = async (req: Request, res: Response) => {
   try {
     const seasons = await Series.find()
@@ -166,7 +187,7 @@ export const createSeason = async (req: Request, res: Response) => {
 
     res.status(201).json(savedSeason);
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).json({ message: "Error creating season", error });
   }
 };
