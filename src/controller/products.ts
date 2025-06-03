@@ -837,10 +837,11 @@ const productWorker: any = new Worker(
     const { id } = job.data;
 
     // Lấy dữ liệu từ MongoDB
-    const dataID: any = await Products.findOne({ slug: id })
+    const dataID: any = await Products.findOne({ slug: id }).select('-LinkCopyright -trailer -rating  -comments -updatedAt -__v -createdAt -select')
       .populate("comments.user", "username image")
       .populate({
         path: "category",
+        select: "-updatedAt -__v -createdAt -comment  -searchCount",
         populate: {
           path: "products",
           model: "Products",
@@ -877,7 +878,7 @@ const productWorker: any = new Worker(
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id.toString();
-    
+
     const redisGetdata = await getDataFromCache(id);
     if (redisGetdata) {
       return res.status(200).json(redisGetdata);
@@ -885,7 +886,7 @@ export const getOne = async (req: Request, res: Response) => {
     const job = await productsQueue.add(
       "getProduct",
       { id },
-      
+
       {
         jobId: id,
         removeOnComplete: {

@@ -103,7 +103,6 @@ const categorySchema = new mongoose.Schema(
     tags: [{
       type: mongoose.Types.ObjectId,
       ref: "Tags",
-      
     }],
   },
 

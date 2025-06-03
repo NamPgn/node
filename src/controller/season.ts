@@ -361,6 +361,7 @@ export const getSeriesCategories = async (req: Request, res: Response) => {
             lang: 1,
             quality: 1,
             products: 1,
+            isMovie:1
           },
         },
       ]);

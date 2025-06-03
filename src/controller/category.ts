@@ -16,6 +16,7 @@ import { slugify } from "../utills/slugify";
 import { resizeImagesUrl, resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 import redisClient from "../config/redis.config";
+import Tags from "../module/tags.module";
 // import { RealtimeService } from "../services/realtime.service"; 
 
 const myQueue = new Queue("categoryQueue", {
@@ -420,16 +421,36 @@ export const getAllCategoryNotReq = async (req: Request, res: Response) => {
 
 export const searchCategory = async (req: Request, res: Response) => {
   try {
-    var searchValue: any = req.query.value;
-    if (searchValue == "") {
+    const searchValue: any = req.query.value;
+    const categories: any = req.query.categories;
+
+    if (!searchValue) {
       return res.status(200).json([]);
     }
-    var regex = new RegExp(searchValue, "i");
-    const data = await Category.find({
-      $or: [{ name: regex }],
-      $inc: { searchCount: 1 },
-    })
-      .select("name linkImg lang quality type slug searchCount")
+
+    const regex = new RegExp(searchValue, "i");
+
+    let query: any = {
+      name: regex,
+      isActive: 1,
+    };
+
+    // Nếu có truyền categories (dạng slug hoặc tên tag)
+    if (categories) {
+      const categorySlugs = categories.split(',');
+
+      // Tìm các tag tương ứng trong collection Tags
+      const tags = await Tags.find({ slug: { $in: categorySlugs } }).select("_id");
+
+      // Lấy danh sách ObjectId
+      const tagIds = tags.map(tag => tag._id);
+
+      // Truy vấn category theo các ObjectId này
+      query.tags = { $in: tagIds };
+    }
+
+    const data = await Category.find(query)
+      .select("name linkImg lang quality type slug")
       .sort({ up: -1 });
     return res.status(200).json(data);
   } catch (error) {
