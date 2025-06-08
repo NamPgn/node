@@ -422,7 +422,6 @@ export const getAllCategoryNotReq = async (req: Request, res: Response) => {
 export const searchCategory = async (req: Request, res: Response) => {
   try {
     const searchValue: any = req.query.value;
-    const categories: any = req.query.categories;
 
     if (!searchValue) {
       return res.status(200).json([]);
@@ -432,25 +431,24 @@ export const searchCategory = async (req: Request, res: Response) => {
 
     let query: any = {
       name: regex,
-      isActive: 1,
     };
 
-    // Nếu có truyền categories (dạng slug hoặc tên tag)
-    if (categories) {
-      const categorySlugs = categories.split(',');
+    // // Nếu có truyền categories (dạng slug hoặc tên tag)
+    // if (categories) {
+    //   const categorySlugs = categories.split(',');
 
-      // Tìm các tag tương ứng trong collection Tags
-      const tags = await Tags.find({ slug: { $in: categorySlugs } }).select("_id");
+    //   // Tìm các tag tương ứng trong collection Tags
+    //   const tags = await Tags.find({ slug: { $in: categorySlugs } }).select("_id");
 
-      // Lấy danh sách ObjectId
-      const tagIds = tags.map(tag => tag._id);
+    //   // Lấy danh sách ObjectId
+    //   const tagIds = tags.map(tag => tag._id);
 
-      // Truy vấn category theo các ObjectId này
-      query.tags = { $in: tagIds };
-    }
+    //   // Truy vấn category theo các ObjectId này
+    //   query.tags = { $in: tagIds };
+    // }
 
     const data = await Category.find(query)
-      .select("name linkImg lang quality type slug")
+      .select("name linkImg lang quality type slug year time anotherName")
       .sort({ up: -1 });
     return res.status(200).json(data);
   } catch (error) {
