@@ -39,6 +39,10 @@ export const ROUTES = {
     UPDATE: '/category/:id/:userId',
     DELETE: '/category/:id/:userId',
     WEEK: '/category/week/:id/:userId',
+    BACKUP: '/category/backup',
+    RECYCLE_BIN: '/c/recycle',
+    RESTORE: '/category/restore/:id/:userId',
+    PERMANENT_DELETE: '/category/permanent-delete/:id/:userId',
     RATING: {
       ADD: '/rating/:categoryId',
       GET: '/rate/:categoryId',

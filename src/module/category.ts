@@ -104,6 +104,10 @@ const categorySchema = new mongoose.Schema(
       type: mongoose.Types.ObjectId,
       ref: "Tags",
     }],
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
   },
 
   { timestamps: true }

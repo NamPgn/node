@@ -17,6 +17,11 @@ import { resizeImagesUrl, resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 import redisClient from "../config/redis.config";
 import Tags from "../module/tags.module";
+import { Types } from "mongoose";
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+import RecycleBin from "../module/recycle.bin";
 // import { RealtimeService } from "../services/realtime.service"; 
 
 const myQueue = new Queue("categoryQueue", {
@@ -31,6 +36,10 @@ const myQueue = new Queue("categoryQueue", {
 interface MulterRequest extends Request {
   file: any;
 }
+
+const writeFileAsync = promisify(fs.writeFile);
+const mkdirAsync = promisify(fs.mkdir);
+
 export const getAll = async (req: any, res: Response) => {
   try {
     const limit = 24;
@@ -386,14 +395,30 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
 export const deleteCategoryController = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const data = await deleteCategory(id);
-    await WeekCategory.findByIdAndUpdate(data.week, {
-      $pull: { category: data._id },
+    const userId = req.params.userId;
+
+    // Find the category
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
+      });
+    }
+
+    // Move to recycle bin
+    await RecycleBin.create({
+      category: category._id,
+      deletedBy: userId,
     });
-    cloudinary.uploader.destroy(data.linkImg);
+
+    // Soft delete the category
+    category.isDeleted = true;
+    await category.save();
+
     return res.json({
-      data: data,
       success: true,
+      message: "Category moved to recycle bin"
     });
   } catch (error) {
     return res.status(400).json({
@@ -744,4 +769,136 @@ export const getCategorySitemap = async (req: any, res: Response) => {
   }
 };
 
+export const backupCategories = async (req: Request, res: Response) => {
+  try {
+    // Create backup directory if it doesn't exist
+    const backupDir = path.join(__dirname, '../../backups');
+    await mkdirAsync(backupDir, { recursive: true });
 
+    // Get all categories
+    const categories = await Category.find({});
+    
+    // Create backup data with metadata
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      totalCategories: categories.length,
+      data: categories
+    };
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `category-backup-${timestamp}.json`;
+    const filepath = path.join(backupDir, filename);
+
+    // Write backup to file
+    await writeFileAsync(filepath, JSON.stringify(backupData, null, 2));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Backup created successfully',
+      backupFile: filename,
+      totalCategories: categories.length,
+      timestamp: backupData.timestamp
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const getRecycleBin = async (req: Request, res: Response) => {
+  try {
+    const recycleBinItems = await RecycleBin.find({ isRestored: false })
+      .populate({
+        path: 'category',
+        select: 'name linkImg slug sumSeri isMovie hour quality time anotherName type'
+      })
+      .populate('deletedBy', 'name email')
+      .sort({ deletedAt: -1 });
+
+    return res.json({
+      success: true,
+      data: recycleBinItems
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const restoreCategory = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the recycle bin item
+    const recycleBinItem = await RecycleBin.findById(id);
+    if (!recycleBinItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Item not found in recycle bin"
+      });
+    }
+
+    // Restore the category
+    await Category.findByIdAndUpdate(recycleBinItem.category, {
+      isDeleted: false
+    });
+
+    // Mark as restored in recycle bin
+    recycleBinItem.isRestored = true;
+    await recycleBinItem.save();
+
+    return res.json({
+      success: true,
+      message: "Category restored successfully"
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const permanentlyDeleteCategory = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the recycle bin item
+    const recycleBinItem = await RecycleBin.findById(id);
+    if (!recycleBinItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Item not found in recycle bin"
+      });
+    }
+
+    // Get the category data before deleting
+    const category = await Category.findById(recycleBinItem.category);
+    
+    // Delete from recycle bin
+    await RecycleBin.findByIdAndDelete(id);
+    
+    // Permanently delete the category
+    await Category.findByIdAndDelete(recycleBinItem.category);
+    
+    // Delete associated image from cloudinary if exists
+    if (category?.linkImg) {
+      await cloudinary.uploader.destroy(category.linkImg);
+    }
+
+    return res.json({
+      success: true,
+      message: "Category permanently deleted"
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

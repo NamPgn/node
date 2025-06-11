@@ -19,6 +19,10 @@ import {
   readProductByCategory,
   searchCategory,
   updateCate,
+  backupCategories,
+  getRecycleBin,
+  restoreCategory,
+  permanentlyDeleteCategory,
 } from "../controller/category";
 import {
   checkToken,
@@ -102,6 +106,47 @@ router.get(ROUTES.CATEGORY.RATING.STATS, ratingCategorysStatsAll);
 
 // Release routes
 router.get(ROUTES.CATEGORY.RELEASES, getUpcomingReleases);
+
+// Backup route
+router.post(
+  ROUTES.CATEGORY.BACKUP,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin
+  ],
+  backupCategories
+);
+
+// Recycle bin routes
+router.get(
+  ROUTES.CATEGORY.RECYCLE_BIN,
+  getRecycleBin
+);
+
+router.post(
+  ROUTES.CATEGORY.RESTORE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin
+  ],
+  restoreCategory
+);
+
+router.delete(
+  ROUTES.CATEGORY.PERMANENT_DELETE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    isSuperAdmin
+  ],
+  permanentlyDeleteCategory
+);
 
 // Param middleware
 router.param("userId", getAuth);
