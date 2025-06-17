@@ -2,13 +2,13 @@ import Products from "../module/products";
 
 export const getAll = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
-  return await Products.find().select('name slug category seri uploadDate view dailyMotionServer ')
+  return await Products.find().select('name slug category seri uploadDate dailyMotionServer ')
     .skip(skip)
     .limit(limit)
     .sort({
       _id: -1,
     })
-    .populate("category", "lang quality season country year name")
+    .populate("category", "lang quality name")
     .exec();
 };
 

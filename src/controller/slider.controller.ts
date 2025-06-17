@@ -3,6 +3,13 @@ import cloudinary from '../config/cloudinary';
 import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import Slider from '../module/course.module';
+import { getDataFromCache, cacheData, redisDel } from '../redis';
+
+// Cache key constants
+const CACHE_KEYS = {
+  ALL_SLIDERS: 'sliders:all',
+  SLIDER_BY_ID: (id: string) => `slider:${id}`,
+};
 
 // Extend Express Request type to include file
 interface MulterRequest extends Request {
@@ -42,7 +49,6 @@ export const createSlider = async (req: MulterRequest, res: Response) => {
     }
 
     try {
-
       const { name, anotherName, descriptions, type, quality, lang, isMovie, link } = req.body;
       
       if (!req.file) {
@@ -67,6 +73,10 @@ export const createSlider = async (req: MulterRequest, res: Response) => {
       });
 
       const savedSlider = await slider.save();
+      
+      // Invalidate all sliders cache
+      await redisDel(CACHE_KEYS.ALL_SLIDERS);
+      
       return res.status(201).json({ 
         success: true, 
         data: savedSlider 
@@ -84,7 +94,17 @@ export const createSlider = async (req: MulterRequest, res: Response) => {
 // Get all sliders
 export const getAllSliders = async (req: Request, res: Response) => {
   try {
+    // Try to get from cache first
+    const cachedSliders = await getDataFromCache(CACHE_KEYS.ALL_SLIDERS);
+    if (cachedSliders) {
+      return res.status(200).json({ success: true, data: cachedSliders });
+    }
+
     const sliders = await Slider.find().sort({ createdAt: -1 });
+    
+    // Cache the result
+    await cacheData(CACHE_KEYS.ALL_SLIDERS, sliders, 'EX', 3600); // Cache for 1 hour
+    
     res.status(200).json({ success: true, data: sliders });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -94,10 +114,22 @@ export const getAllSliders = async (req: Request, res: Response) => {
 // Get single slider
 export const getSliderById = async (req: Request, res: Response) => {
   try {
+    const cacheKey = CACHE_KEYS.SLIDER_BY_ID(req.params.id);
+    
+    // Try to get from cache first
+    const cachedSlider = await getDataFromCache(cacheKey);
+    if (cachedSlider) {
+      return res.status(200).json({ success: true, data: cachedSlider });
+    }
+
     const slider = await Slider.findById(req.params.id);
     if (!slider) {
       return res.status(404).json({ success: false, message: 'Slider not found' });
     }
+
+    // Cache the result
+    await cacheData(cacheKey, slider, 'EX', 3600); // Cache for 1 hour
+    
     res.status(200).json({ success: true, data: slider });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -154,6 +186,12 @@ export const updateSlider = async (req: MulterRequest, res: Response) => {
         return res.status(404).json({ success: false, message: 'Slider not found' });
       }
 
+      // Invalidate caches
+      await Promise.all([
+        redisDel(CACHE_KEYS.ALL_SLIDERS),
+        redisDel(CACHE_KEYS.SLIDER_BY_ID(req.params.id))
+      ]);
+
       return res.status(200).json({ success: true, data: slider });
     } catch (error: any) {
       return res.status(500).json({ 
@@ -182,6 +220,13 @@ export const deleteSlider = async (req: Request, res: Response) => {
     }
 
     await slider.deleteOne();
+
+    // Invalidate caches
+    await Promise.all([
+      redisDel(CACHE_KEYS.ALL_SLIDERS),
+      redisDel(CACHE_KEYS.SLIDER_BY_ID(req.params.id))
+    ]);
+
     res.status(200).json({ success: true, message: 'Slider deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
