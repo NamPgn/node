@@ -201,8 +201,6 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
-          width: 300,
-          height: 450,
           crop: "fill",
           format: "webp",
         },
@@ -290,8 +288,6 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           folder: folderName,
           public_id: req.file.originalname,
           overwrite: true,
-          width: 300,
-          height: 450,
           crop: "fill",
           format: "webp",
         },
@@ -502,6 +498,7 @@ export const push = async (req, res) => {
 export const filterCategoryTrending = async (req, res) => {
   try {
     const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName type");
+    
     return res.json({
       data: data,
       success: true,
@@ -592,7 +589,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       ]);
 
       // Gọi resizeImagesUrl để thay đổi ảnh
-      const updatedData = resizeImagesUrl(data, "linkImg", 300, 400);
+      const updatedData = data;
 
       // Cập nhật lại dữ liệu đã thay đổi ảnh
       await cacheData(KEY, updatedData);
