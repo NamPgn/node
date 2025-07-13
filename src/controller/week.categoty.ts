@@ -1,5 +1,6 @@
 import weekCategory from "../module/week.category";
 import WeekCategory from "../module/week.category";
+import { resizeImagesUrl } from "../utills/resizeImage";
 
 export const all = async (req, res) => {
   try {
@@ -28,11 +29,6 @@ export const all = async (req, res) => {
             {
               $project: {
                 name: 1,
-                linkImg: 1,
-                sumSeri: 1,
-                time: 1,
-                year: 1,
-                type: 1,
                 products: 1,
               }
             }
@@ -120,15 +116,17 @@ export const one = async (req, res) => {
       },
       { $sort: { name: 1 } }
     ]);
-    
+
     let categorys: any = {
       name: "",
       content: [],
     };
+
     data.map((items) => {
       categorys.name = items.name;
-      categorys.content = items.category;
+      categorys.content = resizeImagesUrl(items.category, "linkImg", 100, 100);
     });
+
     return res.json(categorys);
   } catch (error) {
     return res.status(404).json({
