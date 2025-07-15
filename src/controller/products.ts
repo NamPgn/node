@@ -5,7 +5,7 @@ import Categorymain from "../module/categorymain";
 import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
-import { cacheData, getDataFromCache, redisDel } from "../redis";
+import { cacheData, cacheDataWithVersion, getDataFromCache, getDataWithVersion, incrementCategoryVersion, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
@@ -19,7 +19,7 @@ import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache"
 import redisClient from "../config/redis.config";
 // import { RealtimeService } from "../services/realtime.service";
 
-const productsQueue: any = new Queue("productQueue", {
+export const productsQueue: any = new Queue("productQueue", {
   connection: redisClient,
   streams: {
     events: {
@@ -160,6 +160,7 @@ export const addProduct = async (req, res) => {
               { latestProductUploadDate: new Date() },
               { new: true }
             );
+
             await Category.findOneAndUpdate(
               { _id: data.category }, // Điều kiện tìm kiếm
               {
@@ -167,6 +168,7 @@ export const addProduct = async (req, res) => {
               }
             );
 
+            await incrementCategoryVersion(data.category);
           }
 
           if (data.categorymain) {
@@ -272,6 +274,8 @@ export const addProduct = async (req, res) => {
         await Category.findByIdAndUpdate(data.category, {
           $addToSet: { products: data.products },
         });
+
+        await incrementCategoryVersion(data.category);
       }
 
       if (data.categorymain) {
@@ -369,6 +373,8 @@ export const delProduct = async (req, res, next) => {
           await invalidateSeasonCacheByProduct(relatedSeasons.slug);
         }
       }
+
+      await incrementCategoryVersion(category_id._id);
     }
 
     cloudinary.uploader.destroy(deletedProduct.image);
@@ -492,7 +498,7 @@ export const editProduct = async (req, res, next) => {
           $push: { products: findById._id },
         });
 
-        const category_id = await Category.findOne({
+        const category_id: any = await Category.findOne({
           _id: findById.category,
         });
 
@@ -505,6 +511,8 @@ export const editProduct = async (req, res, next) => {
             await invalidateSeasonCacheByProduct(relatedSeasons.slug);
           }
         }
+
+        await incrementCategoryVersion(category_id._id);
       }
 
       if (findById.categorymain) {
@@ -831,17 +839,19 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
   }
 };
 
+
+
+// Cập nhật productWorker với cache versioning
 const productWorker: any = new Worker(
   "productQueue",
   async (job) => {
     const { id } = job.data;
 
-    // Lấy dữ liệu từ MongoDB
-    const dataID: any = await Products.findOne({ slug: id }).select('-LinkCopyright -trailer -rating  -comments -updatedAt -__v -createdAt -select')
+    const dataID: any = await Products.findOne({ slug: id }).select('-LinkCopyright -trailer -rating -comments -updatedAt -__v -createdAt -select')
       .populate("comments.user", "username image")
       .populate({
         path: "category",
-        select: "-updatedAt -__v -createdAt -comment  -searchCount",
+        select: "-updatedAt -__v -createdAt -comment -searchCount",
         populate: {
           path: "products",
           model: "Products",
@@ -856,10 +866,12 @@ const productWorker: any = new Worker(
     dataID.category?.products.sort(
       (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
     );
+
     dataID.view += 1;
     await dataID.save();
 
-    await cacheData(id, dataID, "EX", 3600, "NX");
+    // Sử dụng cache với version
+    await cacheDataWithVersion(id, dataID, 3600, dataID.category._id);
 
     return dataID;
   },
@@ -873,65 +885,41 @@ const productWorker: any = new Worker(
 );
 
 
-
-
 export const getOne = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id.toString();
-
-    const redisGetdata = await getDataFromCache(id);
-    if (redisGetdata) {
-      return res.status(200).json(redisGetdata);
-    }
-    const job = await productsQueue.add(
-      "getProduct",
-      { id },
-
-      {
-        jobId: id,
-        removeOnComplete: {
-          age: 3600, // keep up to 1 hour
-          count: 1000, // keep up to 1000 jobs
-        },
-        removeOnFail: {
-          age: 24 * 3600, // keep up to 24 hours
-        },
+    const slug = req.params.id.toString(); // Đây là slug
+    
+    // Lấy categoryId từ slug
+    const productInfo:any = await Products.findOne({ slug }).select('category');
+    
+    if (productInfo && productInfo.category) {
+      // Dùng categoryId để check cache với version
+      const redisGetdata = await getDataWithVersion(slug,productInfo.category);
+      if (redisGetdata) {
+        console.log(`Cache hit for slug: ${slug} with category: ${productInfo.category}`);
+        return res.status(200).json(redisGetdata);
       }
-    );
+    }
+    
+    // Nếu không có cache, chạy job
+    const job = await productsQueue.add("getProduct", { id: slug }, {
+      jobId: slug,
+      removeOnComplete: { age: 3600, count: 1000 },
+      removeOnFail: { age: 24 * 3600 },
+    });
+    
     console.log("Đợi movie:", job.id);
+    
     const result = await new Promise((resolve, reject) => {
       productWorker.on("completed", (job, result) => {
-        resolve(result)
+        resolve(result);
       });
-
-      // const completedHandler = (completedJob: any, result: any) => {
-      //   // Chỉ xử lý job hiện tại
-      //   if (completedJob.id === job.id) {
-      //     cleanup();
-      //     resolve(result);
-      //   }
-      // };
-
-      // const failedHandler = (failedJob: any, err: any) => {
-      //   // Chỉ xử lý job hiện tại
-      //   if (failedJob.id === job.id) {
-      //     cleanup();
-      //     reject(new Error(err.message));
-      //   }
-      // };
-
-      // const cleanup = () => {
-      //   clearTimeout(timeout);
-      //   productWorker.off("completed", completedHandler);
-      //   productWorker.off("failed", failedHandler);
-      // };
+      
       productWorker.on("failed", (job, err) => {
         reject(new Error(err.message));
       });
-      // productWorker.on("completed", completedHandler);
-      // productWorker.on("failed", failedHandler);
     });
-
+    
     return res.status(200).json(result);
   } catch (error) {
     return res.status(400).json({
