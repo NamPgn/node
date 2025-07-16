@@ -1,75 +1,45 @@
 import Category from "../module/category";
 import { resizeImagesUrl } from "../utills/resizeImage";
 
-export const getAllCategory = async (page: number, limit: number) => {
-  // Nếu page = 0, lấy tất cả category không phân trang
-  if (page === 0) {
-    const categories = await Category.aggregate([
-      { $sort: { up: -1 } },
-      {
-        $lookup: {
-          from: "products",
-          localField: "products",
-          foreignField: "_id",
-          as: "products",
-          pipeline: [
-            { $sort: { createdAt: -1 } },
-            { $limit: 1 },
-            { $project: { seri: 1 } },
-          ],
-        },
-      },
-      {
-        $project: {
-          name: 1,
-          linkImg: 1,
-          seri: 1,
-          time: 1,
-          year: 1,
-          week: 1,
-          slug: 1,
-          isActive: 1,
-          products: 1,
-        },
-      },
-    ]);
-    return resizeImagesUrl(categories, "linkImg", 300, 400);
+export const getAllCategory = async (page: number, limit: number, search?: string) => {
+  let query = {};
+  
+  if (search) {
+    query = {
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { slug: { $regex: search, $options: "i" } },
+        { des: { $regex: search, $options: "i" } }
+      ]
+    };
   }
 
-  // Nếu page > 0, lấy theo phân trang
-  const skip = (page - 1) * limit;
-  const categories = await Category.aggregate([
-    { $sort: { up: -1 } },
-    { $skip: skip },
-    { $limit: limit },
-    {
-      $lookup: {
-        from: "products",
-        localField: "products",
-        foreignField: "_id",
-        as: "products",
-        pipeline: [
-          { $sort: { createdAt: -1 } },
-          { $limit: 1 },
-          { $project: { seri: 1 } },
-        ],
-      },
-    },
-    {
-      $project: {
-        name: 1,
-        linkImg: 1,
-        seri: 1,
-        time: 1,
-        year: 1,
-        week: 1,
-        slug: 1,
-        isActive: 1,
-        products: 1,
-      },
-    },
-  ]);
-  return resizeImagesUrl(categories, "linkImg", 300, 400);
+  // Chỉ select những field cần thiết
+  const selectFields = {
+    _id: 1,
+    name: 1,
+    slug: 1,
+    linkImg: 1,
+    createdAt: 1,
+    time: 1,
+    isActive: 1,
+    year: 1,
+    up: 1,
+    week: 1
+  };
+
+  if (page === 0 && limit === 0) {
+    return await Category.find(query)
+      .select(selectFields)
+      .sort({ createdAt: -1 });
+  } else {
+    const skip = (page - 1) * limit;
+    return await Category.find(query)
+      .select(selectFields)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+  }
 };
 
 export const getCategoriesSitemap = async () => {

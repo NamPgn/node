@@ -57,6 +57,15 @@ export const redisDel = async (key) => {
   await redisClient.del(key);
 };
 
+export const clearRelatedCache = async (categoryId?: string, episode?: string) => {
+  const keys = await redisClient.keys('products_*');
+  
+  // Xóa tất cả cache products để đảm bảo consistency
+  // Hoặc có thể xóa selective dựa trên pattern
+  for (const key of keys) {
+    await redisClient.del(key);
+  }
+};
 
 export async function getDataFromServer(url) {
   const response = await fetch(url);
@@ -104,20 +113,6 @@ const invalidateAllCacheForCategory = async (categoryId: string) => {
   }
 };
 
-export const incrementCategoryVersion = async (categoryId: any) => {
-  const categoryIdStr = categoryId.toString();
-  const newVersion = await redisClient.incr(`category:${categoryIdStr}:version`);
-
-  // Xóa cache cũ
-  await invalidateAllCacheForCategory(categoryIdStr);
-
-  // ✅ XÓA JOBS trong Bull Queue
-  await clearBullQueueJobs(categoryId);
-
-  console.log(`Category ${categoryIdStr} version incremented to ${newVersion}`);
-  return newVersion;
-};
-
 const clearBullQueueJobs = async (categoryId: string) => {
   try {
     console.log('=== CLEARING BULL QUEUE JOBS ===');
@@ -126,10 +121,8 @@ const clearBullQueueJobs = async (categoryId: string) => {
     const products = await Products.find({ category: categoryId }).select('slug');
     const slugsToRemove = products.map(p => p.slug);
 
-    console.log(`Products to clear: ${slugsToRemove.join(', ')}`);
-
     // Lấy tất cả jobs hiện tại
-    const allStates = ['waiting', 'active', 'delayed', 'completed', 'failed'];
+    const allStates = ['waiting', 'completed', 'failed'];
 
     for (const state of allStates) {
       const jobs = await productsQueue.getJobs([state]);
@@ -156,6 +149,19 @@ const clearBullQueueJobs = async (categoryId: string) => {
   } catch (error) {
     console.error('Error clearing Bull Queue jobs:', error);
   }
+};
+
+export const incrementCategoryVersion = async (categoryId: any) => {
+  const categoryIdStr = categoryId.toString();
+  const newVersion = await redisClient.incr(`category:${categoryIdStr}:version`);
+
+  // Xóa cache cũ
+  await invalidateAllCacheForCategory(categoryIdStr);
+
+  await clearBullQueueJobs(categoryIdStr);
+
+  console.log(`Category ${categoryIdStr} version incremented to ${newVersion}`);
+  return newVersion;
 };
 
 

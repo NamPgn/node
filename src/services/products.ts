@@ -1,13 +1,38 @@
 import Products from "../module/products";
 
-export const getAll = async (page: number, limit: number) => {
+export const getProductCount = async (categoryId?: string, seri?: string) => {
+  let query: any = {};
+  
+  if (categoryId) {
+    query.category = categoryId;
+  }
+  
+  if (seri) {
+    query.seri = { $regex: seri, $options: 'i' };
+  }
+  
+  return await Products.countDocuments(query);
+};
+
+export const getAll = async (page: number, limit: number, categoryId?: string, seri?: string) => {
   const skip = (page - 1) * limit;
-  return await Products.find().select('name slug category seri uploadDate dailyMotionServer ')
+
+  // Xây dựng query filter
+  let query: any = {};
+
+  if (categoryId) {
+    query.category = categoryId;
+  }
+
+  if (seri) {
+    query.seri = { $regex: seri, $options: 'i' }; // Tìm kiếm seri không phân biệt hoa thường
+  }
+
+  return await Products.find(query)
+    .select('name slug category seri uploadDate dailyMotionServer ')
     .skip(skip)
     .limit(limit)
-    .sort({
-      _id: -1,
-    })
+    .sort({ _id: -1 })
     .populate("category", "lang quality name")
     .exec();
 };

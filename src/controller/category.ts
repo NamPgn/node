@@ -2,7 +2,6 @@ import {
   addCategory,
   getAllCategory,
   getCategory,
-  deleteCategory,
   getCategoriesSitemap,
 } from "../services/category";
 import Products from "../module/products";
@@ -13,11 +12,9 @@ import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
-import { resizeImagesUrl, resizeImageUrl } from "../utills/resizeImage";
+import { resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 import redisClient from "../config/redis.config";
-import Tags from "../module/tags.module";
-import { Types } from "mongoose";
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
@@ -43,53 +40,77 @@ const mkdirAsync = promisify(fs.mkdir);
 export const getAll = async (req: any, res: Response) => {
   try {
     const limit = 24;
-    const page = parseInt(req.query.page) || 0; // Mặc định page là 0
+    const page = parseInt(req.query.page) || 0;
+    const search = req.query.search || "";
+    
     await Category.createIndexes();
 
     let key: string;
     let category: any;
     let totalCount: number;
 
-    if (page === 0) {
-      key = `categorys_all`;
-    } else {
-      key = `categorys_page_${page}`;
-    }
-    const redisData = await getDataFromCache(key);
-    if (redisData) {
-      ({ category, totalCount } = redisData);
-    } else {
+    // Tạo cache key khác nhau cho search và không search
+    if (search) {
+      // Nếu có search thì không cache hoặc cache ngắn hạn
       if (page === 0) {
-        category = await getAllCategory(0, 0);
+        category = await getAllCategory(0, 0, search);
         totalCount = category.length;
       } else {
-        category = await getAllCategory(page, limit);
-        totalCount = await Category.countDocuments();
+        category = await getAllCategory(page, limit, search);
+        totalCount = await Category.countDocuments({
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { slug: { $regex: search, $options: "i" } },
+            { des: { $regex: search, $options: "i" } }
+          ]
+        });
       }
-      cacheData(key, { category, totalCount }, "EX", 3600);
-      Category.watch().on("change", async (change) => {
-        if (["insert", "delete", "update"].includes(change.operationType)) {
-          redisDel(key);
-          if (page === 0) {
-            const updatedCategory = await getAllCategory(0, 0);
-            totalCount = updatedCategory.length;
-          } else {
-            const updatedCategory = await getAllCategory(page, limit);
-            totalCount = await Category.countDocuments();
-            cacheData(
-              key,
-              { category: updatedCategory, totalCount },
-              "EX",
-              3600
-            );
-          }
+    } else {
+      // Logic cache cũ cho trường hợp không search
+      if (page === 0) {
+        key = `categorys_all`;
+      } else {
+        key = `categorys_page_${page}`;
+      }
+      
+      const redisData = await getDataFromCache(key);
+      if (redisData) {
+        ({ category, totalCount } = redisData);
+      } else {
+        if (page === 0) {
+          category = await getAllCategory(0, 0);
+          totalCount = category.length;
+        } else {
+          category = await getAllCategory(page, limit);
+          totalCount = await Category.countDocuments();
         }
-      });
+        
+        cacheData(key, { category, totalCount }, "EX", 3600);
+        
+        Category.watch().on("change", async (change) => {
+          if (["insert", "delete", "update"].includes(change.operationType)) {
+            redisDel(key);
+            if (page === 0) {
+              const updatedCategory = await getAllCategory(0, 0);
+              totalCount = updatedCategory.length;
+            } else {
+              const updatedCategory = await getAllCategory(page, limit);
+              totalCount = await Category.countDocuments();
+              cacheData(
+                key,
+                { category: updatedCategory, totalCount },
+                "EX",
+                3600
+              );
+            }
+          }
+        });
+      }
     }
+
     return res.status(200).json({
       data: category,
       totalCount,
-      // currentPage: page,
       totalPages: page === 0 ? 1 : Math.ceil(totalCount / limit),
     });
   } catch (error) {

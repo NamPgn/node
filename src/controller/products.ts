@@ -1,11 +1,11 @@
-import { getAll, addProduct_, deleteProduct } from "../services/products";
+import { getAll, addProduct_, deleteProduct, getProductCount } from "../services/products";
 import Products from "../module/products";
 import Category from "../module/category";
 import Categorymain from "../module/categorymain";
 import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
-import { cacheData, cacheDataWithVersion, getDataFromCache, getDataWithVersion, incrementCategoryVersion, redisDel } from "../redis";
+import { cacheData, cacheDataWithVersion, clearRelatedCache, getDataFromCache, getDataWithVersion, incrementCategoryVersion, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
@@ -30,41 +30,46 @@ export const productsQueue: any = new Queue("productQueue", {
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const limit = 20;
-    const page = parseInt(req.query.page as string) || 1; // Mặc định trang là 1
+    const page = parseInt(req.query.page as string) || 1;
+    const categoryId = req.query.categoryId as string;
+    const seri = req.query.seri as string; // Đổi từ episode thành seri
+    
+    // Tạo key cache dựa trên các tham số filter
     let key: string;
-    const redisData: any = await getDataFromCache(key);
-
     if (page === 0) {
-      key = `products_all`;
+      key = `products_all_${categoryId || 'no-cat'}_${seri || 'no-seri'}`;
     } else {
-      key = `products_page_${page}`;
+      key = `products_page_${page}_${categoryId || 'no-cat'}_${seri || 'no-seri'}`;
     }
 
+    const redisData: any = await getDataFromCache(key);
     let products: any;
     let totalCount: number;
+    
     if (redisData) {
       ({ products, totalCount } = redisData);
     } else {
       if (page === 0) {
-        products = await getAll(0, 0); // Lấy toàn bộ sản phẩm
+        products = await getAll(0, 0, categoryId, seri);
         totalCount = products.length;
       } else {
-        products = await getAll(page, limit); // Lấy sản phẩm theo trang
-        totalCount = await Products.countDocuments();
+        products = await getAll(page, limit, categoryId, seri);
+        totalCount = await getProductCount(categoryId, seri);
       }
 
       cacheData(key, { products, totalCount }, "EX", 3600);
 
       Products.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
-          redisDel(key);
+          await clearRelatedCache(categoryId, seri);
+          
           let updatedProducts;
           if (page === 0) {
-            updatedProducts = await getAll(0, 0);
+            updatedProducts = await getAll(0, 0, categoryId, seri);
             totalCount = updatedProducts.length;
           } else {
-            updatedProducts = await getAll(page, limit);
-            totalCount = await Products.countDocuments();
+            updatedProducts = await getAll(page, limit, categoryId, seri);
+            totalCount = await getProductCount(categoryId, seri);
           }
           cacheData(key, { products: updatedProducts, totalCount }, "EX", 3600);
         }
@@ -1116,8 +1121,11 @@ export const autoAddProduct = async (req, res) => {
       })
     );
     const newMovie = await Products.insertMany(newData);
+
+    const categoryIds = new Set();
     await Promise.all(
       newMovie.map(async (movie) => {
+        categoryIds.add(movie.category);
         await Category.findOneAndUpdate(
           { _id: movie._id },
           {
@@ -1131,6 +1139,14 @@ export const autoAddProduct = async (req, res) => {
         );
       })
     );
+
+    await Promise.all(
+      Array.from(categoryIds).map(async (categoryId) => {
+        await incrementCategoryVersion(categoryId);
+        console.log(`✅ Đã increment version cho auto add product: ${categoryId}`);
+      })
+    );
+
     return res.status(200).json({
       success: true,
     });
