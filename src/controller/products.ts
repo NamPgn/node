@@ -1222,3 +1222,94 @@ export const clearCacheRedisAndQueue = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
+export const addMultipleEpisodes = async (req, res) => {
+  const {
+    name,
+    category,
+    categorymain,
+    options,
+    descriptions,
+    video2,
+    view,
+    copyright,
+    LinkCopyright,
+    typeId,
+    year,
+    country,
+    trailer,
+    dailyMotionServer,
+    fromEpisode, // số tập bắt đầu
+    toEpisode,   // số tập kết thúc
+  } = req.body;
+
+  try {
+    const addedMovies = [];
+
+    for (let seri = fromEpisode; seri <= toEpisode; seri++) {
+      const slug = `${slugify(name)}-episode-${seri}`;
+
+      const dataAdd = {
+        name,
+        slug,
+        category: category || undefined,
+        categorymain: categorymain || undefined,
+        seri,
+        options,
+        descriptions,
+        link: video2,
+        uploadDate: new Date(),
+        view,
+        copyright,
+        LinkCopyright,
+        typeId: typeId || undefined,
+        year,
+        country,
+        trailer,
+        dailyMotionServer:
+          dailyMotionServer !== ""
+            ? CryptoJS.AES.encrypt(
+                dailyMotionServer,
+                process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
+              ).toString()
+            : "",
+      };
+
+      const data:any = await Products.create(dataAdd);
+
+      // Cập nhật Category, Categorymain, Type
+      if (data.category) {
+        await Category.findByIdAndUpdate(data.category, {
+          $addToSet: { products: data.products },
+          latestProductUploadDate: data.uploadDate,
+        });
+        await incrementCategoryVersion(data.category);
+      }
+
+      if (data.categorymain) {
+        await Categorymain.findByIdAndUpdate(data.categorymain, {
+          $addToSet: { products: data.products },
+        });
+      }
+
+      if (data.typeId) {
+        await Types.findByIdAndUpdate(data.typeId, {
+          $addToSet: { products: data.products },
+        });
+      }
+
+      addedMovies.push(data);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Added ${addedMovies.length} episodes successfully`,
+      data: addedMovies,
+    });
+  } catch (error) {
+    console.error("Error adding multiple episodes:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
