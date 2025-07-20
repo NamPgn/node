@@ -1,4 +1,4 @@
-import { getAll, addProduct_, deleteProduct, getProductCount } from "../services/products";
+import { getAll, addProduct_, deleteProduct, getProductCount, getOneEpisode } from "../services/products";
 import Products from "../module/products";
 import Category from "../module/category";
 import Categorymain from "../module/categorymain";
@@ -33,7 +33,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const categoryId = req.query.categoryId as string;
     const seri = req.query.seri as string; // Đổi từ episode thành seri
-    
+
     // Tạo key cache dựa trên các tham số filter
     let key: string;
     if (page === 0) {
@@ -45,7 +45,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const redisData: any = await getDataFromCache(key);
     let products: any;
     let totalCount: number;
-    
+
     if (redisData) {
       ({ products, totalCount } = redisData);
     } else {
@@ -62,7 +62,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
       Products.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
           await clearRelatedCache(categoryId, seri);
-          
+
           let updatedProducts;
           if (page === 0) {
             updatedProducts = await getAll(0, 0, categoryId, seri);
@@ -852,33 +852,39 @@ const productWorker: any = new Worker(
   async (job) => {
     const { id } = job.data;
 
-    const dataID: any = await Products.findOne({ slug: id }).select('-LinkCopyright -trailer -rating -comments -updatedAt -__v -createdAt -select')
-      .populate("comments.user", "username image")
-      .populate({
-        path: "category",
-        select: "-updatedAt -__v -createdAt -comment -searchCount",
-        populate: {
-          path: "products",
-          model: "Products",
-          select: "seri isApproved slug",
-        },
-      });
+    const dataID: any = await getOneEpisode(id);
 
     if (!dataID) {
       throw new Error("Sản phẩm không tồn tại");
     }
 
-    dataID.category?.products.sort(
+    // Sort products by seri number in descending order
+    const sortedProducts = dataID.category?.products.sort(
       (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
     );
+
+    // Find current episode index
+    const currentIndex = sortedProducts.findIndex((p: any) => p.slug === id);
+
+    // Get next episode if exists
+    const nextEpisode = currentIndex > 0 ? sortedProducts[currentIndex - 1] : null;
+
+    // Get current episode
+    const prevEpisode = sortedProducts[currentIndex + 1];
+    // Add nextEpisode and currentEpisode to response
+    const response = {
+      ...dataID.toObject(),
+      nextEpisode: nextEpisode?.slug,
+      prevEpisode: prevEpisode?.slug,
+    };
 
     dataID.view += 1;
     await dataID.save();
 
     // Sử dụng cache với version
-    await cacheDataWithVersion(id, dataID, 3600, dataID.category._id);
+    await cacheDataWithVersion(id, response, 3600, dataID.category._id);
 
-    return dataID;
+    return response;
   },
   {
     connection: redisClient,
@@ -893,38 +899,38 @@ const productWorker: any = new Worker(
 export const getOne = async (req: Request, res: Response) => {
   try {
     const slug = req.params.id.toString(); // Đây là slug
-    
+
     // Lấy categoryId từ slug
-    const productInfo:any = await Products.findOne({ slug }).select('category');
-    
+    const productInfo: any = await Products.findOne({ slug }).select('category');
+
     if (productInfo && productInfo.category) {
       // Dùng categoryId để check cache với version
-      const redisGetdata = await getDataWithVersion(slug,productInfo.category);
+      const redisGetdata = await getDataWithVersion(slug, productInfo.category);
       if (redisGetdata) {
         console.log(`Cache hit for slug: ${slug} with category: ${productInfo.category}`);
         return res.status(200).json(redisGetdata);
       }
     }
-    
+
     // Nếu không có cache, chạy job
     const job = await productsQueue.add("getProduct", { id: slug }, {
       jobId: slug,
       removeOnComplete: { age: 3600, count: 1000 },
       removeOnFail: { age: 24 * 3600 },
     });
-    
+
     console.log("Đợi movie:", job.id);
-    
+
     const result = await new Promise((resolve, reject) => {
       productWorker.on("completed", (job, result) => {
         resolve(result);
       });
-      
+
       productWorker.on("failed", (job, err) => {
         reject(new Error(err.message));
       });
     });
-    
+
     return res.status(200).json(result);
   } catch (error) {
     return res.status(400).json({
@@ -1271,13 +1277,13 @@ export const addMultipleEpisodes = async (req, res) => {
         dailyMotionServer:
           dailyMotionServer !== ""
             ? CryptoJS.AES.encrypt(
-                dailyMotionServer,
-                process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-              ).toString()
+              dailyMotionServer,
+              process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
+            ).toString()
             : "",
       };
 
-      const data:any = await Products.create(dataAdd);
+      const data: any = await Products.create(dataAdd);
 
       // Cập nhật Category, Categorymain, Type
       if (data.category) {

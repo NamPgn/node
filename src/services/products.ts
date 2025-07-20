@@ -37,8 +37,17 @@ export const getAll = async (page: number, limit: number, categoryId?: string, s
     .exec();
 };
 
-export const get = async (id) => {
-  return await Products.findOne({ _id: id });
+export const getOneEpisode = async (id) => {
+  return await Products.findOne({ slug: id }).select('-LinkCopyright -trailer -rating -comments -updatedAt -__v -select')
+  .populate({
+    path: "category",
+    select: "-__v -createdAt -comment -searchCount -week -tags -rating -ratingCount -country -upcomingReleases -relatedSeasons -isDeleted -season -hour",
+    populate: {
+      path: "products",
+      model: "Products",
+      select: "seri slug -_id",
+    },
+  });;
 };
 
 export const addProduct_ = async (data) => {
