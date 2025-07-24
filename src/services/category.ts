@@ -3,7 +3,7 @@ import { resizeImagesUrl } from "../utills/resizeImage";
 
 export const getAllCategory = async (page: number, limit: number, search?: string) => {
   let query = {};
-  
+
   if (search) {
     query = {
       $or: [
@@ -31,7 +31,7 @@ export const getAllCategory = async (page: number, limit: number, search?: strin
   if (page === 0 && limit === 0) {
     return await Category.find(query)
       .select(selectFields)
-      .sort({ createdAt: -1 });
+      .sort({ up: -1 });
   } else {
     const skip = (page - 1) * limit;
     return await Category.find(query)
@@ -77,14 +77,25 @@ export const getCategory = async (id) => {
       path: "tags",
       model: "Tags",
       select: "name slug -_id",
+    })
+    .populate({
+      path: "combiningEpisodes",
+      model: "combiningEpisodes",
+      select: "name slug episodesName link1 link2 link3 -_id",
     });
-    
 
   category?.products?.sort(
     (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
   );
+
+  category?.combiningEpisodes?.sort((a, b) => {
+    const getStartEp = (ep) => parseInt(ep.episodesName?.split("-")[0]);
+    return getStartEp(b) - getStartEp(a);
+  });
+
   return category;
 };
+
 
 export const addCategory = async (data) => {
   return await new Category(data).save();

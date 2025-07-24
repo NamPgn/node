@@ -21,7 +21,7 @@ export const getAllSeasons = async (req: Request, res: Response) => {
 export const getAllSeasonsByActive = async (req: Request, res: Response) => {
   try {
     const seasons = await Series.find({ isActive: true })
-      .populate("categories", "name -_id up linkImg anotherName")
+      .populate("categories", "name -_id up linkImg anotherName slug")
       .select("name slug -_id categories");
 
     const categoryTopRate: any = await Category

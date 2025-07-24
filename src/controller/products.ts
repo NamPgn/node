@@ -1,4 +1,4 @@
-import { getAll, addProduct_, deleteProduct, getProductCount, getOneEpisode } from "../services/products";
+import { getAll, addProduct_, deleteProduct, getProductCount, getOneEpisode, addVoiceOverBySlug, getVoiceOverBySlug } from "../services/products";
 import Products from "../module/products";
 import Category from "../module/category";
 import Categorymain from "../module/categorymain";
@@ -12,7 +12,6 @@ import XLSX from "xlsx";
 import CryptoJS from "crypto-js";
 import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
-import Call from "../module/Call";
 import { Queue, Worker } from "bullmq";
 import Series from "../module/season";
 import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
@@ -107,6 +106,8 @@ export const addProduct = async (req, res) => {
       view,
       dailyMotionServer,
       video2,
+      voiceOverLink,
+      voiceOverLink2,
     } = req.body;
     // const folderName = "image";
     const file = req.file;
@@ -156,6 +157,8 @@ export const addProduct = async (req, res) => {
                 ).toString()
                 : "",
             trailer: trailer,
+            voiceOverLink: voiceOverLink,
+            voiceOverLink2: voiceOverLink2,
           };
           // const data = await Approve.create({ products: dataAdd });
           const data: any = await Products.create(dataAdd);
@@ -194,56 +197,6 @@ export const addProduct = async (req, res) => {
           });
         }
       );
-      // if (!video) {
-      //   res.status(201).send({ message: "No video uploaded." });
-      // }
-      // const metadataImage = {
-      //   contentType: filename.mimetype,
-      // };
-      // const fileNameimage = `${folderName}/${Date.now()}-${filename.originalname}`;
-      // // Tạo đường dẫn đến file trên Firebase Storage
-      // const file = admin.storage().bucket(bucketName).file(fileNameimage);
-      // // Tạo stream để ghi dữ liệu video vào Firebase Storage
-      // const stream = file.createWriteStream({
-      //   metadataImage,
-      //   resumable: false,
-      // });
-
-      //video
-      // const metadatavideo = {
-      //   contentType: video.mimetype,
-      // };
-      // Tạo tên file mới cho video
-      // const fileNamevideo = `${Date.now()}-${video.originalname ? video.originalname : ""}`;
-      // Tạo đường dẫn đến file trên Firebase Storage
-      // const filevideo = admin.storage().bucket(bucketName).file(fileNamevideo);
-      // Tạo stream để ghi dữ liệu video vào Firebase Storage
-      // const streamvideo = filevideo.createWriteStream({
-      //   metadatavideo,
-      //   resumable: false,
-      // });
-      // const encodedFileName = encodeURIComponent(fileNameimage);
-      // streamvideo &&
-      // stream.on("finish", async () => {
-      //   // const urlvideo = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${fileNamevideo}?alt=media`;
-      //   // const urlimage = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedFileName}?alt=media`;
-
-      // });
-      // stream.on("error", (err) => {
-      //   console.error(err);
-      //   res.status(500).send({ message: "Failed to upload video." });
-      // });
-
-      // Ghi dữ liệu video vào stream
-      // stream.end(filename.buffer);
-      // Xử lý sự kiện khi stream ghi dữ liệu bị lỗi
-      // streamvideo.on("error", (err) => {
-      //   console.error(err);
-      //   res.status(500).send({ message: "Failed to upload video." });
-      // });
-
-      // Ghi dữ liệu video vào stream
-      // streamvideo.end(video.buffer);
     } else {
       const dataAdd = {
         name: name,
@@ -268,6 +221,8 @@ export const addProduct = async (req, res) => {
             : "",
         video2: video2,
         trailer: trailer,
+        voiceOverLink: voiceOverLink,
+        voiceOverLink2: voiceOverLink2,
       };
       const data: any = await addProduct_(dataAdd);
       if (data.category) {
@@ -421,6 +376,8 @@ export const editProduct = async (req, res, next) => {
       view,
       slug,
       server2,
+      voiceOverLink,
+      voiceOverLink2,
     } = req.body;
     // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
@@ -463,6 +420,8 @@ export const editProduct = async (req, res, next) => {
           findById.category = category;
           findById.typeId = typeId;
           findById.trailer = trailer;
+          findById.voiceOverLink = voiceOverLink;
+          findById.voiceOverLink2 = voiceOverLink2;
           findById.slug = slug;
           if (dailyMotionServer === "") {
             findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
@@ -556,7 +515,8 @@ export const editProduct = async (req, res, next) => {
       findById.link = link;
       findById.slug = slug;
       findById.server2 = server2;
-
+      findById.voiceOverLink = voiceOverLink;
+      findById.voiceOverLink2 = voiceOverLink2;
       if (dailyMotionServer === "") {
         findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
       } else {
@@ -1317,5 +1277,25 @@ export const addMultipleEpisodes = async (req, res) => {
   } catch (error) {
     console.error("Error adding multiple episodes:", error);
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+export const editVoiceOverBySlugController = async (req, res) => {
+  try {
+    const { voiceOverLink, voiceOverLink2 } = req.body;
+    const data = await addVoiceOverBySlug(req.params.slug, voiceOverLink, voiceOverLink2);
+    return res.status(200).json({ success: true, message: "Voice over added successfully", data });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const getVoiceOverBySlugController = async (req, res) => {
+  try {
+    const data = await getVoiceOverBySlug(req.params.slug);
+    return res.status(200).json({ success: true, message: "Voice over fetched successfully", data });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
   }
 };

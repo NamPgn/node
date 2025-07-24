@@ -23,6 +23,8 @@ import {
   exportDataToExcel,
   clearCacheRedisAndQueue,
   addMultipleEpisodes,
+  editVoiceOverBySlugController,
+  getVoiceOverBySlugController,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -188,7 +190,8 @@ router.post(
 
 router.post(ROUTES.PRODUCTS.CLEAR_REDIS, clearCacheRedisAndQueue);
 router.get(ROUTES.PRODUCTS.EXPORT_EXCEL, exportDataToExcel);
-
+router.post(ROUTES.PRODUCTS.EDIT_VOICE_OVER, editVoiceOverBySlugController);
+router.get(ROUTES.PRODUCTS.GET_VOICE_OVER, getVoiceOverBySlugController);
 router.param("userId", getAuth);
 
 export default router;

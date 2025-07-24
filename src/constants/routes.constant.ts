@@ -5,7 +5,7 @@ export const ROUTES = {
     ROOT: '/auth',
     LOGIN: '/login',
     REGISTER: '/register',
-    REFRESH: '/refresh',
+    REFRESH: '/refreshToken',
     LOGOUT: '/logout',
     SIGNIN: '/signin',
     SIGNUP: '/signup',
@@ -77,6 +77,8 @@ export const ROUTES = {
     CLEAR_REDIS: '/products/clear/redis/bull',
     EXPORT_EXCEL: '/products/export/excel',
     ADD_MULTIPLE: '/products/addMultiple/:userId',
+    EDIT_VOICE_OVER: '/product/editVoiceOver/:slug',
+    GET_VOICE_OVER: '/product/getVoiceOver/:slug',
   },
   COMMENTS: {
     ROOT: '/comments',
@@ -154,6 +156,15 @@ export const ROUTES = {
     GET_BY_PRODUCT: '/reports/:productId',
     UPDATE_STATUS: '/reports/:id/status',
     DELETE: '/reports/:id'
+  },
+  COMBINING_EPISODES: {
+    ROOT: '/combining-episodes',
+    GET_ALL: '/combining-episodes',
+    GET_BY_ID: '/combining-episodes/:id',
+    GET_BY_CATEGORY_SLUG: '/combining-episodes/category/:slug',
+    CREATE: '/combining-episodes',
+    UPDATE: '/combining-episodes/:id',
+    DELETE: '/combining-episodes/:id'
   }
 } as const;
 

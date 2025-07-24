@@ -15,6 +15,7 @@ import routerSeason from "../routes/season";
 import routerReport from "../routes/report";
 import routerSlider from "../routes/slider";
 import routerTags from "../routes/tags";
+import routerCombiningEpisodes from "../routes/combining-episodes";
 const routes = [
   routerAuth,
   routerProducts,
@@ -31,7 +32,8 @@ const routes = [
   routerSeason,
   routerReport,
   routerSlider,
-  routerTags
+  routerTags,
+  routerCombiningEpisodes
 ];
 
 export const configureRoutes = (app: Express) => {

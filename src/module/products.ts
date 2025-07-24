@@ -91,6 +91,13 @@ const productSchema = new Schema(
         type: Number,
       },
     ],
+    voiceOverLink: {
+      type: String,
+    },
+    voiceOverLink2: {
+      type: String,
+    },
+ 
   },
   { timestamps: true, validateBeforeSave: false }
 );

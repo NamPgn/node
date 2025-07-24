@@ -108,8 +108,13 @@ const categorySchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    combiningEpisodes: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "combiningEpisodes",
+      }
+    ],
   },
-
   { timestamps: true }
 );
 categorySchema.indexes();
