@@ -77,7 +77,7 @@ export const ROUTES = {
     CLEAR_REDIS: '/products/clear/redis/bull',
     EXPORT_EXCEL: '/products/export/excel',
     ADD_MULTIPLE: '/products/addMultiple/:userId',
-    EDIT_VOICE_OVER: '/product/editVoiceOver/:slug',
+    EDIT_VOICE_OVER: '/product/editVoiceOver/:slug/:userId',
     GET_VOICE_OVER: '/product/getVoiceOver/:slug',
   },
   COMMENTS: {
@@ -162,9 +162,9 @@ export const ROUTES = {
     GET_ALL: '/combining-episodes',
     GET_BY_ID: '/combining-episodes/:id',
     GET_BY_CATEGORY_SLUG: '/combining-episodes/category/:slug',
-    CREATE: '/combining-episodes',
-    UPDATE: '/combining-episodes/:id',
-    DELETE: '/combining-episodes/:id'
+    CREATE: '/combining-episodes/:userId',
+    UPDATE: '/combining-episodes/:id/:userId',
+    DELETE: '/combining-episodes/:id/:userId'
   }
 } as const;
 

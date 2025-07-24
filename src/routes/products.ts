@@ -190,7 +190,12 @@ router.post(
 
 router.post(ROUTES.PRODUCTS.CLEAR_REDIS, clearCacheRedisAndQueue);
 router.get(ROUTES.PRODUCTS.EXPORT_EXCEL, exportDataToExcel);
-router.post(ROUTES.PRODUCTS.EDIT_VOICE_OVER, editVoiceOverBySlugController);
+router.post(ROUTES.PRODUCTS.EDIT_VOICE_OVER, [
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin
+], editVoiceOverBySlugController);
 router.get(ROUTES.PRODUCTS.GET_VOICE_OVER, getVoiceOverBySlugController);
 router.param("userId", getAuth);
 
