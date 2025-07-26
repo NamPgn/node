@@ -376,8 +376,7 @@ export const editProduct = async (req, res, next) => {
       view,
       slug,
       server2,
-      voiceOverLink,
-      voiceOverLink2,
+
     } = req.body;
     // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
@@ -420,8 +419,7 @@ export const editProduct = async (req, res, next) => {
           findById.category = category;
           findById.typeId = typeId;
           findById.trailer = trailer;
-          findById.voiceOverLink = voiceOverLink;
-          findById.voiceOverLink2 = voiceOverLink2;
+
           findById.slug = slug;
           if (dailyMotionServer === "") {
             findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
@@ -515,8 +513,7 @@ export const editProduct = async (req, res, next) => {
       findById.link = link;
       findById.slug = slug;
       findById.server2 = server2;
-      findById.voiceOverLink = voiceOverLink;
-      findById.voiceOverLink2 = voiceOverLink2;
+
       if (dailyMotionServer === "") {
         findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
       } else {
@@ -1284,7 +1281,8 @@ export const addMultipleEpisodes = async (req, res) => {
 export const editVoiceOverBySlugController = async (req, res) => {
   try {
     const { voiceOverLink, voiceOverLink2 } = req.body;
-    const data = await addVoiceOverBySlug(req.params.slug, voiceOverLink, voiceOverLink2);
+    const data: any = await addVoiceOverBySlug(req.params.slug, voiceOverLink, voiceOverLink2);
+    await incrementCategoryVersion(data.category._id);
     return res.status(200).json({ success: true, message: "Voice over added successfully", data });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
