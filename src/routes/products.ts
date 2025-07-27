@@ -177,7 +177,7 @@ router.post(
   editMultipleMovies
 );
 
-router.get(ROUTES.PRODUCTS.MOST_WATCHED, mostWatchesEposides);
+
 
 router.post(
   ROUTES.PRODUCTS.AUTO_ADD,

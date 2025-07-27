@@ -42,7 +42,7 @@ export const getAll = async (req: any, res: Response) => {
     const limit = 24;
     const page = parseInt(req.query.page) || 0;
     const search = req.query.search || "";
-    
+
     await Category.createIndexes();
 
     let key: string;
@@ -72,7 +72,7 @@ export const getAll = async (req: any, res: Response) => {
       } else {
         key = `categorys_page_${page}`;
       }
-      
+
       const redisData = await getDataFromCache(key);
       if (redisData) {
         ({ category, totalCount } = redisData);
@@ -84,9 +84,9 @@ export const getAll = async (req: any, res: Response) => {
           category = await getAllCategory(page, limit);
           totalCount = await Category.countDocuments();
         }
-        
+
         cacheData(key, { category, totalCount }, "EX", 3600);
-        
+
         Category.watch().on("change", async (change) => {
           if (["insert", "delete", "update"].includes(change.operationType)) {
             redisDel(key);
@@ -207,12 +207,13 @@ export const addCt = async (req: MulterRequest, res: Response) => {
       up,
       year,
       time,
-      isActive,
+      status,
       anotherName,
       hour,
       season,
       upcomingReleases,
       releaseDate,
+      newMovie,
     } = req.body;
     const file = req.file;
     if (file) {
@@ -241,12 +242,13 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             up: up,
             year: year,
             time: time,
-            isActive: isActive,
+            status: status,
             hour: hour,
             slug: slugify(name),
             season: season,
             upcomingReleases: upcomingReleases,
             releaseDate: releaseDate,
+            newMovie: newMovie,
           };
           const cate = await addCategory(newDt);
           await WeekCategory.findByIdAndUpdate(cate.week, {
@@ -285,7 +287,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       up,
       time,
       year,
-      isActive,
+      status,
       anotherName,
       hour,
       season,
@@ -295,6 +297,8 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       upcomingReleases,
       releaseDate,
       isMovie,
+      thuyetMinh,
+      newMovie,
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -326,7 +330,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.time = time;
           findById.linkImg = secureUrl;
           findById.year = year;
-          findById.isActive = isActive;
+          findById.status = status;
           findById.hour = hour;
           findById.upcomingReleases = upcomingReleases;
           findById.releaseDate = releaseDate;
@@ -336,7 +340,8 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.lang = lang;
           findById.quality = quality;
           findById.slug = slug;
-
+          findById.thuyetMinh = thuyetMinh;
+          findById.newMovie = newMovie;
           // Lưu category trước
           await findById.save();
 
@@ -369,7 +374,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.type = type;
       findById.time = time;
       findById.year = year;
-      findById.isActive = isActive;
+      findById.status = status;
       findById.hour = hour;
       findById.season = season;
       findById.lang = lang;
@@ -379,7 +384,8 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.isMovie = isMovie;
       findById.anotherName = anotherName;
       findById.upcomingReleases = upcomingReleases;
-
+      findById.thuyetMinh = thuyetMinh;
+      findById.newMovie = newMovie;
       // Lưu category trước
       await findById.save();
 
@@ -519,7 +525,7 @@ export const push = async (req, res) => {
 export const filterCategoryTrending = async (req, res) => {
   try {
     const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName type");
-    
+
     return res.json({
       data: data,
       success: true,
@@ -604,7 +610,9 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
             year: 1,
             time: 1,
             type: 1,
-            anotherName: 1
+            anotherName: 1,
+            thuyetMinh: 1,
+            newMovie: 1,
           }
         }
       ]);
@@ -795,7 +803,7 @@ export const backupCategories = async (req: Request, res: Response) => {
 
     // Get all categories
     const categories = await Category.find({});
-    
+
     // Create backup data with metadata
     const backupData = {
       timestamp: new Date().toISOString(),
@@ -851,7 +859,7 @@ export const getRecycleBin = async (req: Request, res: Response) => {
 export const restoreCategory = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Find the recycle bin item
     const recycleBinItem = await RecycleBin.findById(id);
     if (!recycleBinItem) {
@@ -885,7 +893,7 @@ export const restoreCategory = async (req: Request, res: Response) => {
 export const permanentlyDeleteCategory = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Find the recycle bin item
     const recycleBinItem = await RecycleBin.findById(id);
     if (!recycleBinItem) {
@@ -897,13 +905,13 @@ export const permanentlyDeleteCategory = async (req: Request, res: Response) => 
 
     // Get the category data before deleting
     const category = await Category.findById(recycleBinItem.category);
-    
+
     // Delete from recycle bin
     await RecycleBin.findByIdAndDelete(id);
-    
+
     // Permanently delete the category
     await Category.findByIdAndDelete(recycleBinItem.category);
-    
+
     // Delete associated image from cloudinary if exists
     if (category?.linkImg) {
       await cloudinary.uploader.destroy(category.linkImg);

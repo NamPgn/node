@@ -29,7 +29,7 @@ export const getAll = async (page: number, limit: number, categoryId?: string, s
   }
 
   return await Products.find(query)
-    .select('name slug category seri uploadDate dailyMotionServer ')
+    .select('name slug category seri uploadDate dailyMotionServer voiceOverLink')
     .skip(skip)
     .limit(limit)
     .sort({ _id: -1 })

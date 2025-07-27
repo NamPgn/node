@@ -17,6 +17,7 @@ const categorySchema = new mongoose.Schema(
     des: {
       type: String,
     },
+
     sumSeri: {
       type: String,
     },
@@ -45,9 +46,10 @@ const categorySchema = new mongoose.Schema(
     country: {
       type: String,
     },
-    isActive: {
-      type: Number,
-      default: 0,
+    status: {
+      type: String,
+      default: "pending",
+      enum: ["pending", "completed"]
     },
     latestProductUploadDate: {
       type: Date,
@@ -74,10 +76,12 @@ const categorySchema = new mongoose.Schema(
     lang: {
       type: String,
       default: "Vietsub",
+      enum: ["Vietsub", "ThuyetMinh", "ThuyetMinh-Vietsub"]
     },
     quality: {
       type: String,
       default: "HD",
+      enum: ["HD", "FHD", "4K"]
     },
     comment: [
       {
@@ -114,6 +118,14 @@ const categorySchema = new mongoose.Schema(
         ref: "combiningEpisodes",
       }
     ],
+    thuyetMinh: {
+      type: Boolean,
+      default: false,
+    },
+    newMovie: {
+      type: Boolean,
+      default: false
+    },
   },
   { timestamps: true }
 );

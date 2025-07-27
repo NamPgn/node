@@ -102,7 +102,7 @@ router.post(
 // Rating routes
 router.post(ROUTES.CATEGORY.RATING.ADD, ratingCategory);
 router.get(ROUTES.CATEGORY.RATING.GET, ratingCategoryStats);
-router.get(ROUTES.CATEGORY.RATING.STATS, ratingCategorysStatsAll);
+// router.get(ROUTES.CATEGORY.RATING.STATS, ratingCategorysStatsAll);
 
 // Release routes
 router.get(ROUTES.CATEGORY.RELEASES, getUpcomingReleases);

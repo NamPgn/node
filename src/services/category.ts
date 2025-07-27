@@ -22,10 +22,11 @@ export const getAllCategory = async (page: number, limit: number, search?: strin
     linkImg: 1,
     createdAt: 1,
     time: 1,
-    isActive: 1,
+    status: 1,
     year: 1,
     up: 1,
-    week: 1
+    week: 1,
+   
   };
 
   if (page === 0 && limit === 0) {
@@ -61,7 +62,7 @@ export const getCategoriesSitemap = async () => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id })
     .select(
-      "name linkImg sumSeri type year time lang quality slug country des up isMovie hour anotherName relatedSeasons "
+      "name linkImg sumSeri type year time lang quality slug country des up isMovie hour anotherName relatedSeasons newMovie status thuyetMinh"
     )
     .populate({
       path: "products",
