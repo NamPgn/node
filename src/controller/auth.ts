@@ -105,7 +105,7 @@ export const singin = async (req, res) => {
       image: resizeImageUrl(getUserLogin.image, 100, 100),
     };
     const tokenAuth = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {
-      expiresIn: "2d",
+      expiresIn: "5d",
     });
     const refreshTokenAuth = jwt.sign(user, process.env.REFRESH_TOKEN_KEY, {
       expiresIn: "30d",
@@ -148,7 +148,7 @@ export const refreshToken = async (req, res) => {
         image: decode.image,
       };
       const newAccessToken = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {
-        expiresIn: "24h",
+        expiresIn: "5d",
       });
       return res.json({
         code: 200,

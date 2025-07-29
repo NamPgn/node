@@ -9,6 +9,7 @@ import {
   updateCombiningEpisodesController,
 } from "../controller/combining-episodes";
 import { checkToken, isAdmin, isAuth, requiredSignin } from "../middlewares/checkAuth";
+import { getAuth } from "../controller/auth";
 
 const router = express.Router();
 
@@ -67,4 +68,5 @@ router.delete(
   deleteCombiningEpisodesController
 );
 
+router.param("userId", getAuth);
 export default router;
