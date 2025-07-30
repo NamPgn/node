@@ -62,7 +62,7 @@ export const getCategoriesSitemap = async () => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id })
     .select(
-      "name linkImg sumSeri type year time lang quality slug country des up isMovie hour anotherName relatedSeasons newMovie status thuyetMinh"
+      "name linkImg sumSeri year time lang quality slug country des up isMovie hour anotherName relatedSeasons newMovie status thuyetMinh"
     )
     .populate({
       path: "products",
@@ -77,7 +77,7 @@ export const getCategory = async (id) => {
     .populate({
       path: "tags",
       model: "Tags",
-      select: "name slug -_id",
+      select: "name slug _id",
     })
     .populate({
       path: "combiningEpisodes",

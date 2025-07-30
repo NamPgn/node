@@ -97,6 +97,15 @@ export const one = async (req, res) => {
                   { $limit: 1 },
                   { $project: { seri: 1 } }
                 ]
+              },
+
+            },
+            {
+              $lookup: {
+                from: "tags",
+                localField: "tags",
+                foreignField: "_id",
+                as: "tags",
               }
             },
             {
@@ -106,9 +115,9 @@ export const one = async (req, res) => {
                 sumSeri: 1,
                 time: 1,
                 year: 1,
-                type: 1,
                 slug: 1,
-                products: 1
+                products: 1,
+                tags: 1,
               }
             }
           ]

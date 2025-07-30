@@ -42,7 +42,7 @@ export const getOneEpisode = async (id) => {
     .select('-LinkCopyright -trailer -rating -comments -updatedAt -__v -select')
     .populate({
       path: "category",
-      select: "-__v -createdAt -comment -searchCount -week -tags -rating -ratingCount -country -upcomingReleases -relatedSeasons -isDeleted -season -hour",
+      select: "-__v -createdAt -comment -searchCount -week -rating -ratingCount -country -upcomingReleases -relatedSeasons -isDeleted -season -hour",
       populate: [
         {
           path: "products",
@@ -53,6 +53,11 @@ export const getOneEpisode = async (id) => {
           path: "combiningEpisodes",
           model: "combiningEpisodes",
           select: "link1 link2 link3 name slug episodesName",
+        },
+        {
+          path: "tags",
+          model: "Tags",
+          select: "name",
         }
       ]
     });

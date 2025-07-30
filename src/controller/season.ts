@@ -217,6 +217,10 @@ export const updateSeason = async (req: Request, res: Response) => {
         slug = `${slug}-${Math.random().toString(36).substring(2, 8)}`;
       }
 
+      if (Array.isArray(updateData.categories) && updateData.categories.length > 0) {
+        updateData.categories = updateData.categories.map(c => typeof c === 'object' && c.value ? c.value : c);
+      }
+
       updateData = {
         ...updateData,
         name,
@@ -236,6 +240,7 @@ export const updateSeason = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: season });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, message: error.message });
   }
 };

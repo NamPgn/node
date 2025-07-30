@@ -59,7 +59,7 @@ export const redisDel = async (key) => {
 
 export const clearRelatedCache = async (categoryId?: string, episode?: string) => {
   const keys = await redisClient.keys('products_*');
-  
+
   // Xóa tất cả cache products để đảm bảo consistency
   // Hoặc có thể xóa selective dựa trên pattern
   for (const key of keys) {
@@ -107,7 +107,11 @@ const invalidateAllCacheForCategory = async (categoryId: string) => {
       await redisClient.del(`${product.slug}:current`);
     }
 
-    console.log(`Invalidated all cache for category ${categoryId}`);
+    const categoryPattern = `*:category${categoryId}:v*`;
+    const categoryKeys = await redisClient.keys(categoryPattern);
+    if (categoryKeys.length > 0) {
+      await redisClient.del(categoryKeys);
+    }
   } catch (error) {
     console.error('Error invalidating cache:', error);
   }

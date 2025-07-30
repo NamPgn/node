@@ -538,89 +538,6 @@ export const editProduct = async (req, res, next) => {
       });
     }
 
-
-    // if (req.files || req.files.file || req.files.image) {
-    //   // const newVideoFile = req.files["file"] && req.files["file"][0];
-    //   // const newImageFile = req.files["image"] && req.files["image"][0];
-    //   // const metadataImage = {
-    //   //   contentType: newImageFile.mimetype,
-    //   // };
-    //   // const metadataVideo = {
-    //   //   contentType: newVideoFile.mimetype,
-    //   // };
-
-    //   // const fileNameImage = `${folderName}/${Date.now()}-${newImageFile.originalname
-    //   //   }`;
-    //   // const fileNameVideo = `${Date.now()}-${newVideoFile.originalname}`;
-
-    //   // const fileImage = admin.storage().bucket(bucketName).file(fileNameImage);
-    //   // const fileVideo = admin.storage().bucket(bucketName).file(fileNameVideo);
-
-    //   // const streamImage = fileImage.createWriteStream({
-    //   //   metadata: metadataImage,
-    //   //   resumable: false,
-    //   // });
-
-    //   // const streamVideo = fileVideo.createWriteStream({
-    //   //   metadata: metadataVideo,
-    //   //   resumable: false,
-    //   // });
-
-    //   //encode url
-    //   // const encodedFileName = encodeURIComponent(fileNameImage);
-    //   streamImage ||
-    //     streamVideo.on("finish", async () => {
-    //       // const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedFileName}?alt=media`;
-    //       // const videoUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${fileNameVideo}?alt=media`;
-
-    //       //cập nhật
-    //       findById.seri = seri;
-    //       findById.options = options;
-    //       findById.copyright = copyright;
-    //       findById.LinkCopyright = LinkCopyright;
-    //       findById.trailer = trailer;
-    //       findById.country = country;
-    //       findById.year = year;
-    //       findById.image = image;
-    //       findById.link = link;
-    //       findById.dailyMotionServer = dailyMotionServer;
-    //       findById.typeId = typeId || undefined;
-    //       findById.category = category || undefined;
-    //       findById.categorymain = categorymain || undefined;
-    //       // lưu vào database
-    //       const data = await findById.save();
-
-    //       return res.status(200).json({
-    //         success: true,
-    //         message: "Dữ liệu sản phẩm đã được cập nhật.",
-    //         data: data,
-    //       });
-    //     });
-    // } else {
-    //   // Không có tệp hình ảnh mới, chỉ cập nhật các thông tin khác của sản phẩm
-    //   findById.options = options;
-    //   findById.copyright = copyright;
-    //   findById.LinkCopyright = LinkCopyright;
-    //   findById.trailer = trailer;
-    //   findById.country = country;
-    //   findById.year = year;
-    //   findById.dailyMotionServer = dailyMotionServer;
-    //   findById.seri = seri;
-    //   findById.categorymain = categorymain;
-    //   findById.typeId = typeId;
-    //   findById.category = category;
-    //   findById.link = link;
-    //   findById.image = imageLink;
-    //   findById.video2 = link;
-    //   findById.imageLink = imageLink;
-    //   await findById.save();
-    //   return res.status(200).json({
-    //     success: true,
-    //     message: "Dữ liệu sản phẩm đã được cập nhật.",
-    //     data: findById,
-    //   });
-    // }
-    // add
   } catch (error) {
     console.log(error);
     return res.status(400).json({
@@ -1283,6 +1200,8 @@ export const editVoiceOverBySlugController = async (req, res) => {
     const { voiceOverLink, voiceOverLink2 } = req.body;
     const data: any = await addVoiceOverBySlug(req.params.slug, voiceOverLink, voiceOverLink2);
     await incrementCategoryVersion(data.category._id);
+    redisDel(`${data.slug}`);
+    redisDel(`category${data.category._id}`); 
     return res.status(200).json({ success: true, message: "Voice over added successfully", data });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });

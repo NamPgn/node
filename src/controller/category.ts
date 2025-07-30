@@ -19,6 +19,7 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import RecycleBin from "../module/recycle.bin";
+import Tags from "../module/tags.module";
 // import { RealtimeService } from "../services/realtime.service"; 
 
 const myQueue = new Queue("categoryQueue", {
@@ -214,6 +215,7 @@ export const addCt = async (req: MulterRequest, res: Response) => {
       upcomingReleases,
       releaseDate,
       newMovie,
+      tags,
     } = req.body;
     const file = req.file;
     if (file) {
@@ -249,12 +251,19 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             upcomingReleases: upcomingReleases,
             releaseDate: releaseDate,
             newMovie: newMovie,
+            tags: tags,
           };
           const cate = await addCategory(newDt);
           await WeekCategory.findByIdAndUpdate(cate.week, {
             $addToSet: { category: cate._id },
           });
-
+          if (tags && tags.length > 0) {
+            await Tags.updateMany(
+              { _id: { $in: tags } },
+              { $pull: { categories: cate._id } }
+            );
+          }
+          
           return res.status(200).json({
             success: true,
             message: "Added product successfully",
@@ -299,6 +308,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       isMovie,
       thuyetMinh,
       newMovie,
+      tags,
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -342,6 +352,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.slug = slug;
           findById.thuyetMinh = thuyetMinh;
           findById.newMovie = newMovie;
+          findById.tags = tags;
           // Lưu category trước
           await findById.save();
 
@@ -357,6 +368,13 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
             await WeekCategory.findByIdAndUpdate(week, {
               $addToSet: { category: findById._id }
             });
+          }
+          
+          if (tags && tags.length > 0) {
+            await Tags.updateMany(
+              { _id: { $in: tags } },
+              { $pull: { categories: findById._id } }
+            );
           }
 
           return res.status(200).json({
@@ -386,8 +404,15 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.upcomingReleases = upcomingReleases;
       findById.thuyetMinh = thuyetMinh;
       findById.newMovie = newMovie;
-      // Lưu category trước
+      findById.tags = tags;
       await findById.save();
+
+      if (tags && tags.length > 0) {  
+        await Tags.updateMany(
+          { _id: { $in: tags } },
+          { $pull: { categories: findById._id } }
+        );
+      }
 
       // Cập nhật week category
       if (findById.week !== week) {
@@ -496,7 +521,7 @@ export const searchCategory = async (req: Request, res: Response) => {
     // }
 
     const data = await Category.find(query)
-      .select("name linkImg lang quality type slug year time anotherName")
+      .select("name linkImg lang quality slug year time anotherName")
       .sort({ up: -1 });
     return res.status(200).json(data);
   } catch (error) {
@@ -524,7 +549,7 @@ export const push = async (req, res) => {
 
 export const filterCategoryTrending = async (req, res) => {
   try {
-    const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName type");
+    const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName");
 
     return res.json({
       data: data,
@@ -609,7 +634,6 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
             quality: 1,
             year: 1,
             time: 1,
-            type: 1,
             anotherName: 1,
             thuyetMinh: 1,
             newMovie: 1,
@@ -746,7 +770,7 @@ export const ratingCategorysStatsAll = async (req, res) => {
 export const getUpcomingReleases = async (req, res) => {
   try {
     const data = await Category.find({ upcomingReleases: "comming" })
-      .select("name linkImg sumSeri type week year slug time releaseDate")
+      .select("name linkImg sumSeri week year slug time releaseDate")
       .populate({
         path: "products",
         model: "Products",
@@ -839,7 +863,7 @@ export const getRecycleBin = async (req: Request, res: Response) => {
     const recycleBinItems = await RecycleBin.find({ isRestored: false })
       .populate({
         path: 'category',
-        select: 'name linkImg slug sumSeri isMovie hour quality time anotherName type'
+        select: 'name linkImg slug sumSeri isMovie hour quality time anotherName'
       })
       .populate('deletedBy', 'name email')
       .sort({ deletedAt: -1 });
