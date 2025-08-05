@@ -994,7 +994,6 @@ export const autoAddProduct = async (req, res) => {
           slug: item.slug + `-episode-${episode}`,
           isApproved: true,
           category: item._id,
-          copyright: "hh3d",
           seri: episode.toString(),
           dailyMotionServer: "",
         };
@@ -1109,15 +1108,8 @@ export const addMultipleEpisodes = async (req, res) => {
   const {
     name,
     category,
-    categorymain,
-    options,
-    descriptions,
     video2,
     view,
-    copyright,
-    LinkCopyright,
-    typeId,
-    year,
     country,
     trailer,
     dailyMotionServer,
@@ -1135,17 +1127,10 @@ export const addMultipleEpisodes = async (req, res) => {
         name,
         slug,
         category: category || undefined,
-        categorymain: categorymain || undefined,
         seri,
-        options,
-        descriptions,
         link: video2,
         uploadDate: new Date(),
         view,
-        copyright,
-        LinkCopyright,
-        typeId: typeId || undefined,
-        year,
         country,
         trailer,
         dailyMotionServer:
@@ -1167,19 +1152,6 @@ export const addMultipleEpisodes = async (req, res) => {
         });
         await incrementCategoryVersion(data.category);
       }
-
-      if (data.categorymain) {
-        await Categorymain.findByIdAndUpdate(data.categorymain, {
-          $addToSet: { products: data.products },
-        });
-      }
-
-      if (data.typeId) {
-        await Types.findByIdAndUpdate(data.typeId, {
-          $addToSet: { products: data.products },
-        });
-      }
-
       addedMovies.push(data);
     }
 
