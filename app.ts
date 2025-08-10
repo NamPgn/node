@@ -11,7 +11,7 @@ const port = process.env.PORT_LOCAL || 8080;
 // Rate limiting middleware
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 phút
-  max: 70, // tối đa 100 requests per 15 phút
+  max: 150, // tối đa 100 requests per 15 phút
   message: {
     error: "Quá nhiều request từ IP này, vui lòng thử lại sau 15 phút"
   },
