@@ -27,6 +27,12 @@ const categorySchema = new mongoose.Schema(
         ref: "Products",
       },
     ],
+    posters: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "Poster",
+      },
+    ],
     type: {
       type: String,
     },

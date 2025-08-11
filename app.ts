@@ -8,12 +8,11 @@ import { configureRoutes } from "./src/config/routes";
 
 const port = process.env.PORT_LOCAL || 8080;
 
-// Rate limiting middleware
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 150, // tối đa 100 requests per 15 phút
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: {
-    error: "Quá nhiều request từ IP này, vui lòng thử lại sau 15 phút"
+    error: "Too many requests from this IP, please try again later"
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -21,16 +20,12 @@ const limiter = rateLimit({
 
 const startServer = async () => {
   try {
-    // Connect to MongoDB
     await connectDatabase();
     
-    // Initialize Express
     const app = express();
 
-    // Apply rate limiting
     app.use(limiter);
 
-    // Configure Express (middleware, CORS, etc.)
     await configureExpress(app);
 
     // Configure Routes
