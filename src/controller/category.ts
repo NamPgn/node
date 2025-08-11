@@ -12,7 +12,7 @@ import { cacheData, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
-import { resizeImageUrl } from "../utills/resizeImage";
+import { resizeImagesUrl, resizeImageUrl } from "../utills/resizeImage";
 import { Queue, Worker } from "bullmq";
 import redisClient from "../config/redis.config";
 import fs from 'fs';
@@ -263,7 +263,7 @@ export const addCt = async (req: MulterRequest, res: Response) => {
               { $pull: { categories: cate._id } }
             );
           }
-          
+
           return res.status(200).json({
             success: true,
             message: "Added product successfully",
@@ -369,7 +369,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
               $addToSet: { category: findById._id }
             });
           }
-          
+
           if (tags && tags.length > 0) {
             await Tags.updateMany(
               { _id: { $in: tags } },
@@ -407,7 +407,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.tags = tags;
       await findById.save();
 
-      if (tags && tags.length > 0) {  
+      if (tags && tags.length > 0) {
         await Tags.updateMany(
           { _id: { $in: tags } },
           { $pull: { categories: findById._id } }
@@ -642,7 +642,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       ]);
 
       // Gọi resizeImagesUrl để thay đổi ảnh
-      const updatedData = data;
+      const updatedData = resizeImagesUrl(data, 'linkImg', 300, 450);
 
       // Cập nhật lại dữ liệu đã thay đổi ảnh
       await cacheData(KEY, updatedData);
