@@ -1,19 +1,53 @@
 {
-  "name": "back-end",
-  "proxy": "https://tromphim.netlify.app/",
+  "name": "movie-backend-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "description": "Backend API server for movie streaming platform with authentication, file upload, and real-time features",
+  "main": "app.ts",
   "scripts": {
-    "start": "node --max-old-space-size=2048 -r ts-node/register app.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "ts-node --transpile-only app.ts",
+    "dev": "nodemon --exec \"ts-node --transpile-only\" app.ts",
+    "build": "tsc",
+    "serve": "node dist/app.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean",
+    "postinstall": "npm run build"
   },
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "movie",
+    "streaming",
+    "api",
+    "express",
+    "typescript",
+    "mongodb",
+    "socket.io",
+    "authentication"
+  ],
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com",
+    "url": "https://github.com/yourusername"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/movie-backend-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/movie-backend-api/issues"
+  },
+  "homepage": "https://github.com/yourusername/movie-backend-api#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
     "axios": "^1.4.0",
-    "back-end": "file:",
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.2",
     "bullmq": "^5.34.3",
@@ -28,7 +62,6 @@
     "express-limiter": "^1.6.1",
     "express-rate-limit": "^7.5.0",
     "firebase-admin": "^11.11.0",
-    "fs": "^0.0.1-security",
     "ioredis": "^5.3.2",
     "jsonwebtoken": "^8.5.1",
     "moment-timezone": "^0.5.46",
@@ -36,21 +69,48 @@
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.9.1",
-    "nodemon": "^2.0.20",
+    "nodemon": "^3.1.10",
     "password-hash": "^1.2.2",
-    "path": "^0.12.7",
     "redis": "^4.6.7",
     "request": "^2.88.2",
     "serverless-http": "^3.2.0",
     "slugify": "^1.6.6",
     "socket.io": "^4.8.1",
-    "ts-node": "^10.9.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/cors": "^2.8.13",
     "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.4",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/multer": "^1.4.7",
     "@types/node": "^20.9.1",
-    "dailymotion-sdk": "^0.1.13",
+    "@types/nodemailer": "^6.4.9",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "jest": "^29.6.0",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.2.2"
-  }
+  },
+  "optionalDependencies": {
+    "dailymotion-sdk": "^0.1.13"
+  },
+  "bundledDependencies": [],
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "bundleDependencies": []
 }

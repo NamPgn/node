@@ -38,6 +38,16 @@ export const configureExpress = async (app: Express) => {
     res.send("API is running 🚀");
   });
 
+  // // Global error handlers (must be last)
+  // app.use(notFoundHandler);
+  // app.use(errorHandler);
+
+  // // Global unhandled promise rejection handler
+  // process.on('unhandledRejection', handleUnhandledRejection);
+  
+  // // Global uncaught exception handler
+  // process.on('uncaughtException', handleUncaughtException);
+
   return { app };
 };
 
