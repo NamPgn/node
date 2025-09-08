@@ -25,6 +25,8 @@ import {
   addMultipleEpisodes,
   editVoiceOverBySlugController,
   getVoiceOverBySlugController,
+  uploadProductThumbnail,
+  updateProductThumbnail,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -190,6 +192,24 @@ router.post(
 
 router.post(ROUTES.PRODUCTS.CLEAR_REDIS, clearCacheRedisAndQueue);
 router.get(ROUTES.PRODUCTS.EXPORT_EXCEL, exportDataToExcel);
+router.post(
+  "/product/:id/thumbnail/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  uploadServer.single("file"),
+  uploadProductThumbnail
+);
+router.put(
+  "/product/:id/thumbnail/:userId",
+  checkToken,
+  requiredSignin,
+  isAuth,
+  isAdmin,
+  uploadServer.single("file"),
+  updateProductThumbnail
+);
 router.post(ROUTES.PRODUCTS.EDIT_VOICE_OVER, [
   checkToken,
   requiredSignin,

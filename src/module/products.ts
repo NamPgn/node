@@ -97,7 +97,9 @@ const productSchema = new Schema(
     voiceOverLink2: {
       type: String,
     },
- 
+    thumnail: {
+      type: String
+    }
   },
   { timestamps: true, validateBeforeSave: false }
 );

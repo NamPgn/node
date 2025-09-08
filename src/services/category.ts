@@ -67,7 +67,7 @@ export const getCategory = async (id) => {
     .populate({
       path: "products",
       model: "Products",
-      select: "seri isApproved slug",
+      select: "seri isApproved slug thumnail",
     })
     .populate({
       path: "week",

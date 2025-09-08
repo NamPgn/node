@@ -274,30 +274,6 @@ export const delProduct = async (req, res, next) => {
       // Sản phẩm không tồn tại
       return res.status(404).json({ message: "Product not found." });
     }
-    // await RealtimeService.notifyProductCreate(deletedProduct._id.toString());
-    // Xóa tệp video từ Firebase Storage
-    // const videoFileName = deletedProduct.link
-    //   .split("/")
-    //   .pop()
-    //   .split("?alt=media")[0]; // Lấy tên tệp video từ URL
-    // const videoFile = admin.storage().bucket(bucketName).file(videoFileName);
-    // if (videoFile) {
-    //   await videoFile.delete();
-    // }
-
-    // // Xóa tệp hình ảnh từ Firebase Storage
-    // const imageFileName = deletedProduct.image
-    //   .split(`/`)
-    //   .pop()
-    //   .split("?alt=media")[0]; // Lấy tên tệp hình ảnh từ URL
-    // const decodedImage = decodeURIComponent(imageFileName).split("/")[1]; //
-    // const imageFile = admin
-    //   .storage()
-    //   .bucket(bucketName)
-    //   .file(`${folderName}/${decodedImage}`); //còn thằng này không có folder mà lấy chay nên phải lấy ra thằng cuối cùng .
-    // if (decodedImage) {
-    //   await imageFile.delete();
-    // }
 
     if (deletedProduct.typeId) {
       await Types.findByIdAndUpdate(deletedProduct.typeId, {
@@ -337,7 +313,21 @@ export const delProduct = async (req, res, next) => {
       await incrementCategoryVersion(category_id._id);
     }
 
-    cloudinary.uploader.destroy(deletedProduct.image);
+    // Destroy product image if stored as Cloudinary public_id (fallback if URL)
+    try {
+      const destroyIfUrl = (url?: string) => {
+        if (!url) return;
+        // If url seems like a Cloudinary URL, derive public_id (with folder)
+        // Example: https://res.cloudinary.com/<cloud>/image/upload/v1699999/folder/name.webp
+        const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.[a-zA-Z0-9]+$/);
+        const publicId = match ? match[1] : undefined;
+        cloudinary.uploader.destroy(publicId || url);
+      };
+      destroyIfUrl(deletedProduct.thumnail);
+      destroyIfUrl(deletedProduct.image);
+    } catch (e) {
+      // ignore cloudinary cleanup errors
+    }
     const data = await deleteProduct(id);
 
     return res.json({
@@ -954,6 +944,44 @@ export const approveMultipleMovies = async (req, res) => {
   }
 };
 
+export const uploadProductThumbnail = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const file = (req as any).file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: "File is required" });
+    }
+
+    cloudinary.uploader.upload(
+      file.path,
+      {
+        folder: "episode-thumbnails",
+        public_id: file.originalname,
+        overwrite: true,
+        crop: "fill",
+        format: "webp",
+      },
+      async (error: any, result: any) => {
+        if (error) {
+          return res.status(500).json(error);
+        }
+
+        const updated = await Products.findByIdAndUpdate(
+          id,
+          { $set: { thumnail: result.secure_url || result.url } },
+          { new: true }
+        ).exec();
+
+        return res.status(200).json({ success: true });
+      }
+    );
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateProductThumbnail = uploadProductThumbnail;
+
 export const autoAddProduct = async (req, res) => {
   try {
     const weeks = await weekCategory.find().select("name").sort({ name: 1 });
@@ -1173,7 +1201,7 @@ export const editVoiceOverBySlugController = async (req, res) => {
     const data: any = await addVoiceOverBySlug(req.params.slug, voiceOverLink, voiceOverLink2);
     await incrementCategoryVersion(data.category._id);
     redisDel(`${data.slug}`);
-    redisDel(`category${data.category._id}`); 
+    redisDel(`category${data.category._id}`);
     return res.status(200).json({ success: true, message: "Voice over added successfully", data });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
