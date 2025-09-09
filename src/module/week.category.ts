@@ -10,12 +10,6 @@ const weekSchema = new mongoose.Schema({
       ref: "Category",
     }
   ],
-  products:[
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Products",
-    }
-  ]
 });
 
 export default mongoose.model('Week', weekSchema);

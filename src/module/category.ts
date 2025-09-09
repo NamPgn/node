@@ -36,10 +36,12 @@ const categorySchema = new mongoose.Schema(
     type: {
       type: String,
     },
-    week: {
-      type: mongoose.Types.ObjectId,
-      ref: "Week",
-    },
+    week: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "Week",
+      },
+    ],
     up: {
       type: Number,
     },

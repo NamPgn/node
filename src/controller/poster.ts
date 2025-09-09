@@ -10,6 +10,7 @@ interface CreatePosterRequest {
   title?: string;
   alt?: string;
   aspect?: "1:1" | "16:9" | "4:3" | "3:2" | "21:9" | "9:16" | "2:3";
+  coverPoster?: "cover" | "poster";
 }
 
 interface UpdatePosterRequest {
@@ -18,6 +19,7 @@ interface UpdatePosterRequest {
   alt?: string;
   isActive?: boolean;
   aspect?: "1:1" | "16:9" | "4:3" | "3:2" | "21:9" | "9:16" | "2:3";
+  coverPoster?: "cover" | "poster";
 }
 
 // Validation helpers
@@ -32,7 +34,7 @@ const validateCategory = async (categoryId: string): Promise<boolean> => {
 
 export const createPoster = async (req: any, res: any) => {
   try {
-    const { category, title, alt, aspect } = req.body as CreatePosterRequest;
+    const { category, title, alt, aspect, coverPoster } = req.body as CreatePosterRequest;
 
     // Validation
     if (!req.file) {
@@ -65,7 +67,18 @@ export const createPoster = async (req: any, res: any) => {
     
     try {
       await session.withTransaction(async () => {
-        poster = await Poster.create([{ category, title, alt, imageUrl, publicId, aspect: aspect || "16:9" }], { session });
+        // If this poster should be the cover, demote other posters in the same category first
+        if (coverPoster === "cover") {
+          await Poster.updateMany(
+            { category },
+            { $set: { coverPoster: "poster" } },
+            { session }
+          );
+        }
+
+        poster = await Poster.create([
+          { category, title, alt, imageUrl, publicId, aspect: aspect || "16:9", coverPoster: coverPoster || "poster" }
+        ], { session });
         await Category.findByIdAndUpdate(
           category, 
           { $push: { posters: poster[0]._id } },
@@ -223,7 +236,7 @@ export const getPosterById = async (req: Request, res: Response) => {
 export const updatePoster = async (req: any, res: any) => {
   try {
     const { id } = req.params;
-    const { category, title, alt, isActive, aspect } = req.body as UpdatePosterRequest;
+    const { category, title, alt, isActive, aspect, coverPoster } = req.body as UpdatePosterRequest;
 
     if (!validateObjectId(id)) {
       return res.status(400).json({ message: "Poster ID không hợp lệ" });
@@ -288,6 +301,18 @@ export const updatePoster = async (req: any, res: any) => {
         if (typeof alt !== "undefined") poster.alt = alt;
     if (typeof isActive !== "undefined") poster.isActive = isActive;
     if (typeof aspect !== "undefined") poster.aspect = aspect as any;
+
+        // Handle coverPoster change ensuring only one cover per category
+        if (typeof coverPoster !== "undefined") {
+          if (coverPoster === "cover") {
+            await Poster.updateMany(
+              { category: poster.category, _id: { $ne: poster._id } },
+              { $set: { coverPoster: "poster" } },
+              { session }
+            );
+          }
+          poster.coverPoster = coverPoster as any;
+        }
 
         await poster.save({ session });
       });

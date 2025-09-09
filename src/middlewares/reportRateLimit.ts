@@ -19,8 +19,8 @@ const getClientIp = (req: Request): any => {
 
 // Rate limiter cho IP
 export const ipRateLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 2, // Giới hạn 2 request/IP/24h
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 2,
   keyGenerator: (req: Request) => getClientIp(req),
   message: {
     message: "Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau 24h",

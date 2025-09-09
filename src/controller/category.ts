@@ -254,13 +254,18 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             tags: tags,
           };
           const cate = await addCategory(newDt);
-          await WeekCategory.findByIdAndUpdate(cate.week, {
-            $addToSet: { category: cate._id },
-          });
+          // week now can be an array of week ids
+          const weekIds = Array.isArray(cate.week) ? cate.week : (cate.week ? [cate.week] : []);
+          if (weekIds.length > 0) {
+            await WeekCategory.updateMany(
+              { _id: { $in: weekIds } },
+              { $addToSet: { category: cate._id } }
+            );
+          }
           if (tags && tags.length > 0) {
             await Tags.updateMany(
               { _id: { $in: tags } },
-              { $pull: { categories: cate._id } }
+              { $addToSet: { categories: cate._id } }
             );
           }
 
@@ -271,7 +276,14 @@ export const addCt = async (req: MulterRequest, res: Response) => {
         }
       );
     } else {
-      await addCategory({ ...req.body, slug: slugify(name) });
+      const cate = await addCategory({ ...req.body, slug: slugify(name) });
+      const weekIds = Array.isArray(cate.week) ? cate.week : (cate.week ? [cate.week] : []);
+      if (weekIds.length > 0) {
+        await WeekCategory.updateMany(
+          { _id: { $in: weekIds } },
+          { $addToSet: { category: cate._id } }
+        );
+      }
       return res.status(200).json({
         success: true,
         message: "Added product successfully",
@@ -316,6 +328,38 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
+
+    const syncTags = async () => {
+      const prevTagIds = Array.isArray(findById.tags)
+        ? findById.tags
+        : findById.tags
+          ? [findById.tags]
+          : [];
+      const newTagIds = Array.isArray(tags) ? tags : tags ? [tags] : [];
+
+      // Remove category from old tags that are no longer selected
+      const tagsToRemove = prevTagIds.filter(
+        (tagId: any) => !newTagIds.some((n: any) => String(n) === String(tagId))
+      );
+      // Add category to new tags
+      const tagsToAdd = newTagIds.filter(
+        (tagId: any) => !prevTagIds.some((o: any) => String(o) === String(tagId))
+      );
+
+      if (tagsToRemove.length > 0) {
+        await Tags.updateMany(
+          { _id: { $in: tagsToRemove } },
+          { $pull: { categories: findById._id } }
+        );
+      }
+      if (tagsToAdd.length > 0) {
+        await Tags.updateMany(
+          { _id: { $in: tagsToAdd } },
+          { $addToSet: { categories: findById._id } }
+        );
+      }
+    };
+
     if (file) {
       cloudinary.uploader.upload(
         file.path,
@@ -331,6 +375,11 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
             return res.status(500).json(error);
           }
           const secureUrl = result.url.replace("http://", "https://");
+          const prevWeekIds = Array.isArray(findById.week)
+            ? findById.week
+            : findById.week
+              ? [findById.week]
+              : [];
           findById.name = name;
           findById.des = des;
           findById.week = week;
@@ -356,19 +405,22 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           // Lưu category trước
           await findById.save();
 
-          // Cập nhật week category
-          if (findById.week !== week) {
-            // Nếu week thay đổi, xóa category khỏi week cũ
-            if (findById.week) {
-              await WeekCategory.findByIdAndUpdate(findById.week, {
-                $pull: { category: findById._id }
-              });
-            }
-            // Thêm category vào week mới
-            await WeekCategory.findByIdAndUpdate(week, {
-              $addToSet: { category: findById._id }
-            });
+          // Sync week categories when weeks change (arrays)
+          const newWeekIds = Array.isArray(week) ? week : week ? [week] : [];
+          const toRemove = prevWeekIds.filter(
+            (wId: any) => !newWeekIds.some((n: any) => String(n) === String(wId))
+          );
+          const toAdd = newWeekIds.filter(
+            (wId: any) => !prevWeekIds.some((o: any) => String(o) === String(wId))
+          );
+          if (toRemove.length > 0) {
+            await WeekCategory.updateMany(
+              { _id: { $in: toRemove } },
+              { $pull: { category: findById._id } }
+            );
           }
+          await syncTags();
+
 
           if (tags && tags.length > 0) {
             await Tags.updateMany(
@@ -384,6 +436,11 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
         }
       );
     } else {
+      const prevWeekIds2 = Array.isArray(findById.week)
+        ? findById.week
+        : findById.week
+          ? [findById.week]
+          : [];
       findById.name = name;
       findById.des = des;
       findById.week = week;
@@ -407,25 +464,27 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.tags = tags;
       await findById.save();
 
-      if (tags && tags.length > 0) {
-        await Tags.updateMany(
-          { _id: { $in: tags } },
-          { $pull: { categories: findById._id } }
+      await syncTags();
+
+      // Sync week categories when weeks change (arrays)
+      const newWeekIds2 = Array.isArray(week) ? week : week ? [week] : [];
+      const toRemove2 = prevWeekIds2.filter(
+        (wId: any) => !newWeekIds2.some((n: any) => String(n) === String(wId))
+      );
+      const toAdd2 = newWeekIds2.filter(
+        (wId: any) => !prevWeekIds2.some((o: any) => String(o) === String(wId))
+      );
+      if (toRemove2.length > 0) {
+        await WeekCategory.updateMany(
+          { _id: { $in: toRemove2 } },
+          { $pull: { category: findById._id } }
         );
       }
-
-      // Cập nhật week category
-      if (findById.week !== week) {
-        // Nếu week thay đổi, xóa category khỏi week cũ
-        if (findById.week) {
-          await WeekCategory.findByIdAndUpdate(findById.week, {
-            $pull: { category: findById._id }
-          });
-        }
-        // Thêm category vào week mới
-        await WeekCategory.findByIdAndUpdate(week, {
-          $addToSet: { category: findById._id }
-        });
+      if (toAdd2.length > 0) {
+        await WeekCategory.updateMany(
+          { _id: { $in: toAdd2 } },
+          { $addToSet: { category: findById._id } }
+        );
       }
 
       return res.status(200).json({

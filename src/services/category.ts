@@ -32,14 +32,24 @@ export const getAllCategory = async (page: number, limit: number, search?: strin
   if (page === 0 && limit === 0) {
     return await Category.find(query)
       .select(selectFields)
-      .sort({ up: -1 });
+      .sort({ up: -1 })
+      .populate({
+        path: "week",
+        model: "Week",
+        select: "name -_id",
+      });
   } else {
     const skip = (page - 1) * limit;
     return await Category.find(query)
       .select(selectFields)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate({
+        path: "week",
+        model: "Week",
+        select: "name -_id",
+      });
   }
 };
 
@@ -62,7 +72,7 @@ export const getCategoriesSitemap = async () => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id })
     .select(
-      "name linkImg sumSeri year time lang quality slug country des up isMovie hour anotherName relatedSeasons newMovie status thuyetMinh posters"
+      "name linkImg sumSeri year time lang quality slug country des up isMovie hour anotherName relatedSeasons newMovie status thuyetMinh"
     )
     .populate({
       path: "products",
@@ -82,7 +92,7 @@ export const getCategory = async (id) => {
     .populate({
       path: "posters",
       model: "Poster",
-      select: "imageUrl _id aspect",
+      select: "imageUrl _id aspect coverPoster",
     })
     .populate({
       path: "combiningEpisodes",

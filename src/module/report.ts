@@ -8,10 +8,6 @@ const reportSchema = new Schema(
       ref: "Products",
       required: true
     },
-    reaction: {
-      type: String,
-      required: true
-    },
     comment: {
       type: String,
     },

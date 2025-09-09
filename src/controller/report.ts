@@ -1,13 +1,21 @@
 import { Request, Response } from "express";
 import Report from "../module/report";
 import Products from "../module/products";
+import { Types } from "mongoose";
 // Create a new report
 export const createReport = async (req: Request, res: Response) => {
   try {
-    const { productId, reaction, comment } = req.body;
+    const { productId, comment } = req.body as { productId: string; comment?: string };
 
-    // Kiểm tra xem product có tồn tại không
-    const product = await Products.findById(productId);
+    // Kiểm tra xem product có tồn tại không (chấp nhận slug hoặc ObjectId)
+    let product: any = null;
+    if (productId) {
+      if (Types.ObjectId.isValid(productId)) {
+        product = await Products.findById(productId).select("_id");
+      } else {
+        product = await Products.findOne({ slug: productId }).select("_id");
+      }
+    }
     if (!product) {
       return res.status(404).json({
         message: "Không tìm thấy phim",
@@ -44,8 +52,7 @@ export const createReport = async (req: Request, res: Response) => {
 
     // Tạo report mới
     const report = await Report.create({
-      product: productId,
-      reaction,
+      product: product._id,
       comment,
       ipAddress,
       userAgent,
@@ -59,7 +66,7 @@ export const createReport = async (req: Request, res: Response) => {
     });
 
     res.status(201).json({
-      message: "Báo cáo đã được gửi",
+      message: "Báo cáo đã được gửi, cảm ơn bạn!",
       success: true,
       data: report
     });
@@ -117,7 +124,6 @@ export const getAllReports = async (req: Request, res: Response) => {
     if (search) {
       query.$or = [
         { comment: { $regex: search, $options: 'i' } },
-        { reaction: { $regex: search, $options: 'i' } }
       ];
     }
 
