@@ -9,7 +9,6 @@ import { cacheData, cacheDataWithVersion, clearRelatedCache, getDataFromCache, g
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
-import CryptoJS from "crypto-js";
 import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
 import { Queue, Worker } from "bullmq";
@@ -149,13 +148,7 @@ export const addProduct = async (req, res) => {
             typeId: typeId || undefined,
             year: year,
             country: country,
-            dailyMotionServer:
-              dailyMotionServer !== ""
-                ? CryptoJS.AES.encrypt(
-                  dailyMotionServer,
-                  process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-                ).toString()
-                : "",
+            dailyMotionServer: dailyMotionServer,
             trailer: trailer,
             voiceOverLink: voiceOverLink,
             voiceOverLink2: voiceOverLink2,
@@ -212,13 +205,7 @@ export const addProduct = async (req, res) => {
         LinkCopyright: LinkCopyright,
         year: year,
         country: country,
-        dailyMotionServer:
-          dailyMotionServer !== ""
-            ? CryptoJS.AES.encrypt(
-              dailyMotionServer,
-              process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-            ).toString()
-            : "",
+        dailyMotionServer: dailyMotionServer,
         video2: video2,
         trailer: trailer,
         voiceOverLink: voiceOverLink,
@@ -368,13 +355,10 @@ export const editProduct = async (req, res, next) => {
       server2,
 
     } = req.body;
-    // const data = await editProductSevices(_id, dataEdit);
     const findById = await Products.findById(id);
-    const decode = CryptoJS.AES.decrypt(
-      findById.dailyMotionServer,
-      process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-    ).toString(CryptoJS.enc.Utf8);
-    // Kiểm tra sản phẩm có tồn tại trong CSDL hay không
+ 
+    
+    
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
@@ -409,18 +393,9 @@ export const editProduct = async (req, res, next) => {
           findById.category = category;
           findById.typeId = typeId;
           findById.trailer = trailer;
-
           findById.slug = slug;
-          if (dailyMotionServer === "") {
-            findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
-          } else {
-            findById.dailyMotionServer = CryptoJS.AES.encrypt(
-              dailyMotionServer,
-              process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-            ).toString();
-          }
+          findById.dailyMotionServer = dailyMotionServer;
           const data = await findById.save();
-
           await productsQueue.remove(findById.slug);
           const category_id = await Category.findOne({
             _id: data.category,
@@ -503,25 +478,10 @@ export const editProduct = async (req, res, next) => {
       findById.link = link;
       findById.slug = slug;
       findById.server2 = server2;
-
-      if (dailyMotionServer === "") {
-        findById.dailyMotionServer = dailyMotionServer; // Gán giá trị trực tiếp
-      } else {
-        findById.dailyMotionServer = CryptoJS.AES.encrypt(
-          dailyMotionServer,
-          process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-        ).toString();
-      }
-      // await Category.findOneAndUpdate(
-      //   { _id: findById.category },
-      //   { latestProductUploadDate: new Date() },
-      //   { new: true }
-      // );
+      findById.dailyMotionServer = dailyMotionServer;
       await productsQueue.remove(findById.slug);
       redisDel(findById.slug);
-
       const data = await findById.save();
-      // await RealtimeService.notifyProductUpdate(findById._id.toString());
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -907,11 +867,7 @@ export const editMultipleMovies = async (req, res) => {
     for (const id of arrId) {
       const product = await Products.findById(id).select("dailyMotionServer");
       if (product) {
-        const encode = CryptoJS.AES.encrypt(
-          product.dailyMotionServer,
-          process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-        ).toString();
-        await Products.findByIdAndUpdate(id, { dailyMotionServer: encode });
+        await Products.findByIdAndUpdate(id, { dailyMotionServer: product.dailyMotionServer });
       }
     }
     return res.status(200).json({
@@ -1161,13 +1117,7 @@ export const addMultipleEpisodes = async (req, res) => {
         view,
         country,
         trailer,
-        dailyMotionServer:
-          dailyMotionServer !== ""
-            ? CryptoJS.AES.encrypt(
-              dailyMotionServer,
-              process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER
-            ).toString()
-            : "",
+        dailyMotionServer:dailyMotionServer,
       };
 
       const data: any = await Products.create(dataAdd);
