@@ -380,6 +380,113 @@ export const deletePoster = async (req: Request, res: Response) => {
   }
 };
 
+// Bulk upload multiple posters
+export const bulkCreatePosters = async (req: any, res: any) => {
+  try {
+    const { category, aspect, coverPoster } = req.body;
+    const files = req.files as Express.Multer.File[];
+
+    // Validation
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: "Vui lòng chọn ít nhất một ảnh!" });
+    }
+    if (!category) {
+      return res.status(400).json({ message: "Thiếu category" });
+    }
+    if (!validateObjectId(category)) {
+      return res.status(400).json({ message: "Category ID không hợp lệ" });
+    }
+
+    // Check if category exists
+    const categoryExists = await validateCategory(category);
+    if (!categoryExists) {
+      return res.status(404).json({ message: "Category không tồn tại" });
+    }
+
+    // Limit number of files
+    if (files.length > 10) {
+      return res.status(400).json({ message: "Chỉ được tải lên tối đa 10 ảnh cùng lúc" });
+    }
+
+    const dims = getDimensionsByAspect(aspect);
+    const results = [];
+    const errors = [];
+
+    // Use transaction for data consistency
+    const session = await Poster.startSession();
+    
+    try {
+      await session.withTransaction(async () => {
+        // If this should be cover, demote other posters in the same category first
+        if (coverPoster === "cover") {
+          await Poster.updateMany(
+            { category },
+            { $set: { coverPoster: "poster" } },
+            { session }
+          );
+        }
+
+        // Process each file
+        for (let i = 0; i < files.length; i++) {
+          try {
+            const file = files[i];
+            
+            // Upload image with optimized settings for posters
+            const { url: imageUrl, publicId } = await uploadImageToCloudinaryWithInfo(
+              file,
+              "posters",
+              dims
+            );
+
+            // Create poster
+            const poster = await Poster.create([{
+              category,
+              title: `Poster ${i + 1}`,
+              alt: `Poster ${i + 1}`,
+              imageUrl,
+              publicId,
+              aspect: aspect || "16:9",
+              coverPoster: i === 0 && coverPoster === "cover" ? "cover" : "poster"
+            }], { session });
+
+            // Update category
+            await Category.findByIdAndUpdate(
+              category, 
+              { $push: { posters: poster[0]._id } },
+              { session }
+            );
+
+            results.push(poster[0]);
+          } catch (fileError: any) {
+            console.error(`Error processing file ${i + 1}:`, fileError);
+            errors.push({
+              fileIndex: i + 1,
+              fileName: files[i].originalname,
+              error: fileError.message
+            });
+          }
+        }
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return res.status(201).json({ 
+      data: results,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Tạo thành công ${results.length} poster${errors.length > 0 ? `, ${errors.length} lỗi` : ''}`,
+      successCount: results.length,
+      errorCount: errors.length
+    });
+  } catch (error: any) {
+    console.error("Bulk create posters error:", error);
+    return res.status(500).json({ 
+      message: "Lỗi server", 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
+  }
+};
+
 // Bulk operations for admin
 export const bulkUpdatePosters = async (req: Request, res: Response) => {
   try {

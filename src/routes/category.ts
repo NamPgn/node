@@ -23,6 +23,7 @@ import {
   getRecycleBin,
   restoreCategory,
   permanentlyDeleteCategory,
+  changeIsActiveCategory,
 } from "../controller/category";
 import {
   checkToken,
@@ -146,6 +147,18 @@ router.delete(
     isSuperAdmin
   ],
   permanentlyDeleteCategory
+);
+
+router.post(
+  ROUTES.CATEGORY.CHANGE_IS_ACTIVE,
+  [
+    checkToken,
+    requiredSignin,
+    isAuth,
+    isAdmin,
+    isSuperAdmin
+  ],
+  changeIsActiveCategory
 );
 
 // Param middleware

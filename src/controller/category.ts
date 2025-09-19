@@ -696,6 +696,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
             anotherName: 1,
             thuyetMinh: 1,
             newMovie: 1,
+            isActive: 1,
           }
         }
       ]);
@@ -1003,6 +1004,26 @@ export const permanentlyDeleteCategory = async (req: Request, res: Response) => 
     return res.json({
       success: true,
       message: "Category permanently deleted"
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const changeIsActiveCategory = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const { isActive } = req.body;
+    const data = await Category.findOneAndUpdate({ slug }, { isActive });
+    if (data) {
+      await redisDel(`categorys_all`);
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Category isActive changed successfully"
     });
   } catch (error) {
     return res.status(400).json({

@@ -26,9 +26,8 @@ export const getAllCategory = async (page: number, limit: number, search?: strin
     year: 1,
     up: 1,
     week: 1,
-   
+    isActive: 1,
   };
-
   if (page === 0 && limit === 0) {
     return await Category.find(query)
       .select(selectFields)

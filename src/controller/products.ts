@@ -353,16 +353,11 @@ export const editProduct = async (req, res, next) => {
       view,
       slug,
       server2,
-
     } = req.body;
     const findById = await Products.findById(id);
- 
-    
-    
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
-
 
     if (file) {
       cloudinary.uploader.upload(
