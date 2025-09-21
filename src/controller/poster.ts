@@ -384,7 +384,7 @@ export const deletePoster = async (req: Request, res: Response) => {
 export const bulkCreatePosters = async (req: any, res: any) => {
   try {
     const { category, aspect, coverPoster } = req.body;
-    const files = req.files as Express.Multer.File[];
+    const files = req.files;
 
     // Validation
     if (!files || files.length === 0) {
