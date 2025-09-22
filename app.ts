@@ -9,15 +9,13 @@ const port = process.env.PORT_LOCAL || 8080;
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 2000,
   message: {
     error: "Too many requests from this IP, please try again later"
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-
 
 const startServer = async () => {
   try {

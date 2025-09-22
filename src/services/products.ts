@@ -47,7 +47,7 @@ export const getOneEpisode = async (id) => {
         {
           path: "products",
           model: "Products",
-          select: "seri slug -_id",
+          select: "seri slug -_id thumnail",
         },
         {
           path: "combiningEpisodes",

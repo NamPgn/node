@@ -580,7 +580,7 @@ export const searchCategory = async (req: Request, res: Response) => {
     // }
 
     const data = await Category.find(query)
-      .select("name linkImg lang quality slug year time anotherName")
+      .select("name linkImg lang quality slug year time anotherName isActive")
       .sort({ up: -1 });
     return res.status(200).json(data);
   } catch (error) {
