@@ -779,60 +779,220 @@ export const searchProducts = async (req: Request, res: Response) => {
 
 export const uploadXlxsProducts = async (req, res, next) => {
   try {
+    // Validate request data
     const { selectedSheets } = req.body;
-    let path = req.file.path;
-    var workBok = XLSX.readFile(path);
-    var sheet_name_list = workBok.SheetNames; //lấy ra cái tên
-    let jsonData: any = XLSX.utils.sheet_to_json(
-      //về dạng json
-      workBok.Sheets[sheet_name_list[Number(selectedSheets)]] //lấy cái bảng đầu tiên
-    );
-    if (jsonData.length == 0) {
-      //kiểm tra neus không có gì thì cút
-      return res.json({
-        message: "Not data",
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Không tìm thấy file Excel"
       });
     }
 
-    jsonData.map(async (item) => {
-      if (typeof item.category === "string") {
-        return [
-          ...jsonData,
-          (item.category = mongoose.Types.ObjectId.createFromHexString(
-            item.category
-          )),
-          (item.slug = `${slugify(item.name)}-episode-${item.seri}`),
-        ];
+    if (!selectedSheets || isNaN(Number(selectedSheets))) {
+      return res.status(400).json({
+        success: false,
+        message: "Index sheet không hợp lệ"
+      });
+    }
+
+    // Read Excel file
+    const filePath = req.file.path;
+    const workbook = XLSX.readFile(filePath);
+    const sheetNames = workbook.SheetNames;
+    
+    // Validate sheet index
+    const sheetIndex = Number(selectedSheets);
+    if (sheetIndex < 0 || sheetIndex >= sheetNames.length) {
+      return res.status(400).json({
+        success: false,
+        message: `Index sheet ${sheetIndex} không tồn tại. Chỉ có ${sheetNames.length} sheet(s)`
+      });
+    }
+
+    // Convert sheet to JSON
+    const jsonData = XLSX.utils.sheet_to_json(
+      workbook.Sheets[sheetNames[sheetIndex]],
+      { 
+        header: 1, // Use first row as header
+        defval: "" // Default value for empty cells
       }
-    });
-    const data = await Products.insertMany(jsonData);
-    for (const movies of data) {
-      const categoryById = await Category.findById(movies.category);
-      if (categoryById) {
-        await Category.findOneAndUpdate(
-          { _id: categoryById._id },
-          { latestProductUploadDate: new Date() },
-          { new: true }
-        );
-        await Category.findByIdAndUpdate(categoryById._id, {
-          $addToSet: { products: movies._id },
+    );
+
+    if (!jsonData || jsonData.length <= 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Không có dữ liệu trong sheet được chọn"
+      });
+    }
+
+    // Process data - skip header row
+    const headers:any = jsonData[0];
+    const dataRows = jsonData.slice(1);
+    
+    // Validate required headers
+    const requiredFields = ['name', 'seri', 'category'];
+    const missingFields = requiredFields.filter(field => !headers.includes(field));
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Thiếu các trường bắt buộc: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Transform data
+    const productsToInsert = [];
+    const errors = [];
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      const rowNumber = i + 2; // +2 because we skip header and arrays are 0-indexed
+      
+      try {
+        // Create row object from headers and data
+        const rowData:any = {};
+        headers.forEach((header, index) => {
+          rowData[header] = row[index] || '';
         });
+
+        // Validate required fields
+        if (!rowData.name || !rowData.seri || !rowData.category) {
+          errors.push(`Dòng ${rowNumber}: Thiếu thông tin bắt buộc (name, seri, category)`);
+          continue;
+        }
+
+        // Validate category ID format
+        if (!mongoose.Types.ObjectId.isValid(rowData.category)) {
+          errors.push(`Dòng ${rowNumber}: Category ID không hợp lệ`);
+          continue;
+        }
+
+        // Check if category exists
+        const categoryExists = await Category.findById(rowData.category);
+        if (!categoryExists) {
+          errors.push(`Dòng ${rowNumber}: Category không tồn tại`);
+          continue;
+        }
+
+        // Generate slug
+        const slug = `${slugify(rowData.name)}-episode-${rowData.seri}`;
+        
+        // Check for duplicate slug
+        const existingProduct = await Products.findOne({ slug });
+        if (existingProduct) {
+          errors.push(`Dòng ${rowNumber}: Sản phẩm với slug '${slug}' đã tồn tại`);
+          continue;
+        }
+
+        // Prepare product data
+        const productData = {
+          name: rowData.name.trim(),
+          seri: rowData.seri.toString().trim(),
+          category: mongoose.Types.ObjectId.createFromHexString(rowData.category),
+          slug: slug,
+          // Optional fields with defaults
+          description: rowData.description || '',
+          image: rowData.image || '',
+          videoUrl: rowData.videoUrl || '',
+          dailymotionServer: rowData.dailymotionServer || '',
+          isApproved: rowData.isApproved === 'true' || rowData.isApproved === true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        productsToInsert.push(productData);
+      } catch (rowError) {
+        errors.push(`Dòng ${rowNumber}: ${rowError.message}`);
       }
     }
-    return res.json({
-      message: "Add Movies Success",
-      success: true,
+
+    // If there are validation errors, return them
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Có lỗi trong dữ liệu Excel",
+        errors: errors
+      });
+    }
+
+    // If no valid products to insert
+    if (productsToInsert.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Không có sản phẩm hợp lệ để thêm"
+      });
+    }
+
+    // Insert products
+    const insertedProducts = await Products.insertMany(productsToInsert, {
+      ordered: false // Continue inserting even if some fail
     });
+
+    // Update categories
+    const categoryUpdates = new Map();
+    
+    for (const product of insertedProducts) {
+      if (!categoryUpdates.has(product.category.toString())) {
+        categoryUpdates.set(product.category.toString(), []);
+      }
+      categoryUpdates.get(product.category.toString()).push(product._id);
+    }
+
+    // Batch update categories
+    for (const [categoryId, productIds] of categoryUpdates) {
+      await Category.findByIdAndUpdate(
+        categoryId,
+        {
+          $addToSet: { products: { $each: productIds } },
+          latestProductUploadDate: new Date()
+        },
+        { new: true }
+      );
+    }
+
+    // Clean up uploaded file
+    try {
+      const fs = require('fs');
+      fs.unlinkSync(filePath);
+    } catch (cleanupError) {
+      console.warn('Không thể xóa file tạm:', cleanupError.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Thêm thành công ${insertedProducts.length} sản phẩm từ Excel`,
+      data: {
+        inserted: insertedProducts.length,
+        totalRows: dataRows.length,
+        skipped: dataRows.length - insertedProducts.length
+      }
+    });
+
   } catch (error) {
-    return res.status(400).json({
-      message: error.message,
+    console.error('Excel upload error:', error);
+    
+    // Clean up file on error
+    if (req.file && req.file.path) {
+      try {
+        const fs = require('fs');
+        fs.unlinkSync(req.file.path);
+      } catch (cleanupError) {
+        console.warn('Không thể xóa file tạm sau lỗi:', cleanupError.message);
+      }
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server khi xử lý file Excel",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
 
 export const clearCacheProducts = async (req, res) => {
   try {
-    const key = "products";
+    const key = "products_page_1_no-cat_no-seri";
     redisDel(key);
     return res.json({
       suscess: true,

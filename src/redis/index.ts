@@ -197,6 +197,16 @@ export const getDataWithVersion = async (key: string, categoryId: any) => {
 //   console.log("Connected to Redis");
 // });
 
+export async function redisKeys(pattern: string): Promise<string[]> {
+  try {
+    const keys = await redisClient.keys(pattern);
+    return keys || [];
+  } catch (error) {
+    console.error('Redis keys error:', error);
+    return [];
+  }
+}
+
 // redisClient.on("error", (error) => {
 //   console.error("Failed to connect to Redis", error);
 // });

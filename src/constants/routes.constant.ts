@@ -64,7 +64,7 @@ export const ROUTES = {
     DELETE: '/product/:id/:userId',
     ADD: '/product/:userId',
     UPDATE: '/product/:id/:userId',
-    UPLOAD_EXCEL: '/products/creating',
+    UPLOAD_EXCEL: '/products/create/excel',
     DELETE_MULTIPLE: '/products/deleteMultiple/:userId',
     PUSH_TO_TYPES: '/product/pushlist/:id/:userId',
     PUSH_TO_WEEK: '/product/week/:id',

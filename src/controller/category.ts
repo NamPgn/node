@@ -608,10 +608,18 @@ export const push = async (req, res) => {
 
 export const filterCategoryTrending = async (req, res) => {
   try {
-    const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName");
+    const { width = 300, height = 400 } = req.query;
+    
+    const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName isActive");
+
+    // Resize images với kích thước từ client
+    const resizedData = data.map((category: any) => ({
+      ...category.toObject(),
+      linkImg: resizeImageUrl(category.linkImg, parseInt(width as string), parseInt(height as string))
+    }));
 
     return res.json({
-      data: data,
+      data: resizedData,
       success: true,
     });
   } catch (error) {

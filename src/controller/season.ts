@@ -4,6 +4,7 @@ import Category from "../module/category";
 import slugify from "slugify";
 import { cacheData } from "../redis";
 import { getDataFromCache } from "../redis";
+import { resizeImageUrl } from "../utills/resizeImage";
 
 // Get all seasons with their linked categories
 export const getAllSeasons = async (req: Request, res: Response) => {
@@ -334,102 +335,46 @@ export const getSeriesCategories = async (req: Request, res: Response) => {
   try {
     const { seriesId, categoryId } = req.query;
 
-    // Lấy top 5 category (nếu không có seriesId hoặc cần fallback)
-    const getTop5Categories = async (excludeCategoryId?: any) => {
-      const matchQuery = excludeCategoryId
-        ? { _id: { $ne: excludeCategoryId } }
-        : {};
-      return await Category.aggregate([
-        { $match: matchQuery },
-        { $sort: { up: -1 } },
-        { $limit: 5 },
-        {
-          $lookup: {
-            from: "products",
-            localField: "products",
-            foreignField: "_id",
-            as: "products",
-            pipeline: [
-              { $sort: { createdAt: -1 } },
-              { $limit: 1 },
-              { $project: { seri: 1, slug: 1, _id: 0 } },
-            ],
-          },
-        },
-        {
-          $project: {
-            name: 1,
-            anotherName: 1,
-            slug: 1,
-            linkImg: 1,
-            sumSeri: 1,
-            lang: 1,
-            quality: 1,
-            products: 1,
-            isMovie:1
-          },
-        },
-      ]);
-    };
-
-    // Nếu không có seriesId thì return top 5
+    // Nếu không có seriesId thì return empty
     if (!seriesId || seriesId === "undefined") {
-      const topCategories = await getTop5Categories(categoryId);
-      return res.status(200).json({ data: topCategories, success: true });
+      return res.status(200).json({
+        data: [],
+        success: true
+      });
     }
 
     // Lấy series
     const series = await Series.findById(seriesId).lean();
     if (!series) {
-      const topCategories = await getTop5Categories(categoryId);
-      return res.status(200).json({ data: topCategories, success: true });
+      return res.status(200).json({
+        data: [],
+        success: true
+      });
     }
 
-    // Truy vấn categories từ aggregate
-    let categories = await Category.aggregate([
+    // Lấy categories liên quan từ series (chỉ name và slug)
+    let relatedCategories = await Category.aggregate([
       { $match: { _id: { $in: series.categories } } },
       { $sort: { up: -1 } },
       {
-        $lookup: {
-          from: "products",
-          localField: "products",
-          foreignField: "_id",
-          as: "products",
-          pipeline: [
-            { $sort: { createdAt: -1 } },
-            { $limit: 1 },
-            { $project: { seri: 1, slug: 1, _id: 0 } },
-          ],
-        },
-      },
-      {
         $project: {
           name: 1,
-          anotherName: 1,
-          slug: 1,
-          linkImg: 1,
-          sumSeri: 1,
-          lang: 1,
-          quality: 1,
-          products: 1,
+          slug: 1
         },
       },
     ]);
 
     // Nếu có categoryId cần loại bỏ thì filter
     if (categoryId) {
-      categories = categories.filter(
+      relatedCategories = relatedCategories.filter(
         (category: any) => category._id.toString() !== categoryId
       );
-
-      // Nếu filter xong mà hết thì fallback
-      if (categories.length === 0) {
-        const topCategories = await getTop5Categories(categoryId);
-        return res.status(200).json({ data: topCategories, success: true });
-      }
     }
 
-    return res.status(200).json({ data: categories, success: true });
+    return res.status(200).json({
+      data: relatedCategories,
+      success: true
+    });
   } catch (error) {
     console.error("getSeriesCategories error:", error);
     return res
