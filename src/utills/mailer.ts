@@ -3,12 +3,13 @@ export const sendMail = async (mailOptions) => {
   try {
 
     const transporter = NodeMailer.createTransport({
-      service: 'gmail',
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false, 
       auth: {
-        type: "OAuth2",
-        user: process.env.EMAIL, // generated ethereal user
-        pass: process.env.PS, // generated ethereal password
-      }
+        user: "maddison53@ethereal.email",
+        pass: "jn7jnAPss4f63QBp6D",
+      },
     });
     await transporter.sendMail(mailOptions);
 

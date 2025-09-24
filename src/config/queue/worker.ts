@@ -12,7 +12,7 @@ export const categoryWorker = new Worker(
     if (!category) throw new Error("Danh mục không tồn tại " + id);
 
     return {
-      ...category.toObject(),
+      ...category,
       linkImg: resizeImageUrl(category.linkImg, 300, 450),
     };
   },

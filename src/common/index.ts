@@ -1,5 +1,5 @@
 import cloudinary from "../config/cloudinary";
-import { Multer } from "multer";
+import multer from "multer";
 
 export interface CloudinaryUploadInfo {
     url: string;
@@ -7,7 +7,7 @@ export interface CloudinaryUploadInfo {
 }
 
 export const uploadImageToCloudinaryWithInfo = (
-    file: Multer.File,
+    file: Express.Multer.File,
     folderName: string,
     options?: {
         width?: number;
