@@ -2,7 +2,7 @@ import express from "express";
 import "dotenv/config";
 import rateLimit from "express-rate-limit";
 import { connectDatabase } from "./src/config/database";
-import { initializeFirebase } from "./src/config/firebase";
+// import { initializeFirebase } from "./src/config/firebase";
 import { configureExpress } from "./src/config/express";
 import { configureRoutes } from "./src/config/routes";
 const port = process.env.PORT_LOCAL || 8080;
@@ -31,7 +31,7 @@ const startServer = async () => {
     configureRoutes(app);
 
     // Initialize Firebase
-    initializeFirebase();
+    // initializeFirebase();
 
     // Start server
     app.listen(port, () => {
