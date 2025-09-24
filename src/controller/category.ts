@@ -132,7 +132,7 @@ const worker = new Worker(
         throw new Error("Danh mục không tồn tại " + id);
       }
       return {
-        ...category.toObject(),
+        ...category,
         linkImg: resizeImageUrl(category.linkImg, 300, 450),
       };
     } catch (error: any) {

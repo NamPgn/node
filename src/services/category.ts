@@ -1,5 +1,5 @@
 import Category from "../module/category";
-import { resizeImagesUrl } from "../utills/resizeImage";
+import { resizeCloudinaryImage, resizeImagesUrl, resizeImageUrl } from "../utills/resizeImage";
 
 export const getAllCategory = async (page: number, limit: number, search?: string) => {
   let query = {};
@@ -97,7 +97,7 @@ export const getCategory = async (id) => {
       path: "combiningEpisodes",
       model: "combiningEpisodes",
       select: "name slug episodesName link1 link2 link3 -_id",
-    });
+    }).lean();
 
   category?.products?.sort(
     (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)

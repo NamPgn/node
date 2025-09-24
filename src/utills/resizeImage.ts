@@ -31,11 +31,43 @@ export const resizeImageUrl = (
   format: string = "webp"
 ) => {
   if (!image) return image;
-
   const transformedUrl = image.replace(
     /\/upload\/(.*?\/)?/, // Tìm đoạn `/upload/`
     `/upload/w_${width},h_${height},c_fill,f_${format}/`
   );
-
   return transformedUrl;
+};
+
+// Hàm mới để resize ảnh Cloudinary - đơn giản và hiệu quả
+export const resizeCloudinaryImage = (
+  imageUrl: string,
+  width: number,
+  height: number,
+  format: string = "webp"
+): string => {
+  if (!imageUrl || typeof imageUrl !== 'string') {
+    return imageUrl;
+  }
+
+  // Kiểm tra xem có phải URL Cloudinary không
+  if (!imageUrl.includes('cloudinary.com') || !imageUrl.includes('/upload/')) {
+    return imageUrl;
+  }
+
+  // Tách URL thành các phần
+  const parts = imageUrl.split('/upload/');
+  if (parts.length !== 2) {
+    return imageUrl;
+  }
+
+  const baseUrl = parts[0] + '/upload/';
+  const pathAfterUpload = parts[1];
+
+  // Tạo transformation string
+  const transformation = `w_${width},h_${height},c_fill,f_${format}`;
+  
+  // Ghép lại URL với transformation
+  const resizedUrl = `${baseUrl}${transformation}/${pathAfterUpload}`;
+  
+  return resizedUrl;
 };
