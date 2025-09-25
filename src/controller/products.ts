@@ -185,6 +185,13 @@ export const addProduct = async (req, res) => {
                 $addToSet: { products: data.products }, // Sử dụng $addToSet để thêm data.products vào mảng products
               }
             );
+
+            // Xóa cache category khi có product mới
+            const categoryData = await Category.findById(data.category).select('slug');
+            if (categoryData?.slug) {
+              await redisDel(`category_${categoryData.slug}`);
+            }
+            await redisDel("LASTESTCATEGORY");
           }
 
           if (data.categorymain) {
@@ -237,6 +244,12 @@ export const addProduct = async (req, res) => {
           $addToSet: { products: data.products },
         });
 
+        // Xóa cache category khi có product mới
+        const categoryData = await Category.findById(data.category).select('slug');
+        if (categoryData?.slug) {
+          await redisDel(`category_${categoryData.slug}`);
+        }
+        await redisDel("LASTESTCATEGORY");
       }
 
       if (data.categorymain) {
@@ -296,6 +309,12 @@ export const delProduct = async (req, res, next) => {
         $pull: { products: { $in: [id] } }, // tìm tất ca thằng product trong list category có id trùng vs thằng id product
       });
 
+      // Xóa cache category khi product bị xóa
+      const categoryData = await Category.findById(deletedProduct.category).select('slug');
+      if (categoryData?.slug) {
+        await redisDel(`category_${categoryData.slug}`);
+      }
+      await redisDel("LASTESTCATEGORY");
 
       const category_id = await Category.findOne({
         _id: deletedProduct.category,
@@ -418,6 +437,15 @@ export const editProduct = async (req, res, next) => {
           // Xóa cache cũ trước
           redisDel(findById.slug);
           
+          // Xóa cache category khi product được cập nhật
+          if (data.category) {
+            const categoryData = await Category.findById(data.category).select('slug');
+            if (categoryData?.slug) {
+              await redisDel(`category_${categoryData.slug}`);
+            }
+            await redisDel("LASTESTCATEGORY");
+          }
+          
           // Lấy data mới với category để tính toán navigation
           const updatedData = await getOneEpisode(findById.slug);
           const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
@@ -504,6 +532,15 @@ export const editProduct = async (req, res, next) => {
       // Xóa cache cũ trước
       redisDel(findById.slug);
       
+      // Xóa cache category khi product được cập nhật
+      if (findById.category) {
+        const categoryData = await Category.findById(findById.category).select('slug');
+        if (categoryData?.slug) {
+          await redisDel(`category_${categoryData.slug}`);
+        }
+        await redisDel("LASTESTCATEGORY");
+      }
+      
       const data = await findById.save();
       
       // Lấy data mới với category để tính toán navigation
@@ -535,11 +572,26 @@ export const editProduct = async (req, res, next) => {
 export const deleteMultipleProduct = async (req, res) => {
   try {
     const id = req.body;
+    
+    // Lấy danh sách category của các product sẽ bị xóa để xóa cache
+    const productsToDelete = await Products.find({ _id: { $in: id } }).select('category');
+    const categoryIds = [...new Set(productsToDelete.map(p => p.category).filter(Boolean))];
+    
     const data = await Products.remove({
       _id: {
         $in: id,
       },
     });
+    
+    // Xóa cache category cho tất cả category bị ảnh hưởng
+    for (const categoryId of categoryIds) {
+      const categoryData = await Category.findById(categoryId).select('slug');
+      if (categoryData?.slug) {
+        await redisDel(`category_${categoryData.slug}`);
+      }
+    }
+    await redisDel("LASTESTCATEGORY");
+    
     return res.status(200).json({
       success: true,
     });
@@ -1008,12 +1060,27 @@ export const mostWatchesEposides = async (req, res) => {
 export const editMultipleMovies = async (req, res) => {
   try {
     const arrId = req.body;
+    
+    // Lấy danh sách category của các product sẽ được cập nhật để xóa cache
+    const productsToUpdate = await Products.find({ _id: { $in: arrId } }).select('category');
+    const categoryIds = [...new Set(productsToUpdate.map(p => p.category).filter(Boolean))];
+    
     for (const id of arrId) {
       const product = await Products.findById(id).select("dailyMotionServer");
       if (product) {
         await Products.findByIdAndUpdate(id, { dailyMotionServer: product.dailyMotionServer });
       }
     }
+    
+    // Xóa cache category cho tất cả category bị ảnh hưởng
+    for (const categoryId of categoryIds) {
+      const categoryData = await Category.findById(categoryId).select('slug');
+      if (categoryData?.slug) {
+        await redisDel(`category_${categoryData.slug}`);
+      }
+    }
+    await redisDel("LASTESTCATEGORY");
+    
     return res.status(200).json({
       success: true,
       message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -1028,10 +1095,25 @@ export const editMultipleMovies = async (req, res) => {
 export const approveMultipleMovies = async (req, res) => {
   try {
     const id = req.body;
+    
+    // Lấy danh sách category của các product sẽ được approve để xóa cache
+    const productsToApprove = await Products.find({ _id: { $in: id } }).select('category');
+    const categoryIds = [...new Set(productsToApprove.map(p => p.category).filter(Boolean))];
+    
     const data = await Products.updateMany(
       { _id: { $in: id } },
       { $set: { isApproved: true } }
     );
+    
+    // Xóa cache category cho tất cả category bị ảnh hưởng
+    for (const categoryId of categoryIds) {
+      const categoryData = await Category.findById(categoryId).select('slug');
+      if (categoryData?.slug) {
+        await redisDel(`category_${categoryData.slug}`);
+      }
+    }
+    await redisDel("LASTESTCATEGORY");
+    
     return res.status(200).json({
       success: true,
       id: id,
@@ -1071,6 +1153,15 @@ export const uploadProductThumbnail = async (req: Request, res: Response) => {
           { $set: { thumnail: result.secure_url || result.url } },
           { new: true }
         ).exec();
+
+        // Xóa cache category khi thumbnail được cập nhật
+        if (updated?.category) {
+          const categoryData = await Category.findById(updated.category).select('slug');
+          if (categoryData?.slug) {
+            await redisDel(`category_${categoryData.slug}`);
+          }
+          await redisDel("LASTESTCATEGORY");
+        }
 
         return res.status(200).json({ success: true });
       }
@@ -1146,6 +1237,15 @@ export const autoAddProduct = async (req, res) => {
         );
       })
     );
+
+    // Xóa cache category cho tất cả category bị ảnh hưởng
+    for (const categoryId of categoryIds) {
+      const categoryData = await Category.findById(categoryId).select('slug');
+      if (categoryData?.slug) {
+        await redisDel(`category_${categoryData.slug}`);
+      }
+    }
+    await redisDel("LASTESTCATEGORY");
 
     return res.status(200).json({
       success: true,
@@ -1267,6 +1367,15 @@ export const addMultipleEpisodes = async (req, res) => {
         });
       }
       addedMovies.push(data);
+    }
+
+    // Xóa cache category sau khi thêm nhiều episode
+    if (category) {
+      const categoryData = await Category.findById(category).select('slug');
+      if (categoryData?.slug) {
+        await redisDel(`category_${categoryData.slug}`);
+      }
+      await redisDel("LASTESTCATEGORY");
     }
 
     return res.status(200).json({
