@@ -1,0 +1,23 @@
+stages:
+  - deploy
+
+deploy_to_vps:
+  stage: deploy
+  only:
+    - feature/not_queue
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_KEY" | tr -d '\r' | ssh-add -   # add private key
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $SSH_HOST >> ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to VPS..."
+    - ssh -o StrictHostKeyChecking=no $VPS_USER@$SSH_HOST "
+        cd /var/www/node &&
+        git pull origin feature/not_queue &&
+        npm install &&
+        npm run build &&
+        pm2 restart app || pm2 start npm --name app -- run serve
+      "
