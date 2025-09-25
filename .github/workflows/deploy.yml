@@ -1,0 +1,29 @@
+name: Deploy Node.js API to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@3.26.29.195 << 'EOF'
+            cd ~/node   # Thư mục chứa code trên server
+            git pull origin main
+            npm install --production
+            npm run build
+            pm2 restart my-app || pm2 start npm --name "my-app" -- run serve
+          EOF

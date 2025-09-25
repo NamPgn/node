@@ -84,7 +84,8 @@ const categorySchema = new mongoose.Schema(
     lang: {
       type: String,
       default: "Vietsub",
-      enum: ["Vietsub", "ThuyetMinh", "ThuyetMinh-Vietsub"]
+      enum: ["Vietsub", "ThuyetMinh", "ThuyetMinh-Vietsub"],
+      
     },
     quality: {
       type: String,

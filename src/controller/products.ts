@@ -127,6 +127,7 @@ export const addProduct = async (req, res) => {
     } = req.body;
     // const folderName = "image";
     const file = req.file;
+    
     // Kiểm tra quyền hạn của người dùng
     if (file) {
       // const video = req.files["file"][0];
@@ -147,28 +148,37 @@ export const addProduct = async (req, res) => {
           if (error) {
             return res.status(500).json(error);
           }
+          
+          // Chuyển undefined, "undefined", "null" thành chuỗi rỗng
+          const cleanValue = (value: any) => {
+            if (value === undefined || value === null || value === "undefined" || value === "null") {
+              return "";
+            }
+            return value;
+          };
+          
           const dataAdd = {
             // _id: mongoose.Types.ObjectId(),
-            name: name,
-            slug: `${slugify(name)}-episode-${seri}`,
-            category: category || undefined,
-            categorymain: categorymain || undefined,
-            seri: seri || undefined,
-            options: options,
-            descriptions: descriptions,
-            link: video2,
+            name: cleanValue(name),
+            slug: `${slugify(cleanValue(name))}-episode-${cleanValue(seri)}`,
+            category: cleanValue(category) || undefined,
+            categorymain: cleanValue(categorymain) || undefined,
+            seri: cleanValue(seri) || undefined,
+            options: cleanValue(options),
+            descriptions: cleanValue(descriptions),
+            link: cleanValue(video2),
             image: result.url,
             uploadDate: new Date(),
-            view: view,
-            copyright: copyright,
-            LinkCopyright: LinkCopyright,
-            typeId: typeId || undefined,
-            year: year,
-            country: country,
-            dailyMotionServer: dailyMotionServer,
-            trailer: trailer,
-            voiceOverLink: voiceOverLink,
-            voiceOverLink2: voiceOverLink2,
+            view: cleanValue(view),
+            copyright: cleanValue(copyright),
+            LinkCopyright: cleanValue(LinkCopyright),
+            typeId: cleanValue(typeId) || undefined,
+            year: cleanValue(year),
+            country: cleanValue(country),
+            dailyMotionServer: cleanValue(dailyMotionServer),
+            trailer: cleanValue(trailer),
+            voiceOverLink: cleanValue(voiceOverLink),
+            voiceOverLink2: cleanValue(voiceOverLink2),
           };
           // const data = await Approve.create({ products: dataAdd });
           const data: any = await Products.create(dataAdd);
@@ -213,25 +223,33 @@ export const addProduct = async (req, res) => {
         }
       );
     } else {
+      // Chuyển undefined, "undefined", "null" thành chuỗi rỗng
+      const cleanValue = (value: any) => {
+        if (value === undefined || value === null || value === "undefined" || value === "null") {
+          return "";
+        }
+        return value;
+      };
+      
       const dataAdd = {
-        name: name,
-        slug: `${slugify(name)}-episode-${seri}`,
-        category: category || undefined,
-        seri: seri || undefined,
-        options: options,
-        descriptions: descriptions,
-        link: video2,
+        name: cleanValue(name),
+        slug: `${slugify(cleanValue(name))}-episode-${cleanValue(seri)}`,
+        category: cleanValue(category) || undefined,
+        seri: cleanValue(seri) || undefined,
+        options: cleanValue(options),
+        descriptions: cleanValue(descriptions),
+        link: cleanValue(video2),
         uploadDate: new Date(),
-        view: view,
-        copyright: copyright,
-        LinkCopyright: LinkCopyright,
-        year: year,
-        country: country,
-        dailyMotionServer: dailyMotionServer,
-        video2: video2,
-        trailer: trailer,
-        voiceOverLink: voiceOverLink,
-        voiceOverLink2: voiceOverLink2,
+        view: cleanValue(view),
+        copyright: cleanValue(copyright),
+        LinkCopyright: cleanValue(LinkCopyright),
+        year: cleanValue(year),
+        country: cleanValue(country),
+        dailyMotionServer: cleanValue(dailyMotionServer),
+        video2: cleanValue(video2),
+        trailer: cleanValue(trailer),
+        voiceOverLink: cleanValue(voiceOverLink),
+        voiceOverLink2: cleanValue(voiceOverLink2),
       };
       const data: any = await addProduct_(dataAdd);
       if (data.category) {
@@ -1395,7 +1413,6 @@ export const editVoiceOverBySlugController = async (req, res) => {
     const { voiceOverLink, voiceOverLink2 } = req.body;
     const data: any = await addVoiceOverBySlug(req.params.slug, voiceOverLink, voiceOverLink2);
     redisDel(`${data.slug}`);
-    redisDel(`category${data.category._id}`);
     return res.status(200).json({ success: true, message: "Voice over added successfully", data });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
