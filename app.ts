@@ -36,7 +36,7 @@ const startServer = async () => {
     // Start server
     app.listen(port, () => {
       console.log(`
-        🚀 Server is running! Server is running!Server is running!Server is running!Server is running!Server is running!
+        🚀 Server is running hhihihehe
         🔉 Listening on port ${port}
         🛡️  Rate limiting: 100 requests/15min
         📝 Keep track of the logs for any issues
