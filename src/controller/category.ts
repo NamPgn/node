@@ -13,8 +13,6 @@ import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
 import { resizeImagesUrl, resizeImageUrl } from "../utills/resizeImage";
-import { Queue, Worker } from "bullmq";
-import redisClient from "../config/redis.config";
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
@@ -22,14 +20,6 @@ import RecycleBin from "../module/recycle.bin";
 import Tags from "../module/tags.module";
 // import { RealtimeService } from "../services/realtime.service"; 
 
-const myQueue = new Queue("categoryQueue", {
-  connection: redisClient,
-  streams: {
-    events: {
-      maxLen: 1000,
-    },
-  },
-});
 
 interface MulterRequest extends Request {
   file: any;
@@ -121,69 +111,37 @@ export const getAll = async (req: any, res: Response) => {
   }
 };
 
-const worker = new Worker(
-  "categoryQueue",
-  async (job) => {
-    const { id } = job.data;
-    try {
-      const category = await getCategory(id);
-
-      if (!category) {
-        throw new Error("Danh mục không tồn tại " + id);
-      }
-      return {
-        ...category,
-        linkImg: resizeImageUrl(category.linkImg, 300, 450),
-      };
-    } catch (error: any) {
-      console.error(`Error in getCategory: ${error.message}`);
-      throw error;
-    }
-  },
-  {
-    connection: redisClient,
-    concurrency: 2,
-    lockDuration: 60000,
-  }
-);
 
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    // const jobCounter = await redisClient.incr("jobCounter");
-    const job = await myQueue.add(
-      "categoryQueue",
-      {
-        id,
-      },
-      {
-        // jobId: `[${jobCounter.toString()}] | ${id}`,
-        removeOnComplete: {
-          age: 3600,
-          count: 100,
-        },
-        removeOnFail: {
-          age: 24 * 3600,
-        },
-      }
-    );
-    console.log("Đợi category:", id + " " + job.id);
-    const result = await new Promise((resolve, reject) => {
-      worker.on("completed", (job, result) => {
-        resolve(result);
-      });
+    
+    // Check cache trước
+    const redisGetdata = await getDataFromCache(`category_${id}`);
+    if (redisGetdata) {
+      console.log(`Cache hit for category: ${id}`);
+      return res.status(200).json(redisGetdata);
+    }
 
-      worker.on("failed", (job, err) => {
-        reject(new Error(err.message));
-      });
-    });
+    const category = await getCategory(id);
+
+    if (!category) {
+      return res.status(404).json({ message: "Danh mục không tồn tại " + id });
+    }
+
+    const result = {
+      ...category,
+      linkImg: resizeImageUrl(category.linkImg, 300, 450),
+    };
+
+    // Cache lại data mới
+    await cacheData(`category_${id}`, result, "EX", 3600);
 
     return res.status(200).json(result);
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
   }
 };
-worker.setMaxListeners(20);
 
 export const readProductByCategory = async (req: Request, res: Response) => {
   try {
@@ -269,6 +227,10 @@ export const addCt = async (req: MulterRequest, res: Response) => {
             );
           }
 
+          // Xóa cache categories list khi thêm mới
+          await redisDel("categorys_all");
+          await redisDel("categorys_page_1");
+
           return res.status(200).json({
             success: true,
             message: "Added product successfully",
@@ -284,6 +246,11 @@ export const addCt = async (req: MulterRequest, res: Response) => {
           { $addToSet: { category: cate._id } }
         );
       }
+
+      // Xóa cache categories list khi thêm mới
+      await redisDel("categorys_all");
+      await redisDel("categorys_page_1");
+
       return res.status(200).json({
         success: true,
         message: "Added product successfully",
@@ -429,6 +396,21 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
             );
           }
 
+          // Xóa cache cũ
+          await redisDel(`category_${id}`);
+          await redisDel("categorys_all");
+          await redisDel("categorys_page_1");
+
+          // Cache lại data mới
+          const updatedCategory = await getCategory(id);
+          if (updatedCategory) {
+            const result = {
+              ...updatedCategory,
+              linkImg: resizeImageUrl(updatedCategory.linkImg, 300, 450),
+            };
+            await cacheData(`category_${id}`, result, "EX", 3600);
+          }
+
           return res.status(200).json({
             success: true,
             message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -487,6 +469,21 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
         );
       }
 
+      // Xóa cache cũ
+      await redisDel(`category_${id}`);
+      await redisDel("categorys_all");
+      await redisDel("categorys_page_1");
+
+      // Cache lại data mới
+      const updatedCategory = await getCategory(id);
+      if (updatedCategory) {
+        const result = {
+          ...updatedCategory,
+          linkImg: resizeImageUrl(updatedCategory.linkImg, 300, 450),
+        };
+        await cacheData(`category_${id}`, result, "EX", 3600);
+      }
+
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -522,6 +519,11 @@ export const deleteCategoryController = async (req: Request, res: Response) => {
     // Soft delete the category
     category.isDeleted = true;
     await category.save();
+
+    // Xóa cache khi xóa category
+    await redisDel(`category_${id}`);
+    await redisDel("categorys_all");
+    await redisDel("categorys_page_1");
 
     return res.json({
       success: true,

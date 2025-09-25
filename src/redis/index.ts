@@ -1,5 +1,4 @@
 import redisClient from "../config/redis.config";
-import { productsQueue } from "../controller/products";
 import Products from "../module/products";
 
 
@@ -117,56 +116,56 @@ const invalidateAllCacheForCategory = async (categoryId: string) => {
   }
 };
 
-const clearBullQueueJobs = async (categoryId: string) => {
-  try {
-    console.log('=== CLEARING BULL QUEUE JOBS ===');
+// const clearBullQueueJobs = async (categoryId: string) => {
+//   try {
+//     console.log('=== CLEARING BULL QUEUE JOBS ===');
 
-    // Lấy tất cả products thuộc category
-    const products = await Products.find({ category: categoryId }).select('slug');
-    const slugsToRemove = products.map(p => p.slug);
+//     // Lấy tất cả products thuộc category
+//     const products = await Products.find({ category: categoryId }).select('slug');
+//     const slugsToRemove = products.map(p => p.slug);
 
-    // Lấy tất cả jobs hiện tại
-    const allStates = ['waiting', 'completed', 'failed'];
+//     // Lấy tất cả jobs hiện tại
+//     const allStates = ['waiting', 'completed', 'failed'];
 
-    for (const state of allStates) {
-      const jobs = await productsQueue.getJobs([state]);
-      console.log(`Checking ${jobs.length} jobs in state: ${state}`);
+//     for (const state of allStates) {
+//       const jobs = await productsQueue.getJobs([state]);
+//       console.log(`Checking ${jobs.length} jobs in state: ${state}`);
 
-      for (const job of jobs) {
-        // Kiểm tra jobId hoặc data.id
-        const shouldRemove = slugsToRemove.includes(job.id) ||
-          (job.data && slugsToRemove.includes(job.data.id));
+//       for (const job of jobs) {
+//         // Kiểm tra jobId hoặc data.id
+//         const shouldRemove = slugsToRemove.includes(job.id) ||
+//           (job.data && slugsToRemove.includes(job.data.id));
 
-        if (shouldRemove) {
-          try {
-            await job.remove();
-            console.log(`✅ Removed job ${job.id} (${state}) for product ${job.data?.id || job.id}`);
-          } catch (removeError) {
-            console.log(`❌ Failed to remove job ${job.id}:`, removeError.message);
-          }
-        }
-      }
-    }
+//         if (shouldRemove) {
+//           try {
+//             await job.remove();
+//             console.log(`✅ Removed job ${job.id} (${state}) for product ${job.data?.id || job.id}`);
+//           } catch (removeError) {
+//             console.log(`❌ Failed to remove job ${job.id}:`, removeError.message);
+//           }
+//         }
+//       }
+//     }
 
-    console.log('=== FINISHED CLEARING JOBS ===');
+//     console.log('=== FINISHED CLEARING JOBS ===');
 
-  } catch (error) {
-    console.error('Error clearing Bull Queue jobs:', error);
-  }
-};
+//   } catch (error) {
+//     console.error('Error clearing Bull Queue jobs:', error);
+//   }
+// };
 
-export const incrementCategoryVersion = async (categoryId: any) => {
-  const categoryIdStr = categoryId.toString();
-  const newVersion = await redisClient.incr(`category:${categoryIdStr}:version`);
+// export const incrementCategoryVersion = async (categoryId: any) => {
+//   const categoryIdStr = categoryId.toString();
+//   const newVersion = await redisClient.incr(`category:${categoryIdStr}:version`);
 
-  // Xóa cache cũ
-  await invalidateAllCacheForCategory(categoryIdStr);
+//   // Xóa cache cũ
+//   await invalidateAllCacheForCategory(categoryIdStr);
 
-  await clearBullQueueJobs(categoryIdStr);
+//   await clearBullQueueJobs(categoryIdStr);
 
-  console.log(`Category ${categoryIdStr} version incremented to ${newVersion}`);
-  return newVersion;
-};
+//   console.log(`Category ${categoryIdStr} version incremented to ${newVersion}`);
+//   return newVersion;
+// };
 
 
 export const cacheDataWithVersion = async (key: string, data: any, expiry: number, categoryId: any) => {

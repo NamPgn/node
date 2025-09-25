@@ -5,26 +5,43 @@ import Categorymain from "../module/categorymain";
 import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
-import { cacheData, cacheDataWithVersion, clearRelatedCache, getDataFromCache, getDataWithVersion, incrementCategoryVersion, redisDel } from "../redis";
+import { cacheData, clearRelatedCache, getDataFromCache, redisDel } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
 import { slugify } from "../utills/slugify";
 import weekCategory from "../module/week.category";
-import { Queue, Worker } from "bullmq";
 import Series from "../module/season";
 import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
 import redisClient from "../config/redis.config";
 // import { RealtimeService } from "../services/realtime.service";
 
-export const productsQueue: any = new Queue("productQueue", {
-  connection: redisClient,
-  streams: {
-    events: {
-      maxLen: 1000,
-    },
-  },
-});
+// Helper function để tính toán nextEpisode và prevEpisode
+const calculateEpisodeNavigation = (dataID: any, slug: string) => {
+  if (!dataID.category?.products) {
+    return { nextEpisode: null, prevEpisode: null };
+  }
+
+  // Sort products by seri number in descending order
+  const sortedProducts = dataID.category.products.sort(
+    (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
+  );
+
+  // Find current episode index
+  const currentIndex = sortedProducts.findIndex((p: any) => p.slug === slug);
+
+  // Get next episode if exists
+  const nextEpisode = currentIndex > 0 ? sortedProducts[currentIndex - 1] : null;
+
+  // Get current episode
+  const prevEpisode = sortedProducts[currentIndex + 1];
+
+  return {
+    nextEpisode: nextEpisode?.slug || null,
+    prevEpisode: prevEpisode?.slug || null,
+  };
+};
+
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const limit = 20;
@@ -168,8 +185,6 @@ export const addProduct = async (req, res) => {
                 $addToSet: { products: data.products }, // Sử dụng $addToSet để thêm data.products vào mảng products
               }
             );
-
-            await incrementCategoryVersion(data.category);
           }
 
           if (data.categorymain) {
@@ -222,7 +237,6 @@ export const addProduct = async (req, res) => {
           $addToSet: { products: data.products },
         });
 
-        await incrementCategoryVersion(data.category);
       }
 
       if (data.categorymain) {
@@ -297,7 +311,6 @@ export const delProduct = async (req, res, next) => {
         }
       }
 
-      await incrementCategoryVersion(category_id._id);
     }
 
     // Destroy product image if stored as Cloudinary public_id (fallback if URL)
@@ -391,7 +404,6 @@ export const editProduct = async (req, res, next) => {
           findById.slug = slug;
           findById.dailyMotionServer = dailyMotionServer;
           const data = await findById.save();
-          await productsQueue.remove(findById.slug);
           const category_id = await Category.findOne({
             _id: data.category,
           });
@@ -402,7 +414,22 @@ export const editProduct = async (req, res, next) => {
           if (relatedSeasons?.slug) {
             await invalidateSeasonCacheByProduct(relatedSeasons.slug);
           }
+          
+          // Xóa cache cũ trước
           redisDel(findById.slug);
+          
+          // Lấy data mới với category để tính toán navigation
+          const updatedData = await getOneEpisode(findById.slug);
+          const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
+          
+          // Cache lại data mới
+          const response = {
+            ...updatedData.toObject(),
+            nextEpisode: navigation.nextEpisode,
+            prevEpisode: navigation.prevEpisode,
+          };
+          await cacheData(findById.slug, response, "EX", 3600);
+          
           // await RealtimeService.notifyProductUpdate(findById._id.toString());
           return res.status(200).json({
             success: true,
@@ -434,7 +461,6 @@ export const editProduct = async (req, res, next) => {
           }
         }
 
-        await incrementCategoryVersion(category_id._id);
       }
 
       if (findById.categorymain) {
@@ -474,9 +500,24 @@ export const editProduct = async (req, res, next) => {
       findById.slug = slug;
       findById.server2 = server2;
       findById.dailyMotionServer = dailyMotionServer;
-      await productsQueue.remove(findById.slug);
+      
+      // Xóa cache cũ trước
       redisDel(findById.slug);
+      
       const data = await findById.save();
+      
+      // Lấy data mới với category để tính toán navigation
+      const updatedData = await getOneEpisode(findById.slug);
+      const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
+      
+      // Cache lại data mới
+      const response = {
+        ...updatedData.toObject(),
+        nextEpisode: navigation.nextEpisode,
+        prevEpisode: navigation.prevEpisode,
+      };
+      await cacheData(findById.slug, response, "EX", 3600);
+      
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -664,93 +705,41 @@ export const filterCategoryByProducts = async (req: Request, res: Response) => {
 };
 
 
+export const getOne = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.id.toString(); // Đây là slug
 
-// Cập nhật productWorker với cache versioning
-const productWorker: any = new Worker(
-  "productQueue",
-  async (job) => {
-    const { id } = job.data;
-
-    const dataID: any = await getOneEpisode(id);
-
-    if (!dataID) {
-      throw new Error("Sản phẩm không tồn tại");
+    // Check cache trước
+    const redisGetdata = await getDataFromCache(slug);
+    if (redisGetdata) {
+      console.log(`Cache hit for slug: ${slug}`);
+      return res.status(200).json(redisGetdata);
     }
 
-    // Sort products by seri number in descending order
-    const sortedProducts = dataID.category?.products.sort(
-      (a: any, b: any) => parseInt(b.seri) - parseInt(a.seri)
-    );
+    // Nếu không có cache, xử lý trực tiếp
+    const dataID: any = await getOneEpisode(slug);
 
-    // Find current episode index
-    const currentIndex = sortedProducts.findIndex((p: any) => p.slug === id);
+    if (!dataID) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
 
-    // Get next episode if exists
-    const nextEpisode = currentIndex > 0 ? sortedProducts[currentIndex - 1] : null;
-
-    // Get current episode
-    const prevEpisode = sortedProducts[currentIndex + 1];
+    // Tính toán navigation episodes
+    const navigation = calculateEpisodeNavigation(dataID, slug);
+    
     // Add nextEpisode and currentEpisode to response
     const response = {
       ...dataID.toObject(),
-      nextEpisode: nextEpisode?.slug,
-      prevEpisode: prevEpisode?.slug,
+      nextEpisode: navigation.nextEpisode,
+      prevEpisode: navigation.prevEpisode,
     };
 
     dataID.view += 1;
     await dataID.save();
 
-    // Sử dụng cache với version
-    await cacheDataWithVersion(id, response, 3600, dataID.category._id);
+    // Sử dụng cache thường
+    await cacheData(slug, response, "EX", 3600);
 
-    return response;
-  },
-  {
-    connection: redisClient,
-    concurrency: 2,
-    removeOnComplete: { age: 3600, count: 200 },
-    removeOnFail: { age: 86400 },
-    lockDuration: 60000,
-  }
-);
-
-
-export const getOne = async (req: Request, res: Response) => {
-  try {
-    const slug = req.params.id.toString(); // Đây là slug
-
-    // Lấy categoryId từ slug
-    const productInfo: any = await Products.findOne({ slug }).select('category');
-
-    if (productInfo && productInfo.category) {
-      // Dùng categoryId để check cache với version
-      const redisGetdata = await getDataWithVersion(slug, productInfo.category);
-      if (redisGetdata) {
-        console.log(`Cache hit for slug: ${slug} with category: ${productInfo.category}`);
-        return res.status(200).json(redisGetdata);
-      }
-    }
-
-    // Nếu không có cache, chạy job
-    const job = await productsQueue.add("getProduct", { id: slug }, {
-      jobId: slug,
-      removeOnComplete: { age: 3600, count: 1000 },
-      removeOnFail: { age: 24 * 3600 },
-    });
-
-    console.log("Đợi movie:", job.id);
-
-    const result = await new Promise((resolve, reject) => {
-      productWorker.on("completed", (job, result) => {
-        resolve(result);
-      });
-
-      productWorker.on("failed", (job, err) => {
-        reject(new Error(err.message));
-      });
-    });
-
-    return res.status(200).json(result);
+    return res.status(200).json(response);
   } catch (error) {
     return res.status(400).json({
       message: error.message,
@@ -1158,13 +1147,6 @@ export const autoAddProduct = async (req, res) => {
       })
     );
 
-    await Promise.all(
-      Array.from(categoryIds).map(async (categoryId) => {
-        await incrementCategoryVersion(categoryId);
-        console.log(`✅ Đã increment version cho auto add product: ${categoryId}`);
-      })
-    );
-
     return res.status(200).json({
       success: true,
     });
@@ -1283,7 +1265,6 @@ export const addMultipleEpisodes = async (req, res) => {
           $addToSet: { products: data.products },
           latestProductUploadDate: data.uploadDate,
         });
-        await incrementCategoryVersion(data.category);
       }
       addedMovies.push(data);
     }
@@ -1304,7 +1285,6 @@ export const editVoiceOverBySlugController = async (req, res) => {
   try {
     const { voiceOverLink, voiceOverLink2 } = req.body;
     const data: any = await addVoiceOverBySlug(req.params.slug, voiceOverLink, voiceOverLink2);
-    await incrementCategoryVersion(data.category._id);
     redisDel(`${data.slug}`);
     redisDel(`category${data.category._id}`);
     return res.status(200).json({ success: true, message: "Voice over added successfully", data });
