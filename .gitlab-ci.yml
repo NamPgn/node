@@ -3,6 +3,8 @@ stages:
 
 test_runner:
   stage: test
+  only:
+    - feature/not_queue
   tags:
     - ec2   # trùng với tag bạn đăng ký runner
   script:
