@@ -8,12 +8,18 @@ deploy_to_vps:
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
     - eval $(ssh-agent -s)
-    - echo "$SSH_KEY" | tr -d '\r' | ssh-add -   # add private key
+    # Debug: kiểm tra đầu SSH key
+    - echo "$SSH_KEY" | head -n 1
+    - echo "$SSH_KEY" | tail -n 1
+    # Thêm key
+    - echo "$SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - ssh-keyscan $SSH_HOST >> ~/.ssh/known_hosts
+    - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
   script:
     - echo "Deploying to VPS..."
+    # Test SSH connection trước
+    - ssh -o StrictHostKeyChecking=no $VPS_USER@$SSH_HOST "echo 'SSH connection successful'"
     - ssh -o StrictHostKeyChecking=no $VPS_USER@$SSH_HOST "
         cd /var/www/node &&
         git pull origin feature/not_queue &&
