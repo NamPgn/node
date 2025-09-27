@@ -2,11 +2,9 @@ stages:
   - deploy
 
 test_runner:
-  stage: test
-  only:
-    - feature/not_queue
+  stage: deploy
   tags:
-    - ec2   # trùng với tag bạn đăng ký runner
+    - ec2
   script:
     - echo "✅ Runner trên EC2 đã hoạt động!"
     - uname -a
