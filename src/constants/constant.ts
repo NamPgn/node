@@ -24,6 +24,8 @@ export const ALLOWED_ORIGINS = [
 	'https://www.hh3dtq.site',
 	'https://www.hhtqtm.fun',
 	'https://hhtqtm.fun',
+
+	
 ]
 
 
