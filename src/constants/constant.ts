@@ -21,7 +21,9 @@ export const ALLOWED_ORIGINS = [
 	'https://feature-ui--testmoviee.netlify.app',
 	'https://hh3dtq.site',
 	'https://donghua-stream-delta.vercel.app',
-	'https://www.hh3dtq.site'
+	'https://www.hh3dtq.site',
+	'https://www.hhtqtm.fun',
+	'https://hhtqtm.fun',
 ]
 
 
