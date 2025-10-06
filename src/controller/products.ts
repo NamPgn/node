@@ -1,11 +1,11 @@
-import { getAll, addProduct_, deleteProduct, getProductCount, getOneEpisode, addVoiceOverBySlug, getVoiceOverBySlug } from "../services/products";
+import { getAll, addProduct_, deleteProduct, getProductCount, getOneEpisode, addVoiceOverBySlug, getVoiceOverBySlug, getAllEpisodesByCategoryAndVersion } from "../services/products";
 import Products from "../module/products";
 import Category from "../module/category";
 import Categorymain from "../module/categorymain";
 import Types from "../module/types";
 import mongoose from "mongoose";
 import WeekCategory from "../module/week.category";
-import { cacheData, clearRelatedCache, getDataFromCache, redisDel } from "../redis";
+import { cacheData, clearRelatedCache, getDataFromCache, redisDel, clearProductsCache } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import XLSX from "xlsx";
@@ -48,13 +48,14 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const categoryId = req.query.categoryId as string;
     const seri = req.query.seri as string; // Đổi từ episode thành seri
+    const version = req.query.version as string; // Thêm version parameter
 
     // Tạo key cache dựa trên các tham số filter
     let key: string;
     if (page === 0) {
-      key = `products_all_${categoryId || 'no-cat'}_${seri || 'no-seri'}`;
+      key = `products_all_${categoryId || 'no-cat'}_${seri || 'no-seri'}_${version || 'no-version'}`;
     } else {
-      key = `products_page_${page}_${categoryId || 'no-cat'}_${seri || 'no-seri'}`;
+      key = `products_page_${page}_${categoryId || 'no-cat'}_${seri || 'no-seri'}_${version || 'no-version'}`;
     }
 
     const redisData: any = await getDataFromCache(key);
@@ -65,26 +66,26 @@ export const getAllProducts = async (req: Request, res: Response) => {
       ({ products, totalCount } = redisData);
     } else {
       if (page === 0) {
-        products = await getAll(0, 0, categoryId, seri);
+        products = await getAll(0, 0, categoryId, seri, version);
         totalCount = products.length;
       } else {
-        products = await getAll(page, limit, categoryId, seri);
-        totalCount = await getProductCount(categoryId, seri);
+        products = await getAll(page, limit, categoryId, seri, version);
+        totalCount = await getProductCount(categoryId, seri, version);
       }
 
       cacheData(key, { products, totalCount }, "EX", 3600);
 
       Products.watch().on("change", async (change) => {
         if (["insert", "delete", "update"].includes(change.operationType)) {
-          await clearRelatedCache(categoryId, seri);
+          await clearRelatedCache(categoryId, seri, version);
 
           let updatedProducts;
           if (page === 0) {
-            updatedProducts = await getAll(0, 0, categoryId, seri);
+            updatedProducts = await getAll(0, 0, categoryId, seri, version);
             totalCount = updatedProducts.length;
           } else {
-            updatedProducts = await getAll(page, limit, categoryId, seri);
-            totalCount = await getProductCount(categoryId, seri);
+            updatedProducts = await getAll(page, limit, categoryId, seri, version);
+            totalCount = await getProductCount(categoryId, seri, version);
           }
           cacheData(key, { products: updatedProducts, totalCount }, "EX", 3600);
         }
@@ -202,6 +203,7 @@ export const addProduct = async (req, res) => {
               await redisDel(`category_${categoryData.slug}`);
             }
             await redisDel("LASTESTCATEGORY");
+            await clearProductsCache();
           }
 
           if (data.categorymain) {
@@ -268,6 +270,7 @@ export const addProduct = async (req, res) => {
           await redisDel(`category_${categoryData.slug}`);
         }
         await redisDel("LASTESTCATEGORY");
+        await clearProductsCache();
       }
 
       if (data.categorymain) {
@@ -462,6 +465,7 @@ export const editProduct = async (req, res, next) => {
               await redisDel(`category_${categoryData.slug}`);
             }
             await redisDel("LASTESTCATEGORY");
+            await clearProductsCache();
           }
           
           // Lấy data mới với category để tính toán navigation
@@ -557,6 +561,7 @@ export const editProduct = async (req, res, next) => {
           await redisDel(`category_${categoryData.slug}`);
         }
         await redisDel("LASTESTCATEGORY");
+        await clearProductsCache();
       }
       
       const data = await findById.save();
@@ -1394,6 +1399,7 @@ export const addMultipleEpisodes = async (req, res) => {
         await redisDel(`category_${categoryData.slug}`);
       }
       await redisDel("LASTESTCATEGORY");
+      await clearProductsCache();
     }
 
     return res.status(200).json({
@@ -1425,5 +1431,35 @@ export const getVoiceOverBySlugController = async (req, res) => {
     return res.status(200).json({ success: true, message: "Voice over fetched successfully", data });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// Lấy tất cả episodes theo category và version
+export const getAllEpisodesByCategoryAndVersionController = async (req: Request, res: Response) => {
+  try {
+    const { categoryId, version } = req.params;
+    
+    if (!categoryId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Category ID is required" 
+      });
+    }
+
+    const episodes = await getAllEpisodesByCategoryAndVersion(categoryId, version);
+    
+    return res.status(200).json({
+      success: true,
+      message: `Episodes fetched successfully for category ${categoryId}${version ? ` and version ${version}` : ''}`,
+      data: episodes,
+      totalCount: episodes.length
+    });
+  } catch (error) {
+    console.error('Error fetching episodes by category and version:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Internal server error",
+      error: error.message 
+    });
   }
 };

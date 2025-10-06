@@ -17,7 +17,9 @@ import routerSlider from "../routes/slider";
 import routerTags from "../routes/tags";
 import routerCombiningEpisodes from "../routes/combining-episodes";
 import routerPoster from "../routes/poster";
+import routerCategoryV2 from "../routes/v2/admin/category";
 const routes = [
+  routerWeek,
   routerAuth,
   routerProducts,
   routerCategory,
@@ -26,7 +28,7 @@ const routes = [
   routerCart,
   routerTypes,
   routerCategorymain,
-  routerWeek,
+
   routerImage,
   routerApprove,
   routerBanner,
@@ -35,11 +37,21 @@ const routes = [
   routerSlider,
   routerTags,
   routerCombiningEpisodes,
-  routerPoster
+  routerPoster,
+];
+
+const routesV2 = [
+  routerCategoryV2
 ];
 
 export const configureRoutes = (app: Express) => {
   routes.forEach(router => {
     app.use("/api", router);
+  });
+};
+
+export const configureRoutesV2 = (app: Express) => {
+  routesV2.forEach(router => {
+    app.use("/api/v2", router);
   });
 };

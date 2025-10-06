@@ -8,7 +8,7 @@ import Products from "../module/products";
 import Category from "../module/category";
 import WeekCategory from "../module/week.category";
 import weekCategory from "../module/week.category";
-import { cacheData, getDataFromCache, redisDel } from "../redis";
+import { cacheData, getDataFromCache, redisDel, clearProductsCache } from "../redis";
 import cloudinary from "../config/cloudinary";
 import { Request, Response } from "express";
 import { slugify } from "../utills/slugify";
@@ -33,7 +33,7 @@ export const getAll = async (req: any, res: Response) => {
     const limit = 24;
     const page = parseInt(req.query.page) || 0;
     const search = req.query.search || "";
-
+    const version = req.query.version || "";
     await Category.createIndexes();
 
     let key: string;
@@ -44,24 +44,56 @@ export const getAll = async (req: any, res: Response) => {
     if (search) {
       // Nếu có search thì không cache hoặc cache ngắn hạn
       if (page === 0) {
-        category = await getAllCategory(0, 0, search);
+        category = await getAllCategory(0, 0, search, version);
         totalCount = category.length;
       } else {
-        category = await getAllCategory(page, limit, search);
-        totalCount = await Category.countDocuments({
+        category = await getAllCategory(page, limit, search, version);
+        // Count với cả search và version filter
+        let countQuery: any = {
           $or: [
             { name: { $regex: search, $options: "i" } },
             { slug: { $regex: search, $options: "i" } },
             { des: { $regex: search, $options: "i" } }
           ]
-        });
+        };
+        
+        if (version) {
+          // Handle cases where vs field might be null or undefined
+          let versionQuery;
+          if (version === '3d') {
+            versionQuery = {
+              $or: [
+                { vs: '3d' },
+                { vs: { $exists: false } },
+                { vs: null }
+              ]
+            };
+          } else {
+            versionQuery = { vs: version };
+          }
+          
+          countQuery = {
+            $and: [
+              versionQuery,
+              {
+                $or: [
+                  { name: { $regex: search, $options: "i" } },
+                  { slug: { $regex: search, $options: "i" } },
+                  { des: { $regex: search, $options: "i" } }
+                ]
+              }
+            ]
+          };
+        }
+        
+        totalCount = await Category.countDocuments(countQuery);
       }
     } else {
       // Logic cache cũ cho trường hợp không search
       if (page === 0) {
-        key = `categorys_all`;
+        key = version ? `categorys_all_${version}` : `categorys_all`;
       } else {
-        key = `categorys_page_${page}`;
+        key = version ? `categorys_page_${page}_${version}` : `categorys_page_${page}`;
       }
 
       const redisData = await getDataFromCache(key);
@@ -69,11 +101,26 @@ export const getAll = async (req: any, res: Response) => {
         ({ category, totalCount } = redisData);
       } else {
         if (page === 0) {
-          category = await getAllCategory(0, 0);
+          category = await getAllCategory(0, 0, version);
           totalCount = category.length;
         } else {
-          category = await getAllCategory(page, limit);
-          totalCount = await Category.countDocuments();
+          category = await getAllCategory(page, limit, version);
+          // Count với version filter nếu có
+          if (version) {
+            if (version === '3d') {
+              totalCount = await Category.countDocuments({
+                $or: [
+                  { vs: '3d' },
+                  { vs: { $exists: false } },
+                  { vs: null }
+                ]
+              });
+            } else {
+              totalCount = await Category.countDocuments({ vs: version });
+            }
+          } else {
+            totalCount = await Category.countDocuments();
+          }
         }
 
         cacheData(key, { category, totalCount }, "EX", 3600);
@@ -82,11 +129,26 @@ export const getAll = async (req: any, res: Response) => {
           if (["insert", "delete", "update"].includes(change.operationType)) {
             redisDel(key);
             if (page === 0) {
-              const updatedCategory = await getAllCategory(0, 0);
+              const updatedCategory = await getAllCategory(0, 0, version);
               totalCount = updatedCategory.length;
             } else {
-              const updatedCategory = await getAllCategory(page, limit);
-              totalCount = await Category.countDocuments();
+              const updatedCategory = await getAllCategory(page, limit, version);
+              // Count với version filter nếu có
+              if (version) {
+                if (version === '3d') {
+                  totalCount = await Category.countDocuments({
+                    $or: [
+                      { vs: '3d' },
+                      { vs: { $exists: false } },
+                      { vs: null }
+                    ]
+                  });
+                } else {
+                  totalCount = await Category.countDocuments({ vs: version });
+                }
+              } else {
+                totalCount = await Category.countDocuments();
+              }
               cacheData(
                 key,
                 { category: updatedCategory, totalCount },
@@ -288,6 +350,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       thuyetMinh,
       newMovie,
       tags,
+      vs,
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -302,7 +365,18 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
         : findById.tags
           ? [findById.tags]
           : [];
-      const newTagIds = Array.isArray(tags) ? tags : tags ? [tags] : [];
+      // Handle tags - could be string, array, or undefined
+      let newTagIds = [];
+      if (tags) {
+        if (Array.isArray(tags)) {
+          newTagIds = tags;
+        } else if (typeof tags === 'string') {
+          // If it's a string, split by comma or space
+          newTagIds = tags.split(/[,\s]+/).filter(tag => tag.trim() !== '');
+        } else {
+          newTagIds = [tags];
+        }
+      }
 
       // Remove category from old tags that are no longer selected
       const tagsToRemove = prevTagIds.filter(
@@ -313,6 +387,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
         (tagId: any) => !prevTagIds.some((o: any) => String(o) === String(tagId))
       );
 
+      
       if (tagsToRemove.length > 0) {
         await Tags.updateMany(
           { _id: { $in: tagsToRemove } },
@@ -369,6 +444,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.thuyetMinh = thuyetMinh;
           findById.newMovie = newMovie;
           findById.tags = tags;
+          findById.vs = vs;
           // Lưu category trước
           await findById.save();
 
@@ -388,16 +464,8 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           }
           await syncTags();
 
-
-          if (tags && tags.length > 0) {
-            await Tags.updateMany(
-              { _id: { $in: tags } },
-              { $pull: { categories: findById._id } }
-            );
-          }
-
           // Xóa cache cũ
-          await redisDel(`category_${id}`);
+          await redisDel(`category_${findById.slug}`);
           await redisDel("categorys_all");
           await redisDel("categorys_page_1");
 
@@ -444,10 +512,14 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.thuyetMinh = thuyetMinh;
       findById.newMovie = newMovie;
       findById.tags = tags;
+      findById.vs = vs;
       await findById.save();
 
       await syncTags();
-
+      // Xóa cache cũ
+      await redisDel(`category_${findById.slug}`);
+      await redisDel("categorys_all");
+      await redisDel("categorys_page_1");
       // Sync week categories when weeks change (arrays)
       const newWeekIds2 = Array.isArray(week) ? week : week ? [week] : [];
       const toRemove2 = prevWeekIds2.filter(
@@ -469,10 +541,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
         );
       }
 
-      // Xóa cache cũ
-      await redisDel(`category_${id}`);
-      await redisDel("categorys_all");
-      await redisDel("categorys_page_1");
+
 
       // Cache lại data mới
       const updatedCategory = await getCategory(id);
@@ -524,6 +593,7 @@ export const deleteCategoryController = async (req: Request, res: Response) => {
     await redisDel(`category_${id}`);
     await redisDel("categorys_all");
     await redisDel("categorys_page_1");
+    await clearProductsCache();
 
     return res.json({
       success: true,
@@ -643,7 +713,7 @@ export const getCategoryLatesupdate = async (req, res) => {
       .sort({ latestProductUploadDate: -1 })
       .skip(skip)
       .limit(limit)
-      .select('_id name linkImg slug')
+      .select('_id name slug')
     // .populate({
     //   path: 'products',
     //   model: 'Products',
@@ -677,6 +747,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
       const data = await Category.aggregate([
         { $sort: { latestProductUploadDate: -1 } },
         { $limit: 16 },
+        { $match: { vs: "3d" } },
         {
           $lookup: {
             from: "products",

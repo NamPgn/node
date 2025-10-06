@@ -34,21 +34,28 @@ import {
 } from "../middlewares/checkAuth";
 import { uploadServer } from "../services/upload";
 import { ROUTES } from "../constants/routes.constant";
+import { getCategory2d } from "../controller/v2/user/episode";
 
 const router = express.Router();
 
 // Product by category routes
 router.get(ROUTES.CATEGORY.PRODUCTS, readProductByCategory);
 
-// Category listing routes
+// Category listing routes - Specific routes first to avoid conflicts
 router.get(ROUTES.CATEGORY.ALL, getAll);
-router.get(ROUTES.CATEGORY.SITEMAP, getCategorySitemap);
 router.get(ROUTES.CATEGORY.LATEST, getCategoryLatesupdate);
+router.get(ROUTES.CATEGORY.LATEST_NEXT, getCategoryLatesupdateFromNextjs);
+router.get(ROUTES.CATEGORY.SITEMAP, getCategorySitemap);
 router.get(ROUTES.CATEGORY.SEARCH, searchCategory);
 router.get(ROUTES.CATEGORY.FILTER, filterCategoryTrending);
+// Version-specific routes (must be before dynamic routes)
+router.get(ROUTES.CATEGORY.ALL_3D, getAll);
+router.get(ROUTES.CATEGORY.ALL_2D, getAll);
+router.get(ROUTES.CATEGORY.USER_2D, getCategory2d);
+// Dynamic routes last to avoid conflicts with specific routes
+router.get(ROUTES.CATEGORY.DETAIL, getOne);
 router.get(`${ROUTES.CATEGORY.ROOT}${ROUTES.CATEGORY.DETAIL}`, getOne);
 router.post(ROUTES.CATEGORY.CHANGE_LATEST, changeCategoryLatest);
-router.get(ROUTES.CATEGORY.LATEST_NEXT, getCategoryLatesupdateFromNextjs);
 
 // Protected category management routes
 router.post(

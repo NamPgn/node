@@ -1,6 +1,7 @@
 import Products from "../module/products";
 
-export const getProductCount = async (categoryId?: string, seri?: string) => {
+// Helper function để xây dựng query
+const buildQuery = (categoryId?: string, seri?: string) => {
   let query: any = {};
 
   if (categoryId) {
@@ -11,30 +12,58 @@ export const getProductCount = async (categoryId?: string, seri?: string) => {
     query.seri = { $regex: seri, $options: 'i' };
   }
 
+  return query;
+};
+
+// Helper function để filter theo version
+const filterByVersion = (episodes: any[], version: string) => {
+  return episodes.filter((episode: any) => {
+    if (!episode.category || !episode.category.vs) return false;
+    return episode.category.vs === version;
+  });
+};
+
+export const getProductCount = async (categoryId?: string, seri?: string, version?: string) => {
+  const query = buildQuery(categoryId, seri);
+
+  // Nếu có version, cần filter theo version của category
+  if (version) {
+    // Lấy tất cả episodes trước
+    const episodes: any = await Products.find(query)
+      .select('category')
+      .populate({
+        path: "category",
+      })
+      .exec();
+    // Filter theo version của category
+    const episodesFiltered = filterByVersion(episodes, version);
+    return episodesFiltered.length;
+  }
+
   return await Products.countDocuments(query);
 };
 
-export const getAll = async (page: number, limit: number, categoryId?: string, seri?: string) => {
+export const getAll = async (page: number, limit: number, categoryId?: string, seri?: string, version?: string) => {
   const skip = (page - 1) * limit;
+  const query = buildQuery(categoryId, seri);
 
-  // Xây dựng query filter
-  let query: any = {};
-
-  if (categoryId) {
-    query.category = categoryId;
-  }
-
-  if (seri) {
-    query.seri = { $regex: seri, $options: 'i' }; // Tìm kiếm seri không phân biệt hoa thường
-  }
-
-  return await Products.find(query)
+  const episodes: any = await Products.find(query)
     .select('name slug category seri uploadDate dailyMotionServer voiceOverLink thumnail')
     .skip(skip)
     .limit(limit)
     .sort({ _id: -1 })
-    .populate("category", "lang quality name")
+    .populate({
+      path: "category",
+      select: "lang quality name vs",
+    })
     .exec();
+
+  // Filter theo version của category nếu có
+  if (version) {
+    return filterByVersion(episodes, version);
+  }
+
+  return episodes;
 };
 
 export const getOneEpisode = async (id) => {
@@ -87,5 +116,27 @@ export const addVoiceOverBySlug = async (slug, voiceOverLink, voiceOverLink2) =>
 
 export const getVoiceOverBySlug = async (slug) => {
   return await Products.findOne({ slug }).select("voiceOverLink voiceOverLink2");
+};
+
+// Lấy tất cả episodes theo category và version
+export const getAllEpisodesByCategoryAndVersion = async (categoryId: string, version: string) => {
+  const query = buildQuery(categoryId);
+
+  // Lấy tất cả episodes của category
+  const episodes: any = await Products.find(query)
+    .select('name slug category seri uploadDate dailyMotionServer voiceOverLink thumnail')
+    .sort({ seri: 1 }) // Sắp xếp theo số tập
+    .populate({
+      path: "category",
+      select: "lang quality name vs",
+    })
+    .exec();
+
+  // Filter theo version của category nếu có
+  if (version) {
+    return filterByVersion(episodes, version);
+  }
+
+  return episodes;
 };
 

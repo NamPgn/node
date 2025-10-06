@@ -2,7 +2,7 @@ import weekCategory from "../module/week.category";
 import WeekCategory from "../module/week.category";
 import { resizeImagesUrl } from "../utills/resizeImage";
 
-export const all = async (req, res) => {
+export const getAllWeekCategory = async (req, res) => {
   try {
 
     const data = await WeekCategory.aggregate([
@@ -65,7 +65,7 @@ export const all = async (req, res) => {
   }
 };
 
-export const one = async (req, res) => {
+export const getOneWeekCategory = async (req, res) => {
   try {
     const { w } = req.query;
     // const data = await WeekCategory.find({ name: w }).populate({

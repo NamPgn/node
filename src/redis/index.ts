@@ -56,13 +56,32 @@ export const redisDel = async (key) => {
   await redisClient.del(key);
 };
 
-export const clearRelatedCache = async (categoryId?: string, episode?: string) => {
+export const clearRelatedCache = async (categoryId?: string, episode?: string, version?: string) => {
   const keys = await redisClient.keys('products_*');
 
   // Xóa tất cả cache products để đảm bảo consistency
   // Hoặc có thể xóa selective dựa trên pattern
   for (const key of keys) {
     await redisClient.del(key);
+  }
+};
+
+export const clearProductsCache = async () => {
+  try {
+    console.log('🧹 Starting to clear products cache...');
+    
+    // Xóa tất cả keys products
+    const allProductKeys = await redisClient.keys('products_*');
+    console.log('Found product keys:', allProductKeys);
+    
+    for (const key of allProductKeys) {
+      const result = await redisClient.del(key);
+      console.log(`Deleted ${key}: ${result}`);
+    }
+    
+    console.log('✅ Products cache cleared successfully');
+  } catch (error) {
+    console.error('❌ Error clearing products cache:', error);
   }
 };
 

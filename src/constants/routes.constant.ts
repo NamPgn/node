@@ -1,4 +1,5 @@
 export const API_PREFIX = '/api';
+export const V2_API_PREFIX = '/api/v2';
 
 export const ROUTES = {
   AUTH: {
@@ -25,15 +26,14 @@ export const ROUTES = {
     
   },
   CATEGORY: {
-    ROOT: '/category',
-    DETAIL: '/:id',
+
     PRODUCTS: '/category/products',
     LATEST: '/category/latest',
     LATEST_NEXT: '/category/latest/next',
     SEARCH: '/categorys/search',
     FILTER: '/category/filters',
     CHANGE_LATEST: '/category/changeLatest',
-    ALL: '/categorys',
+    ALL: '/categorys/all',
     ALL_NOT_REQ: '/category/getAllCategoryNotRequest/:id',
     ADD: '/category/:userId',
     UPDATE: '/category/:id/:userId',
@@ -51,6 +51,12 @@ export const ROUTES = {
     RELEASES: '/categorys/releases',
     SITEMAP: '/categorys/sitemap',
     CHANGE_IS_ACTIVE: '/category/change/isActive/:slug/:userId',
+    ALL_3D: '/categorys/all/3d',
+    ALL_2D: '/categorys/all/2d',
+    ALL_BY_VERSION: '/categorys/all/:version',
+    ROOT: '/categorys',
+    DETAIL: '/category/:id',
+    USER_2D: '/v1/category/2d',
   },
   PRODUCTS: {
     ROOT: '/products',
@@ -166,6 +172,65 @@ export const ROUTES = {
     CREATE: '/combining-episodes/:userId',
     UPDATE: '/combining-episodes/:id/:userId',
     DELETE: '/combining-episodes/:id/:userId'
+  }
+} as const;
+
+// V2 API Routes
+export const V2_ROUTES = {
+  ADMIN: {
+    BASE: '/api/v2/admin',
+    PRODUCTS: {
+      BASE: '/api/v2/admin/products',
+      ROOT: '/',
+      CREATE: '/',
+      UPDATE: '/:id',
+      DELETE: '/:id',
+      APPROVE: '/:id/approve',
+      CANCEL_APPROVE: '/:id/cancel-approve',
+      BULK_APPROVE: '/bulk/approve',
+      BULK_DELETE: '/bulk/delete',
+      CLEAR_CACHE: '/cache/clear',
+      EXPORT_EXCEL: '/export/excel'
+    },
+    CATEGORIES: {
+      BASE: '/api/v2/admin/categories',
+      ROOT: '/',
+      CREATE: '/',
+      UPDATE: '/:id',
+      DELETE: '/:id',
+      PERMANENT_DELETE: '/:id/permanent',
+      RESTORE: '/:id/restore',
+      RECYCLE_BIN: '/recycle-bin',
+      TOGGLE_ACTIVE: '/:slug/toggle-active',
+      BULK_UPDATE: '/bulk/update',
+      CLEAR_CACHE: '/cache/clear',
+      EXPORT_EXCEL: '/export/excel'
+    }
+  },
+  USER: {
+    BASE: '/api/v2/user',
+    PRODUCTS: {
+      BASE: '/api/v2/user/products',
+      ROOT: '/',
+      DETAIL: '/:id',
+      BY_CATEGORY: '/category/:categoryId',
+      SEARCH: '/search',
+      TRENDING: '/trending',
+      LATEST: '/latest',
+      INCREMENT_VIEW: '/:id/view'
+    },
+    CATEGORIES: {
+      BASE: '/api/v2/user/categories',
+      ROOT: '/',
+      DETAIL: '/:id',
+      LATEST: '/latest',
+      TRENDING: '/trending',
+      SEARCH: '/search',
+      BY_YEAR: '/year/:year',
+      BY_COUNTRY: '/country/:country',
+      SITEMAP: '/sitemap',
+      UPCOMING: '/upcoming'
+    }
   }
 } as const;
 

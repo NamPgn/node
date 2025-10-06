@@ -1,12 +1,12 @@
 import express from "express";
 import {
-  all,
+  getAllWeekCategory,
   create,
   createManyCategory,
   del,
   deleteCategoryByWeek,
   edit,
-  one,
+  getOneWeekCategory, 
 } from "../controller/week.categoty";
 import {
   requiredSignin,
@@ -20,8 +20,8 @@ import { ROUTES } from "../constants/routes.constant";
 
 const routerWeek = express.Router();
 
-routerWeek.get(ROUTES.WEEK.ALL, all);
-routerWeek.get(ROUTES.WEEK.ROOT, one);
+routerWeek.get(ROUTES.WEEK.ALL, getAllWeekCategory);
+routerWeek.get(ROUTES.WEEK.ROOT, getOneWeekCategory);
 routerWeek.post(
   ROUTES.WEEK.ADD,
   [

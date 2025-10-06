@@ -27,6 +27,7 @@ import {
   getVoiceOverBySlugController,
   uploadProductThumbnail,
   updateProductThumbnail,
+  getAllEpisodesByCategoryAndVersionController,
 } from "../controller/products";
 import { uploadServer } from "../services/upload";
 import {
@@ -217,6 +218,11 @@ router.post(ROUTES.PRODUCTS.EDIT_VOICE_OVER, [
   isAdmin
 ], editVoiceOverBySlugController);
 router.get(ROUTES.PRODUCTS.GET_VOICE_OVER, getVoiceOverBySlugController);
+
+// Lấy tất cả episodes theo category và version
+router.get("/products/category/:categoryId/version/:version", getAllEpisodesByCategoryAndVersionController);
+router.get("/products/category/:categoryId", getAllEpisodesByCategoryAndVersionController);
+
 router.param("userId", getAuth);
 
 export default router;

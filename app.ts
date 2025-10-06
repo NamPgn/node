@@ -2,9 +2,9 @@ import express from "express";
 import "dotenv/config";
 import rateLimit from "express-rate-limit";
 import { connectDatabase } from "./src/config/database";
-// import { initializeFirebase } from "./src/config/firebase";
 import { configureExpress } from "./src/config/express";
-import { configureRoutes } from "./src/config/routes";
+import { configureRoutes, configureRoutesV2 } from "./src/config/routes";
+
 const port = process.env.PORT_LOCAL || 8080;
 
 const limiter = rateLimit({
@@ -29,7 +29,7 @@ const startServer = async () => {
 
     // Configure Routes
     configureRoutes(app);
-
+    configureRoutesV2(app);
     // Initialize Firebase
     // initializeFirebase();
 
@@ -49,34 +49,28 @@ const startServer = async () => {
 };
 startServer();
 
-// import CryptoJS from "crypto-js";
-// const SECRET_KEY = process.env.SECERT_CRYPTO_KEY_PRODUCTS_DAILYMOTION_SERVER || "";
 
-// async function migrate() {
+// Chạy migration để thêm tag vào tất cả categories
+// fixVersionField(); // Uncomment để chạy migration
 
-//   const episodes = await products.find({}); // lấy tất cả document
-//   console.log(`Found ${episodes.length} episodes`);
+// async function fixVersionField() {
+//   try {
+//     console.log("🔄 Đang convert version từ array sang string...");
 
-//   for (const ep of episodes) {
-//     if (!ep.dailyMotionServer) continue;
-//     try {
-//       // Giải mã
-//       const decoded = CryptoJS.AES.decrypt(ep.dailyMotionServer, SECRET_KEY)
-//         .toString(CryptoJS.enc.Utf8);
 
-//       // Nếu decode thành công (không rỗng) thì update thành plain text
-//       if (decoded) {
-//         ep.dailyMotionServer = decoded;
-//         await ep.save();
-//         console.log(`✅ Updated episode ${ep._id}`);
-//       } else {
-//         console.log(`⚠️ Could not decode episode ${ep._id}`);
-//       }
-//     } catch (err) {
-//       console.error(`❌ Error decoding ${ep._id}:`, err);
-//     }
+//     const result = await category.updateMany(
+//       {}, // áp dụng cho tất cả document
+//       { $set: { vs: "3d" } }
+//     );
+
+//     console.log(`Found ${result.modifiedCount} documents với version dạng array`);
+
+//     console.log("🎉 Migration hoàn tất!");
+//   } catch (err) {
+//     console.error("❌ Lỗi migration:", err);
+//   } finally {
+//     mongoose.connection.close();
 //   }
-//   console.log("Migration done ✅");
 // }
 
-// migrate();
+

@@ -99,7 +99,8 @@ const productSchema = new Schema(
     },
     thumnail: {
       type: String
-    }
+    },
+
   },
   { timestamps: true, validateBeforeSave: false }
 );

@@ -139,6 +139,11 @@ const categorySchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    vs: {
+      type: String,
+      default: "3d",
+      enum: ["2d", "3d"]
+    }
   },
   { timestamps: true }
 );
