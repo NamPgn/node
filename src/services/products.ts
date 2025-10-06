@@ -47,6 +47,28 @@ export const getAll = async (page: number, limit: number, categoryId?: string, s
   const skip = (page - 1) * limit;
   const query = buildQuery(categoryId, seri);
 
+  // Nếu có version, cần lấy tất cả episodes trước để filter đúng
+  if (version) {
+    // Lấy tất cả episodes của category/query
+    const allEpisodes: any = await Products.find(query)
+      .select('name slug category seri uploadDate dailyMotionServer voiceOverLink thumnail')
+      .sort({ _id: -1 })
+      .populate({
+        path: "category",
+        select: "lang quality name vs",
+      })
+      .exec();
+
+    // Filter theo version
+    const filteredEpisodes = filterByVersion(allEpisodes, version);
+    
+    // Thực hiện pagination trên kết quả đã filter
+    const startIndex = skip;
+    const endIndex = skip + limit;
+    return filteredEpisodes.slice(startIndex, endIndex);
+  }
+
+  // Nếu không có version, sử dụng pagination bình thường
   const episodes: any = await Products.find(query)
     .select('name slug category seri uploadDate dailyMotionServer voiceOverLink thumnail')
     .skip(skip)
@@ -57,11 +79,6 @@ export const getAll = async (page: number, limit: number, categoryId?: string, s
       select: "lang quality name vs",
     })
     .exec();
-
-  // Filter theo version của category nếu có
-  if (version) {
-    return filterByVersion(episodes, version);
-  }
 
   return episodes;
 };
