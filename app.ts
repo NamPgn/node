@@ -5,7 +5,7 @@ import { connectDatabase } from "./src/config/database";
 import { configureExpress } from "./src/config/express";
 import { configureRoutes, configureRoutesV2 } from "./src/config/routes";
 
-const port = process.env.PORT_LOCAL || 8080;
+const port = Number(process.env.PORT_LOCAL) || 8080;
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -33,12 +33,13 @@ const startServer = async () => {
     // Initialize Firebase
     // initializeFirebase();
 
-    // Start server
-    app.listen(port, () => {
+    // Start server - Listen on all network interfaces (0.0.0.0) for LAN access
+    app.listen(port, '0.0.0.0', () => {
       console.log(`
         🚀 Server is running!
         🔉 Listening on port ${port}
-        🛡️  Rate limiting: 100 requests/15min
+        🌐 Network: Server accessible on LAN
+        🛡️  Rate limiting: 2000 requests/15min
         📝 Keep track of the logs for any issues
       `);
     });
