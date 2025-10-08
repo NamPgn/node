@@ -17,6 +17,7 @@ import routerSlider from "../routes/slider";
 import routerTags from "../routes/tags";
 import routerCombiningEpisodes from "../routes/combining-episodes";
 import routerPoster from "../routes/poster";
+import routerCategoriesAdmin from "../routes/v2/categories";
 const routes = [
   routerAuth,
   routerProducts,
@@ -37,9 +38,15 @@ const routes = [
   routerCombiningEpisodes,
   routerPoster
 ];
-
+const routerV2 = [
+  routerCategoriesAdmin,
+];
 export const configureRoutes = (app: Express) => {
   routes.forEach(router => {
     app.use("/api", router);
+  });
+
+  routerV2.forEach(router => {
+    app.use("/api/v2", router);
   });
 };

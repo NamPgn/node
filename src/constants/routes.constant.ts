@@ -51,6 +51,7 @@ export const ROUTES = {
     RELEASES: '/categorys/releases',
     SITEMAP: '/categorys/sitemap',
     CHANGE_IS_ACTIVE: '/category/change/isActive/:slug/:userId',
+
   },
   PRODUCTS: {
     ROOT: '/products',
@@ -166,6 +167,13 @@ export const ROUTES = {
     CREATE: '/combining-episodes/:userId',
     UPDATE: '/combining-episodes/:id/:userId',
     DELETE: '/combining-episodes/:id/:userId'
+  }
+} as const;
+
+
+export const ROUTES_V2 = {
+  CATEGORY: {
+    ROOT: '/categories',
   }
 } as const;
 
