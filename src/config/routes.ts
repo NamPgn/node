@@ -17,6 +17,7 @@ import routerSlider from "../routes/slider";
 import routerTags from "../routes/tags";
 import routerCombiningEpisodes from "../routes/combining-episodes";
 import routerPoster from "../routes/poster";
+import routerPushNotification from "../routes/push-notification";
 import routerCategoriesAdmin from "../routes/v2/categories";
 const routes = [
   routerAuth,
@@ -36,7 +37,8 @@ const routes = [
   routerSlider,
   routerTags,
   routerCombiningEpisodes,
-  routerPoster
+  routerPoster,
+  routerPushNotification
 ];
 const routerV2 = [
   routerCategoriesAdmin,

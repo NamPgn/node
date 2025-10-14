@@ -14,6 +14,7 @@ import weekCategory from "../module/week.category";
 import Series from "../module/season";
 import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache";
 import redisClient from "../config/redis.config";
+import { notifyNewEpisode } from "../services/push-notification.service";
 // import { RealtimeService } from "../services/realtime.service";
 
 // Helper function để tính toán nextEpisode và prevEpisode
@@ -127,7 +128,7 @@ export const addProduct = async (req, res) => {
     } = req.body;
     // const folderName = "image";
     const file = req.file;
-    
+
     // Kiểm tra quyền hạn của người dùng
     if (file) {
       // const video = req.files["file"][0];
@@ -148,7 +149,7 @@ export const addProduct = async (req, res) => {
           if (error) {
             return res.status(500).json(error);
           }
-          
+
           // Chuyển undefined, "undefined", "null" thành chuỗi rỗng
           const cleanValue = (value: any) => {
             if (value === undefined || value === null || value === "undefined" || value === "null") {
@@ -156,7 +157,7 @@ export const addProduct = async (req, res) => {
             }
             return value;
           };
-          
+
           const dataAdd = {
             // _id: mongoose.Types.ObjectId(),
             name: cleanValue(name),
@@ -230,7 +231,7 @@ export const addProduct = async (req, res) => {
         }
         return value;
       };
-      
+
       const dataAdd = {
         name: cleanValue(name),
         slug: `${slugify(cleanValue(name))}-episode-${cleanValue(seri)}`,
@@ -281,6 +282,7 @@ export const addProduct = async (req, res) => {
           $addToSet: { products: data.products },
         });
       }
+
       // await RealtimeService.notifyProductCreate(data._id.toString());
       return res.status(200).json({
         success: true,
@@ -403,11 +405,15 @@ export const editProduct = async (req, res, next) => {
       view,
       slug,
       server2,
+      sendPushNotification, // Flag từ admin panel
     } = req.body;
     const findById = await Products.findById(id);
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
+    
+    // Parse flag (vì từ FormData sẽ là string)
+    const shouldSendNotification = sendPushNotification === "true" || sendPushNotification === true;
 
     if (file) {
       cloudinary.uploader.upload(
@@ -451,10 +457,10 @@ export const editProduct = async (req, res, next) => {
           if (relatedSeasons?.slug) {
             await invalidateSeasonCacheByProduct(relatedSeasons.slug);
           }
-          
+
           // Xóa cache cũ trước
           redisDel(findById.slug);
-          
+
           // Xóa cache category khi product được cập nhật
           if (data.category) {
             const categoryData = await Category.findById(data.category).select('slug');
@@ -463,24 +469,41 @@ export const editProduct = async (req, res, next) => {
             }
             await redisDel("LASTESTCATEGORY");
           }
-          
+
           // Lấy data mới với category để tính toán navigation
           const updatedData = await getOneEpisode(findById.slug);
           const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
-          
-          // Cache lại data mới
-          const response = {
-            ...updatedData.toObject(),
-            nextEpisode: navigation.nextEpisode,
-            prevEpisode: navigation.prevEpisode,
-          };
-          await cacheData(findById.slug, response, "EX", 3600);
-          
-          // await RealtimeService.notifyProductUpdate(findById._id.toString());
-          return res.status(200).json({
-            success: true,
-            message: "Dữ liệu sản phẩm đã được cập nhật.",
-          });
+
+            // Cache lại data mới
+            const response = {
+              ...updatedData.toObject(),
+              nextEpisode: navigation.nextEpisode,
+              prevEpisode: navigation.prevEpisode,
+            };
+            await cacheData(findById.slug, response, "EX", 3600);
+
+            // Gửi push notification CHỈ KHI admin BẬT flag
+            if (shouldSendNotification && data.category && data.seri) {
+              const categoryInfo = await Category.findById(data.category).select('name slug');
+              if (categoryInfo) {
+                const episodeNumber = parseInt(data.seri);
+                if (episodeNumber > 1) {
+                  console.log(`📤 Sending push notification for ${categoryInfo.name} - Tập ${episodeNumber}`);
+                  notifyNewEpisode(categoryInfo.name, episodeNumber, categoryInfo.slug)
+                    .catch(err => console.error('❌ Failed to send push notification:', err));
+                } else {
+                  console.log(`⚠️ Skip notification: Episode ${episodeNumber} is first episode`);
+                }
+              }
+            } else if (!shouldSendNotification) {
+              console.log('ℹ️ Push notification skipped (admin disabled)');
+            }
+
+            // await RealtimeService.notifyProductUpdate(findById._id.toString());
+            return res.status(200).json({
+              success: true,
+              message: "Dữ liệu sản phẩm đã được cập nhật.",
+            });
         }
       );
     } else {
@@ -546,10 +569,10 @@ export const editProduct = async (req, res, next) => {
       findById.slug = slug;
       findById.server2 = server2;
       findById.dailyMotionServer = dailyMotionServer;
-      
+
       // Xóa cache cũ trước
       redisDel(findById.slug);
-      
+
       // Xóa cache category khi product được cập nhật
       if (findById.category) {
         const categoryData = await Category.findById(findById.category).select('slug');
@@ -558,21 +581,38 @@ export const editProduct = async (req, res, next) => {
         }
         await redisDel("LASTESTCATEGORY");
       }
-      
+
       const data = await findById.save();
-      
-      // Lấy data mới với category để tính toán navigation
-      const updatedData = await getOneEpisode(findById.slug);
-      const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
-      
-      // Cache lại data mới
-      const response = {
-        ...updatedData.toObject(),
-        nextEpisode: navigation.nextEpisode,
-        prevEpisode: navigation.prevEpisode,
-      };
-      await cacheData(findById.slug, response, "EX", 3600);
-      
+
+        // Lấy data mới với category để tính toán navigation
+        const updatedData = await getOneEpisode(findById.slug);
+        const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
+
+        // Gửi push notification CHỈ KHI admin BẬT flag
+        if (shouldSendNotification && data.category && data.seri) {
+          const categoryInfo = await Category.findById(data.category).select('name slug');
+          if (categoryInfo) {
+            const episodeNumber = parseInt(data.seri);
+            if (episodeNumber > 1) {
+              console.log(`📤 Sending push notification for ${categoryInfo.name} - Tập ${episodeNumber}`);
+              notifyNewEpisode(categoryInfo.name, episodeNumber, categoryInfo.slug)
+                .catch(err => console.error('❌ Failed to send push notification:', err));
+            } else {
+              console.log(`⚠️ Skip notification: Episode ${episodeNumber} is first episode`);
+            }
+          }
+        } else if (!shouldSendNotification) {
+          console.log('ℹ️ Push notification skipped (admin disabled)');
+        }
+        
+        // Cache lại data mới
+        const response = {
+          ...updatedData.toObject(),
+          nextEpisode: navigation.nextEpisode,
+          prevEpisode: navigation.prevEpisode,
+        };
+        await cacheData(findById.slug, response, "EX", 3600);
+
       return res.status(200).json({
         success: true,
         message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -590,17 +630,17 @@ export const editProduct = async (req, res, next) => {
 export const deleteMultipleProduct = async (req, res) => {
   try {
     const id = req.body;
-    
+
     // Lấy danh sách category của các product sẽ bị xóa để xóa cache
     const productsToDelete = await Products.find({ _id: { $in: id } }).select('category');
     const categoryIds = [...new Set(productsToDelete.map(p => p.category).filter(Boolean))];
-    
+
     const data = await Products.remove({
       _id: {
         $in: id,
       },
     });
-    
+
     // Xóa cache category cho tất cả category bị ảnh hưởng
     for (const categoryId of categoryIds) {
       const categoryData = await Category.findById(categoryId).select('slug');
@@ -609,7 +649,7 @@ export const deleteMultipleProduct = async (req, res) => {
       }
     }
     await redisDel("LASTESTCATEGORY");
-    
+
     return res.status(200).json({
       success: true,
     });
@@ -795,7 +835,7 @@ export const getOne = async (req: Request, res: Response) => {
 
     // Tính toán navigation episodes
     const navigation = calculateEpisodeNavigation(dataID, slug);
-    
+
     // Add nextEpisode and currentEpisode to response
     const response = {
       ...dataID.toObject(),
@@ -840,7 +880,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
   try {
     // Validate request data
     const { selectedSheets } = req.body;
-    
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -859,7 +899,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
     const filePath = req.file.path;
     const workbook = XLSX.readFile(filePath);
     const sheetNames = workbook.SheetNames;
-    
+
     // Validate sheet index
     const sheetIndex = Number(selectedSheets);
     if (sheetIndex < 0 || sheetIndex >= sheetNames.length) {
@@ -872,7 +912,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
     // Convert sheet to JSON
     const jsonData = XLSX.utils.sheet_to_json(
       workbook.Sheets[sheetNames[sheetIndex]],
-      { 
+      {
         header: 1, // Use first row as header
         defval: "" // Default value for empty cells
       }
@@ -886,13 +926,13 @@ export const uploadXlxsProducts = async (req, res, next) => {
     }
 
     // Process data - skip header row
-    const headers:any = jsonData[0];
+    const headers: any = jsonData[0];
     const dataRows = jsonData.slice(1);
-    
+
     // Validate required headers
     const requiredFields = ['name', 'seri', 'category'];
     const missingFields = requiredFields.filter(field => !headers.includes(field));
-    
+
     if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
@@ -907,10 +947,10 @@ export const uploadXlxsProducts = async (req, res, next) => {
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
       const rowNumber = i + 2; // +2 because we skip header and arrays are 0-indexed
-      
+
       try {
         // Create row object from headers and data
-        const rowData:any = {};
+        const rowData: any = {};
         headers.forEach((header, index) => {
           rowData[header] = row[index] || '';
         });
@@ -936,7 +976,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
 
         // Generate slug
         const slug = `${slugify(rowData.name)}-episode-${rowData.seri}`;
-        
+
         // Check for duplicate slug
         const existingProduct = await Products.findOne({ slug });
         if (existingProduct) {
@@ -990,7 +1030,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
 
     // Update categories
     const categoryUpdates = new Map();
-    
+
     for (const product of insertedProducts) {
       if (!categoryUpdates.has(product.category.toString())) {
         categoryUpdates.set(product.category.toString(), []);
@@ -1030,7 +1070,7 @@ export const uploadXlxsProducts = async (req, res, next) => {
 
   } catch (error) {
     console.error('Excel upload error:', error);
-    
+
     // Clean up file on error
     if (req.file && req.file.path) {
       try {
@@ -1078,18 +1118,18 @@ export const mostWatchesEposides = async (req, res) => {
 export const editMultipleMovies = async (req, res) => {
   try {
     const arrId = req.body;
-    
+
     // Lấy danh sách category của các product sẽ được cập nhật để xóa cache
     const productsToUpdate = await Products.find({ _id: { $in: arrId } }).select('category');
     const categoryIds = [...new Set(productsToUpdate.map(p => p.category).filter(Boolean))];
-    
+
     for (const id of arrId) {
       const product = await Products.findById(id).select("dailyMotionServer");
       if (product) {
         await Products.findByIdAndUpdate(id, { dailyMotionServer: product.dailyMotionServer });
       }
     }
-    
+
     // Xóa cache category cho tất cả category bị ảnh hưởng
     for (const categoryId of categoryIds) {
       const categoryData = await Category.findById(categoryId).select('slug');
@@ -1098,7 +1138,7 @@ export const editMultipleMovies = async (req, res) => {
       }
     }
     await redisDel("LASTESTCATEGORY");
-    
+
     return res.status(200).json({
       success: true,
       message: "Dữ liệu sản phẩm đã được cập nhật.",
@@ -1113,16 +1153,16 @@ export const editMultipleMovies = async (req, res) => {
 export const approveMultipleMovies = async (req, res) => {
   try {
     const id = req.body;
-    
+
     // Lấy danh sách category của các product sẽ được approve để xóa cache
     const productsToApprove = await Products.find({ _id: { $in: id } }).select('category');
     const categoryIds = [...new Set(productsToApprove.map(p => p.category).filter(Boolean))];
-    
+
     const data = await Products.updateMany(
       { _id: { $in: id } },
       { $set: { isApproved: true } }
     );
-    
+
     // Xóa cache category cho tất cả category bị ảnh hưởng
     for (const categoryId of categoryIds) {
       const categoryData = await Category.findById(categoryId).select('slug');
@@ -1131,7 +1171,7 @@ export const approveMultipleMovies = async (req, res) => {
       }
     }
     await redisDel("LASTESTCATEGORY");
-    
+
     return res.status(200).json({
       success: true,
       id: id,
@@ -1372,7 +1412,7 @@ export const addMultipleEpisodes = async (req, res) => {
         view,
         country,
         trailer,
-        dailyMotionServer:dailyMotionServer,
+        dailyMotionServer: dailyMotionServer,
       };
 
       const data: any = await Products.create(dataAdd);
