@@ -3,23 +3,49 @@ import PushToken from "../module/push.token";
 import { 
   sendPushNotification, 
   sendNotificationToAll,
-  sendNotificationToUser,
   notifyNewEpisode,
   notifyNewCategory
 } from "../services/push-notification.service";
+
+export const getDevices = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+    const notifications = await PushToken.find({})
+      .sort({ sentAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean()
+      .exec();
+    return res.status(200).json({
+      success: true,
+      data: notifications,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: notifications.length,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 
 /**
  * Register một push token mới
  */
 export const registerPushToken = async (req: Request, res: Response) => {
   try {
-    console.log("\n📱 [registerPushToken] Received request");
-    console.log("   Body:", JSON.stringify(req.body, null, 2));
     
     const { token, platform, deviceName, appVersion, userId } = req.body;
 
     if (!token) {
-      console.log("❌ Token missing in request");
       return res.status(400).json({
         success: false,
         message: "Push token is required",
@@ -28,20 +54,17 @@ export const registerPushToken = async (req: Request, res: Response) => {
 
     // Validate Expo push token format
     if (!token.startsWith("ExponentPushToken[")) {
-      console.log("❌ Invalid token format:", token);
       return res.status(400).json({
         success: false,
         message: "Invalid Expo push token format",
       });
     }
     
-    console.log("✅ Token format valid:", token.substring(0, 30) + "...");
 
     // Check if token already exists
     let existingToken = await PushToken.findOne({ token });
 
     if (existingToken) {
-      console.log("ℹ️ Token already exists, updating...");
       // Update existing token
       existingToken.isActive = true;
       existingToken.lastUsed = new Date();
@@ -167,9 +190,22 @@ export const sendNotificationWithSecret = async (req: Request, res: Response) =>
 
     // Option 1: Gửi notification với type cụ thể
     if (type === "new_episode" && categoryName && episode && categorySlug) {
-      result = await notifyNewEpisode(categoryName, parseInt(episode), categorySlug);
+      const sentBy = (req as any).auth?._id;
+      result = await notifyNewEpisode(
+        categoryName, 
+        parseInt(episode), 
+        categorySlug,
+        undefined, // productId optional
+        sentBy
+      );
     } else if (type === "new_category" && categoryName && categorySlug) {
-      result = await notifyNewCategory(categoryName, categorySlug);
+      const sentBy = (req as any).auth?._id;
+      result = await notifyNewCategory(
+        categoryName, 
+        categorySlug,
+        undefined, // categoryId optional
+        sentBy
+      );
     } 
     // Option 2: Gửi custom notification
     else if (token) {

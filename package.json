@@ -6,6 +6,7 @@
   "scripts": {
     "start": "ts-node --transpile-only app.ts",
     "dev": "nodemon --exec \"ts-node --transpile-only\" app.ts",
+    "dev:clean": "powershell -Command \"Stop-Process -Name node -Force -ErrorAction SilentlyContinue; npm run dev\"",
     "build": "tsc",
     "serve": "node dist/app.js",
     "test": "jest",

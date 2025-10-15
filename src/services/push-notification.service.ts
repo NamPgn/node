@@ -1,5 +1,7 @@
 import axios from "axios";
 import PushToken from "../module/push.token";
+import Notification, { INotificationModel } from "../module/notification";
+import Category from "../module/category";
 
 /**
  * Expo Push Notification Service URL
@@ -88,32 +90,58 @@ export const sendPushNotification = async (
 
 /**
  * Gửi notification đến tất cả active devices
+ * @param payload - Notification content
+ * @param saveToDb - Có lưu vào DB không (default: true)
+ * @param notificationData - Metadata để lưu DB (categoryId, productId, episodeNumber, sentBy)
  */
 export const sendNotificationToAll = async (
-  payload: NotificationPayload
+  payload: NotificationPayload,
+  saveToDb: boolean = true,
+  notificationData?: {
+    categoryId?: string;
+    categorySlug?: string;
+    productId?: string;
+    productSlug?: string;
+    episodeNumber?: number;
+    sentBy?: string;
+  }
 ): Promise<any> => {
   try {
-    console.log("\n🔍 [sendNotificationToAll] Starting...");
-    console.log(`   Payload: ${JSON.stringify(payload, null, 2)}`);
-    
     const activeTokens = await PushToken.find({ isActive: true }).select("token");
     const tokens = activeTokens.map((doc) => doc.token);
 
-    console.log(`   Found ${tokens.length} active device(s) in database`);
-
     if (tokens.length === 0) {
-      console.warn("❌ No active push tokens found!");
-      console.warn("💡 Cần register push token từ mobile app trước");
-      console.warn("   Run: npx ts-node src/scripts/check-push-tokens.ts");
       return { success: false, message: "No active tokens" };
     }
 
-    console.log(`📤 Sending notification to ${tokens.length} device(s)...`);
+    // Gửi push notification
     const result = await sendPushNotification(tokens, payload);
-    console.log(`✅ Notification sent result:`, result);
+    // Lưu vào DB nếu được yêu cầu
+    if (saveToDb && notificationData) {
+      const notificationRecord = new Notification({
+        title: payload.title,
+        body: payload.body,
+        categoryId: notificationData.categoryId,
+        categorySlug: notificationData.categorySlug || payload.data?.categorySlug,
+        productId: notificationData.productId,
+        productSlug: notificationData.productSlug,
+        episodeNumber: notificationData.episodeNumber,
+        sentBy: notificationData.sentBy,
+        totalRecipients: tokens.length,
+        successCount: result.success ? tokens.length : 0,
+        failureCount: result.success ? 0 : tokens.length,
+        data: payload.data,
+        platform: "expo",
+        status: result.success ? "sent" : "failed",
+        errorMessage: result.success ? undefined : result.error,
+      });
+
+      await notificationRecord.save();
+      console.log(`💾 Notification saved to DB: ${notificationRecord._id}`);
+    }
+
     return result;
   } catch (error: any) {
-    console.error("❌ Error sending notification to all:", error.message);
     return { success: false, error: error.message };
   }
 };
@@ -146,38 +174,106 @@ export const sendNotificationToUser = async (
 
 /**
  * Gửi notification khi có episode mới
+ * @param categoryName - Tên phim/series
+ * @param episode - Số tập
+ * @param categorySlug - Slug để navigate
+ * @param productId - ID của product (episode)
+ * @param sentBy - User ID của admin gửi
  */
-export const notifyNewEpisode = async (categoryName: string, episode: number, categorySlug: string) => {
-  console.log("\n🎬 [notifyNewEpisode] Triggered!");
-  console.log(`   Category: ${categoryName}`);
-  console.log(`   Episode: ${episode}`);
-  console.log(`   Slug: ${categorySlug}`);
-  
-  return await sendNotificationToAll({
-    title: `Tập ${episode} mới đã ra! 🎬`,
-    body: `${categoryName} - Tập ${episode} vừa được cập nhật`,
-    data: {
-      type: "new_episode",
-      categorySlug,
-      episode: episode.toString(),
-    },
-    sound: "default",
-  });
+export const notifyNewEpisode = async (
+  categoryName: string, 
+  episode: number, 
+  categorySlug: string,
+  productId?: string,
+  productSlug?: string,
+  sentBy?: string
+) => {
+  try {
+    // Kiểm tra đã gửi notification cho episode này chưa
+    const hasNotified = await (Notification as INotificationModel).hasNotifiedEpisode(categorySlug, episode);
+    if (hasNotified) {
+      console.log(`⚠️ Notification for ${categorySlug} episode ${episode} already sent. Skipping...`);
+      return { success: false, message: "Already notified for this episode" };
+    }
+
+    // Lấy category ID từ slug
+    const category = await Category.findOne({ slug: categorySlug }).select("_id name");
+    if (!category) {
+      console.error(`❌ Category not found for slug: ${categorySlug}`);
+      return { success: false, message: "Category not found" };
+    }
+
+    return await sendNotificationToAll(
+      {
+        title: `Tập ${episode} mới đã ra! 🎬`,
+        body: `${categoryName} - Tập ${episode} vừa được cập nhật`,
+        data: {
+          type: "new_episode",
+          categorySlug,
+          episode: episode.toString(),
+          productId,
+          productSlug,
+        },
+        sound: "default",
+      },
+      true, // Save to DB
+      {
+        categoryId: category._id.toString(),
+        categorySlug,
+        productId,
+        productSlug,
+        episodeNumber: episode,
+        sentBy,
+      }
+    );
+  } catch (error: any) {
+    console.error("❌ Error in notifyNewEpisode:", error.message);
+    return { success: false, error: error.message };
+  }
 };
 
 /**
  * Gửi notification khi có phim mới
+ * @param categoryName - Tên phim/series
+ * @param categorySlug - Slug để navigate
+ * @param categoryId - ID của category
+ * @param sentBy - User ID của admin gửi
  */
-export const notifyNewCategory = async (categoryName: string, categorySlug: string) => {
-  return await sendNotificationToAll({
-    title: "Phim mới đã ra mắt! 🎉",
-    body: `${categoryName} đã được thêm vào thư viện`,
-    data: {
-      type: "new_category",
-      categorySlug,
-    },
-    sound: "default",
-  });
+export const notifyNewCategory = async (
+  categoryName: string, 
+  categorySlug: string,
+  categoryId?: string,
+  sentBy?: string
+) => {
+  try {
+    // Nếu không có categoryId, tìm từ slug
+    if (!categoryId) {
+      const category = await Category.findOne({ slug: categorySlug }).select("_id");
+      categoryId = category?._id.toString();
+    }
+
+    return await sendNotificationToAll(
+      {
+        title: "Phim mới đã ra mắt! 🎉",
+        body: `${categoryName} đã được thêm vào thư viện`,
+        data: {
+          type: "new_category",
+          categorySlug,
+        },
+        sound: "default",
+      },
+      true, // Save to DB
+      {
+        categoryId,
+        categorySlug,
+        episodeNumber: 1, // Phim mới = episode 1
+        sentBy,
+      }
+    );
+  } catch (error: any) {
+    console.error("❌ Error in notifyNewCategory:", error.message);
+    return { success: false, error: error.message };
+  }
 };
 
 /**

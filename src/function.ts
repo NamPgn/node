@@ -18,6 +18,7 @@ const updateDocuments = async () => {
     console.error("Error updating documents:", error);
   }
 };
+
 // const updateDocuments = async () => {
 //   try {
 //     // Cập nhật tất cả các tài liệu trong bộ sưu tập

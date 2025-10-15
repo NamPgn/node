@@ -18,6 +18,7 @@ import routerTags from "../routes/tags";
 import routerCombiningEpisodes from "../routes/combining-episodes";
 import routerPoster from "../routes/poster";
 import routerPushNotification from "../routes/push-notification";
+import routerNotification from "../routes/notification";
 import routerCategoriesAdmin from "../routes/v2/categories";
 const routes = [
   routerAuth,
@@ -38,7 +39,8 @@ const routes = [
   routerTags,
   routerCombiningEpisodes,
   routerPoster,
-  routerPushNotification
+  routerPushNotification,
+  routerNotification
 ];
 const routerV2 = [
   routerCategoriesAdmin,

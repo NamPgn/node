@@ -411,7 +411,7 @@ export const editProduct = async (req, res, next) => {
     if (!findById) {
       return res.status(404).json({ message: "Product not found." });
     }
-    
+
     // Parse flag (vì từ FormData sẽ là string)
     const shouldSendNotification = sendPushNotification === "true" || sendPushNotification === true;
 
@@ -474,36 +474,43 @@ export const editProduct = async (req, res, next) => {
           const updatedData = await getOneEpisode(findById.slug);
           const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
 
-            // Cache lại data mới
-            const response = {
-              ...updatedData.toObject(),
-              nextEpisode: navigation.nextEpisode,
-              prevEpisode: navigation.prevEpisode,
-            };
-            await cacheData(findById.slug, response, "EX", 3600);
+          // Cache lại data mới
+          const response = {
+            ...updatedData.toObject(),
+            nextEpisode: navigation.nextEpisode,
+            prevEpisode: navigation.prevEpisode,
+          };
+          await cacheData(findById.slug, response, "EX", 3600);
 
-            // Gửi push notification CHỈ KHI admin BẬT flag
-            if (shouldSendNotification && data.category && data.seri) {
-              const categoryInfo = await Category.findById(data.category).select('name slug');
-              if (categoryInfo) {
-                const episodeNumber = parseInt(data.seri);
-                if (episodeNumber > 1) {
-                  console.log(`📤 Sending push notification for ${categoryInfo.name} - Tập ${episodeNumber}`);
-                  notifyNewEpisode(categoryInfo.name, episodeNumber, categoryInfo.slug)
-                    .catch(err => console.error('❌ Failed to send push notification:', err));
-                } else {
-                  console.log(`⚠️ Skip notification: Episode ${episodeNumber} is first episode`);
-                }
+          // Gửi push notification CHỈ KHI admin BẬT flag
+          if (shouldSendNotification && data.category && data.seri) {
+            const categoryInfo = await Category.findById(data.category).select('name slug');
+            if (categoryInfo) {
+              const episodeNumber = parseInt(data.seri);
+              if (episodeNumber > 1) {
+                const sentBy = (req as any).auth?._id; // Admin user ID
+                notifyNewEpisode(
+                  categoryInfo.name, 
+                  episodeNumber, 
+                  categoryInfo.slug,
+                  data._id.toString(),
+                  data.slug,
+                  sentBy
+                )
+                  .catch(err => console.error('❌ Failed to send push notification:', err));
+              } else {
+                console.log(`⚠️ Skip notification: Episode ${episodeNumber} is first episode`);
               }
-            } else if (!shouldSendNotification) {
-              console.log('ℹ️ Push notification skipped (admin disabled)');
             }
+          } else if (!shouldSendNotification) {
+            console.log('ℹ️ Push notification skipped (admin disabled)');
+          }
 
-            // await RealtimeService.notifyProductUpdate(findById._id.toString());
-            return res.status(200).json({
-              success: true,
-              message: "Dữ liệu sản phẩm đã được cập nhật.",
-            });
+          // await RealtimeService.notifyProductUpdate(findById._id.toString());
+          return res.status(200).json({
+            success: true,
+            message: "Dữ liệu sản phẩm đã được cập nhật.",
+          });
         }
       );
     } else {
@@ -584,34 +591,41 @@ export const editProduct = async (req, res, next) => {
 
       const data = await findById.save();
 
-        // Lấy data mới với category để tính toán navigation
-        const updatedData = await getOneEpisode(findById.slug);
-        const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
+      // Lấy data mới với category để tính toán navigation
+      const updatedData = await getOneEpisode(findById.slug);
+      const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
 
-        // Gửi push notification CHỈ KHI admin BẬT flag
-        if (shouldSendNotification && data.category && data.seri) {
-          const categoryInfo = await Category.findById(data.category).select('name slug');
-          if (categoryInfo) {
-            const episodeNumber = parseInt(data.seri);
-            if (episodeNumber > 1) {
-              console.log(`📤 Sending push notification for ${categoryInfo.name} - Tập ${episodeNumber}`);
-              notifyNewEpisode(categoryInfo.name, episodeNumber, categoryInfo.slug)
-                .catch(err => console.error('❌ Failed to send push notification:', err));
-            } else {
-              console.log(`⚠️ Skip notification: Episode ${episodeNumber} is first episode`);
-            }
+      // Gửi push notification CHỈ KHI admin BẬT flag
+      if (shouldSendNotification && findById.category) {
+        const categoryInfo = await Category.findById(findById.category).select('name slug');
+        if (categoryInfo) {
+          const episodeNumber = parseInt(data.seri);
+          if (episodeNumber > 1) {
+            const sentBy = (req as any).auth?._id; // Admin user ID
+            notifyNewEpisode(
+              categoryInfo.name, 
+              episodeNumber, 
+              categoryInfo.slug,
+              data._id.toString(),
+              data.slug,
+              sentBy
+            )
+              .catch(err => console.error('❌ Failed to send push notification:', err));
+          } else {
+            console.log(`⚠️ Skip notification: Episode ${episodeNumber} is first episode`);
           }
-        } else if (!shouldSendNotification) {
-          console.log('ℹ️ Push notification skipped (admin disabled)');
         }
-        
-        // Cache lại data mới
-        const response = {
-          ...updatedData.toObject(),
-          nextEpisode: navigation.nextEpisode,
-          prevEpisode: navigation.prevEpisode,
-        };
-        await cacheData(findById.slug, response, "EX", 3600);
+      } else if (!shouldSendNotification) {
+        console.log('ℹ️ Push notification skipped (admin disabled)');
+      }
+
+      // Cache lại data mới
+      const response = {
+        ...updatedData.toObject(),
+        nextEpisode: navigation.nextEpisode,
+        prevEpisode: navigation.prevEpisode,
+      };
+      await cacheData(findById.slug, response, "EX", 3600);
 
       return res.status(200).json({
         success: true,
