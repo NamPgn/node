@@ -12,7 +12,7 @@ import { checkToken, isAdmin } from "../middlewares/checkAuth";
 
 const router = express.Router();
 
-router.get("/notifications/device", getDevices);
+router.get("/push-notification/devices", getDevices);
 // Public routes (không cần auth)
 router.post("/push-token/register", registerPushToken);
 router.post("/push-token/unregister", unregisterPushToken);

@@ -20,6 +20,7 @@ import routerPoster from "../routes/poster";
 import routerPushNotification from "../routes/push-notification";
 import routerNotification from "../routes/notification";
 import routerCategoriesAdmin from "../routes/v2/categories";
+import routerFeatureBanner from "../routes/feature-banner";
 const routes = [
   routerAuth,
   routerProducts,
@@ -40,7 +41,8 @@ const routes = [
   routerCombiningEpisodes,
   routerPoster,
   routerPushNotification,
-  routerNotification
+  routerNotification,
+  routerFeatureBanner
 ];
 const routerV2 = [
   routerCategoriesAdmin,

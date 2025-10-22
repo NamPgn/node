@@ -60,28 +60,77 @@ export const sendPushNotification = async (
       return { success: false, message: "No valid tokens" };
     }
 
-    const messages: PushMessage[] = validTokens.map((token) => ({
-      to: token,
-      title: payload.title,
-      body: payload.body,
-      data: payload.data || {},
-      sound: payload.sound || "default",
-      badge: payload.badge,
-      priority: "high",
-      channelId: "default",
-    }));
+    // **CHIA THÀNH BATCHES 100 TOKENS**
+    const BATCH_SIZE = 100;
+    const batches = [];
+    for (let i = 0; i < validTokens.length; i += BATCH_SIZE) {
+      batches.push(validTokens.slice(i, i + BATCH_SIZE));
+    }
 
-    // Gửi qua Expo Push Notification API
-    const response = await axios.post(EXPO_PUSH_URL, messages, {
-      headers: {
-        Accept: "application/json",
-        "Accept-encoding": "gzip, deflate",
-        "Content-Type": "application/json",
-      },
-    });
+    console.log(`📦 Sending ${validTokens.length} notifications in ${batches.length} batches`);
 
-    console.log("✅ Push notification sent:", response.data);
-    return { success: true, data: response.data };
+    const results = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    // **GỬI TỪNG BATCH**
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      
+      const messages: PushMessage[] = batch.map((token) => ({
+        to: token,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data || {},
+        sound: payload.sound || "default",
+        badge: payload.badge,
+        priority: "high",
+        channelId: "default",
+      }));
+
+      try {
+        const response = await axios.post(EXPO_PUSH_URL, messages, {
+          headers: {
+            Accept: "application/json",
+            "Accept-encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log(`✅ Batch ${i + 1}/${batches.length} sent successfully`);
+        
+        // Đếm success/failure từ response
+        const batchResults = response.data.data || [];
+        batchResults.forEach((result: any) => {
+          if (result.status === 'ok') {
+            successCount++;
+          } else {
+            failureCount++;
+          }
+        });
+
+        results.push(response.data);
+
+        // **DELAY GIỮA CÁC BATCH để tránh rate limit**
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+      } catch (error: any) {
+        console.error(`❌ Batch ${i + 1}/${batches.length} failed:`, error.response?.data || error.message);
+        failureCount += batch.length;
+        results.push({ error: error.message, batch: i + 1 });
+      }
+    }
+
+    return { 
+      success: successCount > 0, 
+      successCount,
+      failureCount,
+      totalBatches: batches.length,
+      data: results 
+    };
+
   } catch (error: any) {
     console.error("❌ Error sending push notification:", error.response?.data || error.message);
     return { success: false, error: error.message };
@@ -108,14 +157,19 @@ export const sendNotificationToAll = async (
 ): Promise<any> => {
   try {
     const activeTokens = await PushToken.find({ isActive: true }).select("token");
-    const tokens = activeTokens.map((doc) => doc.token);
+
+    // **LẤY MẢNG TOKEN, KHÔNG CẦN MAP THÀNH OBJECT**
+    const tokens = activeTokens.map(t => t.token);
 
     if (tokens.length === 0) {
       return { success: false, message: "No active tokens" };
     }
 
-    // Gửi push notification
+    console.log(`📨 Sending notification to ${tokens.length} devices...`);
+
+    // Gửi push notification (đã có batch processing bên trong)
     const result = await sendPushNotification(tokens, payload);
+
     // Lưu vào DB nếu được yêu cầu
     if (saveToDb && notificationData) {
       const notificationRecord = new Notification({
@@ -128,8 +182,8 @@ export const sendNotificationToAll = async (
         episodeNumber: notificationData.episodeNumber,
         sentBy: notificationData.sentBy,
         totalRecipients: tokens.length,
-        successCount: result.success ? tokens.length : 0,
-        failureCount: result.success ? 0 : tokens.length,
+        successCount: result.successCount || 0,
+        failureCount: result.failureCount || 0,
         data: payload.data,
         platform: "expo",
         status: result.success ? "sent" : "failed",
@@ -145,7 +199,6 @@ export const sendNotificationToAll = async (
     return { success: false, error: error.message };
   }
 };
-
 /**
  * Gửi notification đến specific user
  */

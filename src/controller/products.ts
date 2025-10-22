@@ -16,7 +16,7 @@ import { invalidateSeasonCacheByProduct } from "../utills/invalidateSeasonCache"
 import redisClient from "../config/redis.config";
 import { notifyNewEpisode } from "../services/push-notification.service";
 // import { RealtimeService } from "../services/realtime.service";
-
+import PushToken from "../module/push.token";
 // Helper function để tính toán nextEpisode và prevEpisode
 const calculateEpisodeNavigation = (dataID: any, slug: string) => {
   if (!dataID.category?.products) {
@@ -490,8 +490,8 @@ export const editProduct = async (req, res, next) => {
               if (episodeNumber > 1) {
                 const sentBy = (req as any).auth?._id; // Admin user ID
                 notifyNewEpisode(
-                  categoryInfo.name, 
-                  episodeNumber, 
+                  categoryInfo.name,
+                  episodeNumber,
                   categoryInfo.slug,
                   data._id.toString(),
                   data.slug,
@@ -592,10 +592,14 @@ export const editProduct = async (req, res, next) => {
       const data = await findById.save();
 
       // Lấy data mới với category để tính toán navigation
-      const updatedData = await getOneEpisode(findById.slug);
+      const updatedData = await getOneEpisode(findById.slug);   
       const navigation = calculateEpisodeNavigation(updatedData, findById.slug);
 
       // Gửi push notification CHỈ KHI admin BẬT flag
+
+
+      
+
       if (shouldSendNotification && findById.category) {
         const categoryInfo = await Category.findById(findById.category).select('name slug');
         if (categoryInfo) {
@@ -603,8 +607,8 @@ export const editProduct = async (req, res, next) => {
           if (episodeNumber > 1) {
             const sentBy = (req as any).auth?._id; // Admin user ID
             notifyNewEpisode(
-              categoryInfo.name, 
-              episodeNumber, 
+              categoryInfo.name,
+              episodeNumber,
               categoryInfo.slug,
               data._id.toString(),
               data.slug,
