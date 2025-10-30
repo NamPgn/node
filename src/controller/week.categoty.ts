@@ -133,7 +133,7 @@ export const one = async (req, res) => {
 
     data.map((items) => {
       categorys.name = items.name;
-      categorys.content = resizeImagesUrl(items.category, "linkImg", 100, 100);
+      categorys.content = resizeImagesUrl(items.category, "linkImg", 300, 400);
     });
 
     return res.json(categorys);
