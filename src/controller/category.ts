@@ -668,15 +668,37 @@ export const getCategoryLatesupdate = async (req, res) => {
 
 export const getCategoryLatesupdateFromNextjs = async (req, res) => {
   try {
-    let KEY = "LASTESTCATEGORY";
+    const page = req.query.page ? parseInt(req.query.page as string) : null;
+    const limit = 16;
+    
+    // Nếu có page thì cache theo page, không có page thì dùng key cũ
+    let KEY = page ? `LASTESTCATEGORY_PAGE_${page}` : "LASTESTCATEGORY";
+    let TOTAL_KEY = "LASTESTCATEGORY_TOTAL_COUNT";
 
     let getDataFromCaches = await getDataFromCache(KEY);
+    let totalCount = await getDataFromCache(TOTAL_KEY);
 
-    if (!getDataFromCaches) {
-      // Nếu chưa có cache thì query từ DB
-      const data = await Category.aggregate([
-        { $sort: { latestProductUploadDate: -1 } },
-        { $limit: 16 },
+    if (!getDataFromCaches || (page && !totalCount)) {
+      // Đếm tổng số categories nếu cần pagination
+      if (page && !totalCount) {
+        totalCount = await Category.countDocuments();
+        await cacheData(TOTAL_KEY, totalCount);
+      }
+
+      // Build pipeline tùy theo có page hay không
+      const pipeline: any[] = [
+        { $sort: { latestProductUploadDate: -1 } }
+      ];
+
+      // Nếu có page thì thêm skip và limit
+      if (page) {
+        const skip = (page - 1) * limit;
+        pipeline.push({ $skip: skip });
+      }
+      
+      pipeline.push({ $limit: limit });
+
+      pipeline.push(
         {
           $lookup: {
             from: "products",
@@ -709,7 +731,10 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
             isActive: 1,
           }
         }
-      ]);
+      );
+
+      // Nếu chưa có cache thì query từ DB
+      const data = await Category.aggregate(pipeline);
 
       // Gọi resizeImagesUrl để thay đổi ảnh
       const updatedData = resizeImagesUrl(data, 'linkImg', 300, 450);
@@ -722,14 +747,40 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
     Products.watch().on("change", async (change) => {
       const operationTypes = ["insert", "delete", "update"];
       if (operationTypes.includes(change.operationType)) {
-        await redisDel(KEY);
+        // Xóa cache của tất cả các page
+        await redisDel("LASTESTCATEGORY");
+        await redisDel(TOTAL_KEY);
+        if (page) {
+          await redisDel(KEY);
+        }
       }
     });
 
-    return res.json({
+    // Tính toán thông tin pagination
+    const response: any = {
       data: getDataFromCaches,
       success: true,
-    });
+    };
+
+    if (page) {
+      // Nếu có page thì trả về đầy đủ thông tin pagination
+      if (!totalCount) {
+        totalCount = await Category.countDocuments();
+        await cacheData(TOTAL_KEY, totalCount);
+      }
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      response.pagination = {
+        currentPage: page,
+        pageSize: limit,
+        totalPages: totalPages,
+        totalCount: totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      };
+    }
+
+    return res.json(response);
   } catch (error) {
     return res.status(400).json({
       message: error.message,
