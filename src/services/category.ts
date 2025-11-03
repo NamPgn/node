@@ -71,7 +71,7 @@ export const getCategoriesSitemap = async () => {
 export const getCategory = async (id) => {
   const category = await Category.findOne({ slug: id })
     .select(
-      "name linkImg sumSeri year time lang quality slug country des up isMovie hour anotherName relatedSeasons newMovie status thuyetMinh"
+      "name linkImg sumSeri year time lang quality slug country des up isMovie hour anotherName relatedSeasons newMovie status thuyetMinh episode_many_title"
     )
     .populate({
       path: "products",

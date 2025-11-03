@@ -973,27 +973,27 @@ export const uploadXlxsProducts = async (req, res, next) => {
           rowData[header] = row[index] || '';
         });
 
+        // Skip empty rows (tất cả các field quan trọng đều rỗng)
+        const isEmpty = !rowData.name && !rowData.seri && !rowData.category;
+        if (isEmpty) {
+          continue;
+        }
+
         // Validate required fields
         if (!rowData.name || !rowData.seri || !rowData.category) {
           errors.push(`Dòng ${rowNumber}: Thiếu thông tin bắt buộc (name, seri, category)`);
           continue;
         }
 
-        // Validate category ID format
-        if (!mongoose.Types.ObjectId.isValid(rowData.category)) {
-          errors.push(`Dòng ${rowNumber}: Category ID không hợp lệ`);
-          continue;
-        }
-
-        // Check if category exists
-        const categoryExists = await Category.findById(rowData.category);
+        // Tìm category theo slug
+        const categoryExists = await Category.findOne({ slug: rowData.category });
         if (!categoryExists) {
-          errors.push(`Dòng ${rowNumber}: Category không tồn tại`);
+          errors.push(`Dòng ${rowNumber}: Category với slug '${rowData.category}' không tồn tại`);
           continue;
         }
 
-        // Generate slug
-        const slug = `${slugify(rowData.name)}-episode-${rowData.seri}`;
+        // Generate slug từ name
+        const slug = slugify(rowData.name + ' -episode-' + rowData.seri);
 
         // Check for duplicate slug
         const existingProduct = await Products.findOne({ slug });
@@ -1006,13 +1006,10 @@ export const uploadXlxsProducts = async (req, res, next) => {
         const productData = {
           name: rowData.name.trim(),
           seri: rowData.seri.toString().trim(),
-          category: mongoose.Types.ObjectId.createFromHexString(rowData.category),
+          category: categoryExists._id, // Sử dụng _id từ category đã tìm được
           slug: slug,
-          // Optional fields with defaults
-          description: rowData.description || '',
-          image: rowData.image || '',
-          videoUrl: rowData.videoUrl || '',
-          dailymotionServer: rowData.dailymotionServer || '',
+          dailyMotionServer: rowData.dailyMotionServer || '',
+          server2: rowData.server2 || '',
           isApproved: rowData.isApproved === 'true' || rowData.isApproved === true,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -1057,8 +1054,9 @@ export const uploadXlxsProducts = async (req, res, next) => {
     }
 
     // Batch update categories
+    const updatedCategorySlugs = [];
     for (const [categoryId, productIds] of categoryUpdates) {
-      await Category.findByIdAndUpdate(
+      const updatedCategory = await Category.findByIdAndUpdate(
         categoryId,
         {
           $addToSet: { products: { $each: productIds } },
@@ -1066,6 +1064,15 @@ export const uploadXlxsProducts = async (req, res, next) => {
         },
         { new: true }
       );
+      if (updatedCategory) {
+        updatedCategorySlugs.push(updatedCategory.slug);
+      }
+    }
+
+    // Clear related cache
+    if (updatedCategorySlugs.length > 0) {
+      const { clearRelatedCache } = require('../redis');
+      await clearRelatedCache(updatedCategorySlugs);
     }
 
     // Clean up uploaded file

@@ -1,3 +1,4 @@
+import slugify from "slugify";
 import weekCategory from "../module/week.category";
 import WeekCategory from "../module/week.category";
 import { resizeImagesUrl } from "../utills/resizeImage";
@@ -5,57 +6,7 @@ import { resizeImagesUrl } from "../utills/resizeImage";
 export const all = async (req, res) => {
   try {
 
-    const data = await WeekCategory.aggregate([
-      {
-        $lookup: {
-          from: "categories",
-          localField: "category",
-          foreignField: "_id",
-          as: "category",
-          pipeline: [
-            {
-              $lookup: {
-                from: "products",
-                localField: "products",
-                foreignField: "_id",
-                as: "products",
-                pipeline: [
-                  { $sort: { createdAt: -1 } },
-                  { $limit: 1 },
-                  { $project: { seri: 1 } }
-                ]
-              }
-            },
-            {
-              $project: {
-                name: 1,
-                products: 1,
-              }
-            }
-          ]
-        }
-      },
-      {
-        $sort: { name: 1 }
-      }
-    ])
-    // const data: any = await WeekCategory.find()
-    //   .populate({
-    //     path: "category",
-    //     select: "name linkImg seri time type year sumSeri",
-    //     populate: {
-    //       path: "products",
-    //       model: "Products",
-    //       select: "seri",
-    //       options: {
-    //         limit: 1,
-    //         sort: {
-    //           createdAt: -1,
-    //         },
-    //       },
-    //     },
-    //   })
-    //   .sort({ name: 1 }); //123
+    const data = await WeekCategory.find().select("name slug");
 
     return res.status(200).json(data);
   } catch (error) {
@@ -205,7 +156,7 @@ export const createManyCategory = async (req, res) => {
   try {
     const body = req.body;
     const { id } = req.params;
-    const weekId: any = await weekCategory.findOne({ name: id });
+    const weekId: any = await weekCategory.findById(id);
     if (!weekId) {
       return res.status(404).json({
         success: false,

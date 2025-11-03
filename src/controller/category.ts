@@ -288,6 +288,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       thuyetMinh,
       newMovie,
       tags,
+      episode_many_title,
     } = req.body;
     const { id } = req.params;
     const file = req.file;
@@ -369,6 +370,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
           findById.thuyetMinh = thuyetMinh;
           findById.newMovie = newMovie;
           findById.tags = tags;
+          findById.episode_many_title = episode_many_title;
           // Lưu category trước
           await findById.save();
 
@@ -444,6 +446,7 @@ export const updateCate = async (req: MulterRequest, res: Response) => {
       findById.thuyetMinh = thuyetMinh;
       findById.newMovie = newMovie;
       findById.tags = tags;
+      findById.episode_many_title = episode_many_title;
       await findById.save();
 
       await syncTags();
@@ -729,6 +732,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
             thuyetMinh: 1,
             newMovie: 1,
             isActive: 1,
+            episode_many_title: 1,
           }
         }
       );

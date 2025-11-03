@@ -4,6 +4,10 @@ const weekSchema = new mongoose.Schema({
   name: {
     type: String,
   },
+  slug: {
+    type: String,
+    unique: true,
+  },
   category: [
     {
       type: mongoose.Schema.Types.ObjectId,
