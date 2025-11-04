@@ -5,6 +5,7 @@ import {
     getTagById,
     updateTag,
     deleteTag,
+    getTagsLaravel,
 } from "../controller/tags.controller";
 
 const router = express.Router();
@@ -12,7 +13,7 @@ const router = express.Router();
 router.post("/tags", createTag);
 
 router.get("/tags", getTags);
-
+router.get("/tags/laravel", getTagsLaravel);
 router.get("/tags/:id", getTagById);
 
 router.put("/tags/:id", updateTag);

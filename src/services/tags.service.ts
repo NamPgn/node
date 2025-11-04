@@ -117,6 +117,10 @@ export const getTagsService = async () => {
   return await Tags.find().populate("categories", 'slug');
 };
 
+export const getTagsLaravelService = async () => {
+  return await Tags.find().select("name slug");
+};
+
 export const getTagByIdService = async (id: string) => {
   const tag = await Tags.findById(id).populate("categories", 'slug');
   if (!tag) {

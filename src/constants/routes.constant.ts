@@ -51,7 +51,8 @@ export const ROUTES = {
     RELEASES: '/categorys/releases',
     SITEMAP: '/categorys/sitemap',
     CHANGE_IS_ACTIVE: '/category/change/isActive/:slug/:userId',
-
+    COMPLETE_LARAVEL: '/category/complete/laravel', 
+    VIEW_TOP_LARAVEL: '/category/view/top/laravel',
   },
   PRODUCTS: {
     ROOT: '/products',

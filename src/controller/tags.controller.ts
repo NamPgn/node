@@ -4,14 +4,15 @@ import {
   updateTagService,
   deleteTagService,
   getTagsService,
-  getTagByIdService
+  getTagByIdService,
+  getTagsLaravelService
 } from "../services/tags.service";
 
 export const createTag = async (req: Request, res: Response) => {
   try {
     const { name, categories } = req.body;
     const savedTag = await createTagService({ name, categories });
-    
+
     return res.status(201).json({
       success: true,
       message: "Tag created successfully",
@@ -28,6 +29,21 @@ export const createTag = async (req: Request, res: Response) => {
 export const getTags = async (req: Request, res: Response) => {
   try {
     const tags = await getTagsService();
+    return res.status(200).json({
+      success: true,
+      data: tags
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const getTagsLaravel = async (req: Request, res: Response) => {
+  try {
+    const tags = await getTagsLaravelService();
     return res.status(200).json({
       success: true,
       data: tags
@@ -59,9 +75,9 @@ export const updateTag = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, categories } = req.body;
-    
+
     const updatedTag = await updateTagService(id, { name, categories });
-    
+
     return res.status(200).json({
       success: true,
       message: "Tag updated successfully",
@@ -79,7 +95,7 @@ export const deleteTag = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteTagService(id);
-    
+
     return res.status(200).json({
       success: true,
       message: result.message

@@ -115,7 +115,7 @@ export const getAll = async (req: any, res: Response) => {
 export const getOne = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    
+
     // Check cache trước
     const redisGetdata = await getDataFromCache(`category_${id}`);
     if (redisGetdata) {
@@ -614,7 +614,7 @@ export const push = async (req, res) => {
 export const filterCategoryTrending = async (req, res) => {
   try {
     const { width = 300, height = 400 } = req.query;
-    
+
     const data = await Category.find().sort({ up: -1 }).limit(10).select("name linkImg slug sumSeri isMovie hour quality time anotherName isActive");
 
     // Resize images với kích thước từ client
@@ -673,7 +673,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
   try {
     const page = req.query.page ? parseInt(req.query.page as string) : null;
     const limit = 16;
-    
+
     // Nếu có page thì cache theo page, không có page thì dùng key cũ
     let KEY = page ? `LASTESTCATEGORY_PAGE_${page}` : "LASTESTCATEGORY";
     let TOTAL_KEY = "LASTESTCATEGORY_TOTAL_COUNT";
@@ -698,7 +698,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
         const skip = (page - 1) * limit;
         pipeline.push({ $skip: skip });
       }
-      
+
       pipeline.push({ $limit: limit });
 
       pipeline.push(
@@ -773,7 +773,7 @@ export const getCategoryLatesupdateFromNextjs = async (req, res) => {
         await cacheData(TOTAL_KEY, totalCount);
       }
       const totalPages = Math.ceil(totalCount / limit);
-      
+
       response.pagination = {
         currentPage: page,
         pageSize: limit,
@@ -1094,6 +1094,119 @@ export const changeIsActiveCategory = async (req: Request, res: Response) => {
     return res.status(400).json({
       success: false,
       message: error.message
+    });
+  }
+};
+
+
+export const getCategoryCompleteLaravel = async (req: Request, res: Response) => {
+  try {
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 16;
+
+    // Build aggregation pipeline
+    
+
+    // Count total documents (for pagination)
+    const totalCount = await Category.countDocuments({ status: "completed" });
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Add pagination
+    const skip = (page - 1) * limit;
+
+    // Execute query
+    const data = await Category.find({ status: "completed" }).sort({ latestProductUploadDate: -1 }).skip(skip).limit(limit).select("name linkImg slug sumSeri anotherName").lean();
+
+    // Resize images
+    const updatedData = resizeImagesUrl(data, 'linkImg', 300, 450);
+
+    // Response với pagination
+    const response = {
+      data: updatedData,
+      success: true,
+      pagination: {
+        currentPage: page,
+        pageSize: limit,
+        totalPages: totalPages,
+        totalCount: totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      }
+    };
+
+    return res.json(response);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getCategoryViewTopLaravel = async (req: Request, res: Response) => {
+  try {
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 16;
+
+    // Build aggregation pipeline
+    const pipeline: any[] = [
+      
+      { $sort: { up: -1 } },
+      
+      {
+        $lookup: {
+          from: "products",
+          localField: "products",
+          foreignField: "_id",
+          as: "products",
+          pipeline: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+            { $project: { seri: 1 } }
+          ]
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          linkImg: 1,
+          slug: 1,
+          sumSeri: 1,
+          anotherName: 1,
+          products: 1,
+        }
+      }
+    ];
+
+    const totalCount = await Category.countDocuments();
+    const totalPages = Math.ceil(totalCount / limit);
+
+    const skip = (page - 1) * limit;
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    const data = await Category.aggregate(pipeline);
+
+    const updatedData = resizeImagesUrl(data, 'linkImg', 300, 450);
+
+    const response = {
+      data: updatedData,
+      success: true,
+      pagination: {
+        currentPage: page,
+        pageSize: limit,
+        totalPages: totalPages,
+        totalCount: totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      }
+    };
+
+    return res.json(response);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
     });
   }
 };

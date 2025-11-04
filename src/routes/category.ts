@@ -24,6 +24,8 @@ import {
   restoreCategory,
   permanentlyDeleteCategory,
   changeIsActiveCategory,
+  getCategoryCompleteLaravel,
+  getCategoryViewTopLaravel,
 } from "../controller/category";
 import {
   checkToken,
@@ -49,7 +51,8 @@ router.get(ROUTES.CATEGORY.FILTER, filterCategoryTrending);
 router.get(`${ROUTES.CATEGORY.ROOT}${ROUTES.CATEGORY.DETAIL}`, getOne);
 router.post(ROUTES.CATEGORY.CHANGE_LATEST, changeCategoryLatest);
 router.get(ROUTES.CATEGORY.LATEST_NEXT, getCategoryLatesupdateFromNextjs);
-
+router.get(ROUTES.CATEGORY.COMPLETE_LARAVEL, getCategoryCompleteLaravel);
+router.get(ROUTES.CATEGORY.VIEW_TOP_LARAVEL, getCategoryViewTopLaravel);
 // Protected category management routes
 router.post(
   ROUTES.CATEGORY.UPDATE,
